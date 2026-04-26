@@ -45,7 +45,7 @@
 #'
 #' For each voucher record marked as "usable", the function identifies duplicate records sharing
 #' the same collection event key. It then iterates through a predefined set of metadata fields
-#' (e.g., \code{Ctrl_fieldNotes}, \code{Ctrl_locality}, \code{Ctrl_habitat}) and fills in missing
+#' (e.g., \code{Ctrl_identifiedBy}, \code{Ctrl_locality}, \code{Ctrl_habitat}) and fills in missing
 #' values from the first available duplicate. Fields exceeding 10,000 characters are excluded to
 #' prevent memory issues.
 #'
@@ -149,7 +149,7 @@ refine_records<-function(voucher = NA,
 
     MAX_FIELD_LENGTH <- 10000
     fields_to_merge <- c(
-      'Ctrl_fieldNotes', 'Ctrl_year', 'Ctrl_stateProvince', 'Ctrl_municipality',
+      'Ctrl_identifiedBy', 'Ctrl_year', 'Ctrl_stateProvince', 'Ctrl_municipality',
       'Ctrl_locality', 'Ctrl_countryCode', 'Ctrl_eventDate', 'Ctrl_habitat',
       'Ctrl_level0Name', 'Ctrl_level1Name', 'Ctrl_level2Name', 'Ctrl_level3Name'
     )
@@ -159,7 +159,7 @@ refine_records<-function(voucher = NA,
       'Ctrl_basisOfRecord', 'Ctrl_catalogNumber', 'Ctrl_recordNumber',
       'Ctrl_recordedBy', 'Ctrl_occurrenceStatus', 'Ctrl_eventDate',
       'Ctrl_year', 'Ctrl_month', 'Ctrl_day', 'Ctrl_habitat',
-      'Ctrl_fieldNotes', 'Ctrl_eventRemarks', 'Ctrl_countryCode',
+      'Ctrl_eventRemarks', 'Ctrl_countryCode',
       'Ctrl_stateProvince', 'Ctrl_municipality', 'Ctrl_county',
       'Ctrl_locality', 'Ctrl_issue', 'Ctrl_level0Name', 'Ctrl_level1Name',
       'Ctrl_level2Name', 'Ctrl_level3Name', 'Ctrl_identifiedBy',

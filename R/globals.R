@@ -8,7 +8,7 @@ utils::globalVariables(c(
   "Ctrl_eventDate", "Ctrl_family", "Ctrl_fieldNotes", "Ctrl_gbifID",
   "Ctrl_geospatial_quality", "Ctrl_hasCoordinate", "Ctrl_institutionCode",
   "Ctrl_issue", "Ctrl_key", "Ctrl_locality", "Ctrl_month",
-  "Ctrl_moreInformativeRecord", "Ctrl_municipality",
+  "Ctrl_moreInformativeRecord", "Ctrl_municipality", "Ctrl_identifiedBy",
   "Ctrl_nameRecordedBy_Standard", "Ctrl_recordNumber",
   "Ctrl_recordNumber_Standard", "Ctrl_recordedBy", "Ctrl_scientificName",
   "Ctrl_stateProvince", "Ctrl_taxonRank", "Ctrl_verbatim_quality", "Ctrl_year",

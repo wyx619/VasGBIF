@@ -78,7 +78,7 @@ to accelerate processing of large datasets
 
 For each voucher record marked as "usable", the function identifies duplicate records sharing
 the same collection event key. It then iterates through a predefined set of metadata fields
-(e.g., \code{Ctrl_fieldNotes}, \code{Ctrl_locality}, \code{Ctrl_habitat}) and fills in missing
+(e.g., \code{Ctrl_identifiedBy}, \code{Ctrl_locality}, \code{Ctrl_habitat}) and fills in missing
 values from the first available duplicate. Fields exceeding 10,000 characters are excluded to
 prevent memory issues.
 
