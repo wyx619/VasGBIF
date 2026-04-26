@@ -43,7 +43,7 @@
 #'   \item \emph{Record Completeness}: Calculated as the sum of binary flags (1 = present, 0 = absent)
 #'   for the following 10 fields: \code{recordedBy}, \code{recordNumber}, \code{year},
 #'   \code{institutionCode}, \code{catalogNumber}, \code{locality}, \code{municipality},
-#'   \code{countryCode}, \code{stateProvince}, and \code{fieldNotes}. Higher scores indicate
+#'   \code{countryCode}, \code{stateProvince}, and \code{identifiedBy}. Higher scores indicate
 #'   more complete metadata.
 #'
 #'   \item \emph{Geospatial Quality}: Derived from GBIF geospatial issue flags in
@@ -171,7 +171,7 @@ set_digital_voucher <- function(occ_import = NA,
       tem_stateProvince = !is.na(Ctrl_stateProvince) & Ctrl_stateProvince != "",
       tem_municipality = !is.na(Ctrl_municipality) & Ctrl_municipality != "",
       tem_locality = !is.na(Ctrl_locality) & Ctrl_locality != "",
-      tem_fieldNotes = !is.na(Ctrl_fieldNotes) & Ctrl_fieldNotes != ""
+      tem_identifiedBy = !is.na(Ctrl_identifiedBy) & Ctrl_identifiedBy != ""
     )]
   }
 
@@ -230,7 +230,7 @@ set_digital_voucher <- function(occ_import = NA,
     # Calculate verbatim quality score (record completeness)
     occ[, Ctrl_verbatim_quality := tem_recordedBy + tem_recordNumber + tem_year +
           tem_institutionCode + tem_catalogNumber + tem_locality +
-          tem_municipality + tem_stateProvince + tem_COUNTRY + tem_fieldNotes]
+          tem_municipality + tem_stateProvince + tem_COUNTRY + tem_identifiedBy]
 
     # Calculate total quality score
     occ[, Ctrl_moreInformativeRecord := Ctrl_geospatial_quality + Ctrl_verbatim_quality]
@@ -490,7 +490,7 @@ set_digital_voucher <- function(occ_import = NA,
                       "Ctrl_basisOfRecord", "Ctrl_catalogNumber", "Ctrl_recordNumber",
                       "Ctrl_recordedBy", "Ctrl_georeferenceVerificationStatus",
                       "Ctrl_occurrenceStatus", "Ctrl_eventDate", "Ctrl_year", "Ctrl_month",
-                      "Ctrl_day", "Ctrl_habitat", "Ctrl_fieldNotes", "Ctrl_eventRemarks",
+                      "Ctrl_day", "Ctrl_habitat", "Ctrl_identifiedBy", "Ctrl_eventRemarks",
                       "Ctrl_locationID", "Ctrl_higherGeography", "Ctrl_islandGroup",
                       "Ctrl_island", "Ctrl_countryCode", "Ctrl_stateProvince",
                       "Ctrl_municipality", "Ctrl_county", "Ctrl_locality",

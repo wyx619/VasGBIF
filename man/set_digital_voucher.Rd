@@ -81,7 +81,7 @@ The quality scoring system evaluates each record across two dimensions:
 \item \emph{Record Completeness}: Calculated as the sum of binary flags (1 = present, 0 = absent)
 for the following 10 fields: \code{recordedBy}, \code{recordNumber}, \code{year},
 \code{institutionCode}, \code{catalogNumber}, \code{locality}, \code{municipality},
-\code{countryCode}, \code{stateProvince}, and \code{fieldNotes}. Higher scores indicate
+\code{countryCode}, \code{stateProvince}, and \code{identifiedBy}. Higher scores indicate
 more complete metadata.
 
 \item \emph{Geospatial Quality}: Derived from GBIF geospatial issue flags in

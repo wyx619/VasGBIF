@@ -1,3 +1,10 @@
+# UltraGBIF 3.4.0
+
+## Improvements
+
+-   change Record Completeness Score calculation in `set_digital_voucher()`, replace *fieledNotes* with *identifiedBy*.
+-   test the package on R 4.6.0
+
 # UltraGBIF 3.3.2
 
 ## Improvements
