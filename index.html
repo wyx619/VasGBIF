@@ -11,7 +11,13 @@
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" sizes="any" href="favicon.ico">
 <link rel="manifest" href="site.webmanifest">
-<script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<!-- mathjax math --><script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script><script>
+  window.MathJax = {
+    chtml: {
+      fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
+    }
+  };
+</script><script src="lightswitch.js"></script><script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
@@ -24,7 +30,7 @@
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
-    <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
+    <nav class="navbar navbar-expand-lg fixed-top " aria-label="Site navigation"><div class="container">
 
     <a class="navbar-brand me-2" href="index.html">VasGBIF</a>
 
@@ -37,6 +43,7 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
+<li class="nav-item"><a class="nav-link" href="reference/VasGBIF.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
@@ -84,11 +91,14 @@
 <ol style="list-style-type: decimal">
 <li>install VasGBIF via official CRAN (Recommend)</li>
 </ol>
-<p><code>{r} install.packages("VasGBIF")</code></p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"VasGBIF"</span><span class="op">)</span></span></code></pre></div>
 <ol start="2" style="list-style-type: decimal">
 <li>install VasGBIF via GitHub (For dev version)</li>
 </ol>
-<p><code>{r} if (!require(pak)) install.packages(pak) pak::pak('wyx619/VasGBIF')</code></p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">require</a></span><span class="op">(</span><span class="va"><a href="https://pak.r-lib.org/" class="external-link">pak</a></span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="va">pak</span><span class="op">)</span></span>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">'wyx619/VasGBIF'</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="workflow">Workflow<a class="anchor" aria-label="anchor" href="#workflow"></a>
@@ -125,38 +135,44 @@
 <h2 id="minimal-complete-workflow">Minimal Complete Workflow<a class="anchor" aria-label="anchor" href="#minimal-complete-workflow"></a>
 </h2>
 <p>The following code demonstrates the complete VasGBIF workflow from data import to records mapping:</p>
-<p>```{r} # Step 1: Import (built-in example, or use your own ZIP) gbif_file &lt;- system.file( “extdata”, “0003386-260721160103020.zip”, package = “VasGBIF” ) occ_import &lt;- import_records(path = gbif_file)</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Step 1: Import (built-in example, or use your own ZIP)</span></span>
+<span><span class="va">gbif_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span></span>
+<span>  <span class="st">"extdata"</span>, <span class="st">"0003386-260721160103020.zip"</span>,</span>
+<span>  package <span class="op">=</span> <span class="st">"VasGBIF"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">occ_import</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/import_records.html">import_records</a></span><span class="op">(</span>path <span class="op">=</span> <span class="va">gbif_file</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Step 2: Resolve taxon names against WCVP</span></span>
+<span><span class="va">taxa_checked</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/check_taxon.html">check_taxon</a></span><span class="op">(</span>occ_import <span class="op">=</span> <span class="va">occ_import</span>, accuracy <span class="op">=</span> <span class="fl">0.9</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Step 3: Build collection-event keys</span></span>
+<span><span class="va">collection_keys</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/get_collections.html">get_collections</a></span><span class="op">(</span></span>
+<span>  occ_import <span class="op">=</span> <span class="va">occ_import</span>,</span>
+<span>  taxa_checked <span class="op">=</span> <span class="va">taxa_checked</span>,</span>
+<span>  precision <span class="op">=</span> <span class="fl">2L</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Step 4: Select digital vouchers</span></span>
+<span><span class="va">voucher</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/set_vouchers.html">set_vouchers</a></span><span class="op">(</span></span>
+<span>  occ_import <span class="op">=</span> <span class="va">occ_import</span>,</span>
+<span>  taxa_checked <span class="op">=</span> <span class="va">taxa_checked</span>,</span>
+<span>  collection_keys <span class="op">=</span> <span class="va">collection_keys</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Step 5: Validate coordinates and annotate native status</span></span>
+<span><span class="va">refined_records</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/refine_records.html">refine_records</a></span><span class="op">(</span></span>
+<span>  voucher <span class="op">=</span> <span class="va">voucher</span>,</span>
+<span>  threads <span class="op">=</span> <span class="fl">4</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Step 6: Export records</span></span>
+<span><span class="fu"><a href="reference/export_records.html">export_records</a></span><span class="op">(</span>refined_records <span class="op">=</span> <span class="va">refined_records</span>, export_path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/getwd.html" class="external-link">getwd</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> </span>
+<span></span>
+<span></span>
+<span><span class="co"># Optional: visualise on an interactive map</span></span>
+<span><span class="fu"><a href="reference/map_records.html">map_records</a></span><span class="op">(</span>refined_records <span class="op">=</span> <span class="va">refined_records</span>, precision <span class="op">=</span> <span class="fl">3</span>, cex <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></code></pre></div>
 </div>
-</div>
-<div class="section level1">
-<h1 id="step-2-resolve-taxon-names-against-wcvp">Step 2: Resolve taxon names against WCVP<a class="anchor" aria-label="anchor" href="#step-2-resolve-taxon-names-against-wcvp"></a>
-</h1>
-<p>taxa_checked &lt;- check_taxon(occ_import = occ_import, accuracy = 0.9)</p>
-</div>
-<div class="section level1">
-<h1 id="step-3-build-collection-event-keys">Step 3: Build collection-event keys<a class="anchor" aria-label="anchor" href="#step-3-build-collection-event-keys"></a>
-</h1>
-<p>collection_keys &lt;- get_collections( occ_import = occ_import, taxa_checked = taxa_checked, precision = 2L )</p>
-</div>
-<div class="section level1">
-<h1 id="step-4-select-digital-vouchers">Step 4: Select digital vouchers<a class="anchor" aria-label="anchor" href="#step-4-select-digital-vouchers"></a>
-</h1>
-<p>voucher &lt;- set_vouchers( occ_import = occ_import, taxa_checked = taxa_checked, collection_keys = collection_keys )</p>
-</div>
-<div class="section level1">
-<h1 id="step-5-validate-coordinates-and-annotate-native-status">Step 5: Validate coordinates and annotate native status<a class="anchor" aria-label="anchor" href="#step-5-validate-coordinates-and-annotate-native-status"></a>
-</h1>
-<p>refined_records &lt;- refine_records( voucher = voucher, threads = 4 )</p>
-</div>
-<div class="section level1">
-<h1 id="step-6-export-records">Step 6: Export records<a class="anchor" aria-label="anchor" href="#step-6-export-records"></a>
-</h1>
-<p>export_records(refined_records = refined_records, export_path = getwd())</p>
-</div>
-<div class="section level1">
-<h1 id="optional-visualise-on-an-interactive-map">Optional: visualise on an interactive map<a class="anchor" aria-label="anchor" href="#optional-visualise-on-an-interactive-map"></a>
-</h1>
-<p>map_records(refined_records = refined_records, precision = 3, cex = 3) ```</p>
 <div class="section level2">
 <h2 id="performance">Performance<a class="anchor" aria-label="anchor" href="#performance"></a>
 </h2>
@@ -187,7 +203,6 @@
 <p>Mullen, Lincoln A., Kenneth Benoit, Os Keyes, Dmitry Selivanov, andJeffrey Arnold. 2018. “Fast, Consistent Tokenization of NaturalLanguage Text” 3: 655. <a href="https://doi.org/10.21105/joss.00655" class="external-link uri">https://doi.org/10.21105/joss.00655</a>.</p>
 </div>
 </div>
-
   </main><aside class="col-md-3"><div class="links">
 <h2 data-toc-skip>Links</h2>
 <ul class="list-unstyled">

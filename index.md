@@ -53,11 +53,18 @@ One can install VasGBIF by any of the 2 ways below:
 
 1.  install VasGBIF via official CRAN (Recommend)
 
-`{r} install.packages("VasGBIF")`
+``` r
+
+install.packages("VasGBIF")
+```
 
 2.  install VasGBIF via GitHub (For dev version)
 
-`{r} if (!require(pak)) install.packages(pak) pak::pak('wyx619/VasGBIF')`
+``` r
+
+if (!require(pak)) install.packages(pak)
+pak::pak('wyx619/VasGBIF')
+```
 
 ## Workflow
 
@@ -163,36 +170,45 @@ tracheophyte records for advanced biodiversity research.
 The following code demonstrates the complete VasGBIF workflow from data
 import to records mapping:
 
-\`\`\`{r} \# Step 1: Import (built-in example, or use your own ZIP)
-gbif_file \<- system.file( “extdata”, “0003386-260721160103020.zip”,
-package = “VasGBIF” ) occ_import \<- import_records(path = gbif_file)
+``` r
+
+# Step 1: Import (built-in example, or use your own ZIP)
+gbif_file <- system.file(
+  "extdata", "0003386-260721160103020.zip",
+  package = "VasGBIF"
+)
+occ_import <- import_records(path = gbif_file)
 
 # Step 2: Resolve taxon names against WCVP
-
-taxa_checked \<- check_taxon(occ_import = occ_import, accuracy = 0.9)
+taxa_checked <- check_taxon(occ_import = occ_import, accuracy = 0.9)
 
 # Step 3: Build collection-event keys
-
-collection_keys \<- get_collections( occ_import = occ_import,
-taxa_checked = taxa_checked, precision = 2L )
+collection_keys <- get_collections(
+  occ_import = occ_import,
+  taxa_checked = taxa_checked,
+  precision = 2L
+)
 
 # Step 4: Select digital vouchers
-
-voucher \<- set_vouchers( occ_import = occ_import, taxa_checked =
-taxa_checked, collection_keys = collection_keys )
+voucher <- set_vouchers(
+  occ_import = occ_import,
+  taxa_checked = taxa_checked,
+  collection_keys = collection_keys
+)
 
 # Step 5: Validate coordinates and annotate native status
-
-refined_records \<- refine_records( voucher = voucher, threads = 4 )
+refined_records <- refine_records(
+  voucher = voucher,
+  threads = 4
+)
 
 # Step 6: Export records
+export_records(refined_records = refined_records, export_path = getwd()) 
 
-export_records(refined_records = refined_records, export_path = getwd())
 
 # Optional: visualise on an interactive map
-
 map_records(refined_records = refined_records, precision = 3, cex = 3)
-\`\`\`
+```
 
 ## Performance
 
