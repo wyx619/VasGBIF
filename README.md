@@ -24,13 +24,13 @@ One can install VasGBIF by any of the 2 ways below:
 
 1.  install VasGBIF via official CRAN (Recommend)
 
-```{r}
+``` r
 install.packages("VasGBIF")
 ```
 
 2.  install VasGBIF via GitHub (For dev version)
 
-```{r}
+``` r
 if (!require(pak)) install.packages(pak)
 pak::pak('wyx619/VasGBIF')
 ```
@@ -77,7 +77,7 @@ Anyway, VasGBIF integrates these components into a unified, automated workflow t
 
 The following code demonstrates the complete VasGBIF workflow from data import to records mapping:
 
-```{r}
+``` r
 # Step 1: Import (built-in example, or use your own ZIP)
 gbif_file <- system.file(
   "extdata", "0003386-260721160103020.zip",

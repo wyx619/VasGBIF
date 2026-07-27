@@ -1,13 +1,22 @@
 url: https://wyx619.github.io/VasGBIF/
 template:
+  bootstrap: 5
+  math-rendering: mathjax
+  light-switch: true
   bslib:
-    version: 5
+    primary: "#0054AD"
+    border-radius: 0.5rem
+    btn-border-radius: 0.25rem
+    danger: "#A6081A"
 
 navbar:
   structure:
-    left: [reference, articles, news]
+    left: [getstart, reference, articles, news]
     right: [github]
   components:
+    getstart:
+      text: Get started
+      href: reference/VasGBIF.html
     reference:
       text: Reference
       href: reference/index.html
