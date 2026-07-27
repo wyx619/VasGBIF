@@ -295,6 +295,10 @@ utils::globalVariables(c(
   "area_code_l3",
   "LEVEL3_COD",
   "summary",
+  # ---- refine_records mapping columns ----
+  ".summary",
+  # ---- check_taxon temp column ----
+  "wcvp_searchedName2",
   # ---- map_records ----
   "geohash",
   # ---- Package datasets ----

@@ -13,9 +13,9 @@
 #'   threads. A message reports the selected and available thread counts.
 #'
 #' @details
-#' Absolute thread counts cannot exceed the number of cores reported by
-#' [parallel::detectCores()]. Values less than or equal to zero and non-numeric
-#' inputs produce an error.
+#' Absolute thread counts exceeding the number of cores reported by
+#' [parallel::detectCores()] are silently capped to that limit with a message.
+#' Values less than or equal to zero and non-numeric inputs produce an error.
 #'
 #' This function is also used by [refine_records()] to normalize its `threads`
 #' argument.
@@ -33,7 +33,8 @@ set_threads <- function(x) {
   }
 
   if (x > total) {
-    stop("more than all available threads!")
+    message("x exceeds available threads; capping to ", total)
+    x <- total
   }
 
   if (x >= 1) {

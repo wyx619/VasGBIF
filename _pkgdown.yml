@@ -28,6 +28,9 @@ navbar:
       href: https://github.com/wyx619/VasGBIF
 
 reference:
+  - title: "Package overview"
+    contents:
+      - VasGBIF
   - title: "Stage 1 — Import and taxonomic standardisation"
     contents:
       - import_records
