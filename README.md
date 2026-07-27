@@ -31,9 +31,7 @@ install.packages("VasGBIF")
 2.  install VasGBIF via GitHub (For dev version)
 
 ```{r}
-if (!require(pak)) {
-  install.packages(pak)
-}
+if (!require(pak)) install.packages(pak)
 pak::pak('wyx619/VasGBIF')
 ```
 
