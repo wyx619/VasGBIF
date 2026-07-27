@@ -1,6 +1,8 @@
-<a href="https://github.com/wyx619/VasGBIF/"><img src="man/figures/logo.png" align="right" height="70" width="70"/></a>
+# VasGBIF <img src="man/figures/logo.png" align="right" width="120"/>
 
-# VasGBIF: Fast and Easy Compilation of Vascular Plants Occurrence Records from GBIF
+## Fast and Easy Compilation of Vascular Plants Occurrence Records from GBIF
+
+[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active) [![codecov.io](https://codecov.io/github/wyx619/VasGBIF/coverage.svg?branch=master)](https://codecov.io/github/wyx619/VasGBIF?branch=master) [![R-CMD-check](https://github.com/r-lib/rcmdcheck/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/github/wyx619/actions/workflows/R-CMD-check.yaml)
 
 ## Introduction
 

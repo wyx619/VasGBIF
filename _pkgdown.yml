@@ -1,0 +1,56 @@
+url: https://wyx619.github.io/VasGBIF/
+template:
+  bslib:
+    version: 5
+
+navbar:
+  structure:
+    left: [reference, articles, news]
+    right: [github]
+  components:
+    reference:
+      text: Reference
+      href: reference/index.html
+    articles:
+      text: Articles
+      menu:
+        - text: Get Records (GBIF download)
+          href: articles/GetRecords.html
+        - text: Quick-start example
+          href: articles/Example.html
+        - text: Full application (with letsR)
+          href: articles/Application.html
+    news:
+      text: News
+      href: news/index.html
+    github:
+      icon: fa-github
+      href: https://github.com/wyx619/VasGBIF
+
+reference:
+  - title: "Stage 1 — Import and taxonomic standardisation"
+    contents:
+      - import_records
+      - check_taxon
+  - title: "Stage 2 — Duplicate detection via collection-event keys"
+    contents:
+      - get_collections
+      - set_vouchers
+  - title: "Stage 3 — Coordinate validation and native-status annotation"
+    contents:
+      - refine_records
+      - detect_native_status
+      - restore_duplicates
+  - title: "Stage 4 — Export and visualisation"
+    contents:
+      - export_records
+      - map_records
+  - title: "Utilities"
+    contents:
+      - set_threads
+  - title: "Internal datasets"
+    contents:
+      - Distributions
+      - EnumOccurrenceIssue
+      - wgsrpd3
+      - WorldLandMap

@@ -12,6 +12,9 @@
 *.Rcheck/
 Meta/
 
+# ---- pkgdown local cache (favicons built in CI) ----
+pkgdown/
+
 # ---- vignette outputs (source vignettes are in vignettes/) ----
 inst/doc/
 
@@ -22,7 +25,6 @@ Thumbs.db
 # ---- Misc ----
 .httr-oauth
 .quarto
-references.bib
 docs/
 /doc/
 /Meta/

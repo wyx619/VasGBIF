@@ -8,6 +8,8 @@ Authors@R:
     person("Yuxuan Wang", email = "wyx1743@gmail.com",
            role = c("aut", "cre"),
            comment = c(ORCID = "0009-0003-7817-748X"))
+URL: https://github.com/wyx619/VasGBIF (devel), https://wyx619.github.io/VasGBIF/ (documentation)
+BugReports: https://github.com/wyx619/VasGBIF/issues
 Description: GBIF hosts over 500 million occurrence records of tracheophyte (vascular plants). However, dealing with them typically involves lots of workflows and time, posing significant challenges for researchers. To address these limitations, we present VasGBIF, a fast and easy R package to parse and merge enormous tracheophyte records.
 License: GPL (>= 3) | file LICENSE
 Encoding: UTF-8
