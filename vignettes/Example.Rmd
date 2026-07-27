@@ -41,7 +41,7 @@ The VasGBIF pipeline consists of **4 stages** with **7 core functions**:
 | **Stage 3:** Coordinate validation and native-status annotation | `refine_records()` |
 | **Stage 4:** Export and visualisation | `export_records()`, `map_records()` |
 
-After the three core stages, approximately 35% of the initial records are retained as high-quality, non-redundant data.
+After all, approximately 30% of the initial records are retained as high-quality, non-redundant data.
 
 ```{r init}
 library(VasGBIF)

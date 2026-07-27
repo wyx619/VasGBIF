@@ -3,6 +3,7 @@ test_that("set_threads is exported", {
 })
 
 test_that("set_threads accepts an absolute thread count", {
+  withr::local_envvar("_R_CHECK_LIMIT_CORES_" = "FALSE")
   total <- parallel::detectCores()
   requested <- min(2, total)
 
@@ -15,6 +16,7 @@ test_that("set_threads accepts an absolute thread count", {
 })
 
 test_that("set_threads converts a proportion of available cores", {
+  withr::local_envvar("_R_CHECK_LIMIT_CORES_" = "FALSE")
   total <- parallel::detectCores()
   expected <- round(total * 0.5)
 
@@ -27,6 +29,7 @@ test_that("set_threads converts a proportion of available cores", {
 })
 
 test_that("set_threads rounds numeric thread counts", {
+  withr::local_envvar("_R_CHECK_LIMIT_CORES_" = "FALSE")
   skip_if(parallel::detectCores() < 2)
 
   expect_message(result <- set_threads(1.6), "2/", fixed = TRUE)
@@ -34,13 +37,12 @@ test_that("set_threads rounds numeric thread counts", {
 })
 
 test_that("set_threads rejects invalid inputs", {
-  total <- parallel::detectCores()
-
   expect_snapshot(error = TRUE, set_threads("2"))
   expect_snapshot(error = TRUE, set_threads(0))
 })
 
 test_that("set_threads caps requests exceeding available cores", {
+  withr::local_envvar("_R_CHECK_LIMIT_CORES_" = "FALSE")
   total <- parallel::detectCores()
 
   expect_message(
@@ -52,10 +54,7 @@ test_that("set_threads caps requests exceeding available cores", {
 
 test_that("set_threads caps threads during R CMD check", {
   skip_on_cran()
-  old <- Sys.getenv("_R_CHECK_LIMIT_CORES_")
-  on.exit(Sys.setenv("_R_CHECK_LIMIT_CORES_" = old))
-
-  Sys.setenv("_R_CHECK_LIMIT_CORES_" = "TRUE")
+  withr::local_envvar("_R_CHECK_LIMIT_CORES_" = "TRUE")
 
   expect_message(
     result <- set_threads(4),

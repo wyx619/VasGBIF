@@ -23,7 +23,7 @@
 #'
 #' VasGBIF provides a reproducible workflow organised into four sequential
 #' stages built around seven core functions. The core pipeline typically
-#' retains approximately 35% of input records as high-quality, non-redundant
+#' retains approximately 30% of input records as high-quality, non-redundant
 #' data.
 #'
 #' ### Stage 1 — Import and taxonomic standardisation
