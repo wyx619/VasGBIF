@@ -22,9 +22,9 @@ cores into an integer number of worker threads. The number of available cores
 is determined by \code{\link[parallel:detectCores]{parallel::detectCores()}}.
 }
 \details{
-Absolute thread counts cannot exceed the number of cores reported by
-\code{\link[parallel:detectCores]{parallel::detectCores()}}. Values less than or equal to zero and non-numeric
-inputs produce an error.
+Absolute thread counts exceeding the number of cores reported by
+\code{\link[parallel:detectCores]{parallel::detectCores()}} are silently capped to that limit with a message.
+Values less than or equal to zero and non-numeric inputs produce an error.
 
 This function is also used by \code{\link[=refine_records]{refine_records()}} to normalize its \code{threads}
 argument.

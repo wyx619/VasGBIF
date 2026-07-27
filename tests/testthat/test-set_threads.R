@@ -38,5 +38,14 @@ test_that("set_threads rejects invalid inputs", {
 
   expect_snapshot(error = TRUE, set_threads("2"))
   expect_snapshot(error = TRUE, set_threads(0))
-  expect_snapshot(error = TRUE, set_threads(total + 1))
+})
+
+test_that("set_threads caps requests exceeding available cores", {
+  total <- parallel::detectCores()
+
+  expect_message(
+    result <- set_threads(total + 1),
+    "x exceeds available threads; capping to"
+  )
+  expect_identical(result, as.numeric(total))
 })
