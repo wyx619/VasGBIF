@@ -49,3 +49,18 @@ test_that("set_threads caps requests exceeding available cores", {
   )
   expect_identical(result, as.numeric(total))
 })
+
+test_that("set_threads caps threads during R CMD check", {
+  skip_on_cran()
+  old <- Sys.getenv("_R_CHECK_LIMIT_CORES_")
+  on.exit(Sys.setenv("_R_CHECK_LIMIT_CORES_" = old))
+
+  Sys.setenv("_R_CHECK_LIMIT_CORES_" = "TRUE")
+
+  expect_message(
+    result <- set_threads(4),
+    "R CMD check limits cores to 2; capping",
+    fixed = TRUE
+  )
+  expect_identical(result, 2)
+})

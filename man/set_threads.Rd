@@ -26,6 +26,10 @@ Absolute thread counts exceeding the number of cores reported by
 \code{\link[parallel:detectCores]{parallel::detectCores()}} are silently capped to that limit with a message.
 Values less than or equal to zero and non-numeric inputs produce an error.
 
+During \verb{R CMD check} (when the environment variable \verb{_R_CHECK_LIMIT_CORES_}
+is set to \code{"TRUE"}), threads are capped to a maximum of 2 to comply with the
+check environment limit on parallel processes.
+
 This function is also used by \code{\link[=refine_records]{refine_records()}} to normalize its \code{threads}
 argument.
 }

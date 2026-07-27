@@ -12,7 +12,7 @@ template:
 navbar:
   structure:
     left: [getstart, reference, articles, news]
-    right: [github]
+    right: [search, lightswitch, github]
   components:
     getstart:
       text: Get started
@@ -51,8 +51,6 @@ reference:
   - title: "Stage 3 — Coordinate validation and native-status annotation"
     contents:
       - refine_records
-      - detect_native_status
-      - restore_duplicates
   - title: "Stage 4 — Export and visualisation"
     contents:
       - export_records
@@ -60,6 +58,8 @@ reference:
   - title: "Utilities"
     contents:
       - set_threads
+      - detect_native_status
+      - restore_duplicates
   - title: "Internal datasets"
     contents:
       - Distributions
