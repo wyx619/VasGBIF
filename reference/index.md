@@ -26,10 +26,6 @@
 
 - [`refine_records()`](https://wyx619.github.io/VasGBIF/reference/refine_records.md)
   : Validate coordinates, restore metadata, and detect native status
-- [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
-  : Detect native status from WGSRPD distributions
-- [`restore_duplicates()`](https://wyx619.github.io/VasGBIF/reference/restore_duplicates.md)
-  : Restore missing metadata from duplicate records
 
 ## Stage 4 — Export and visualisation
 
@@ -42,6 +38,10 @@
 
 - [`set_threads()`](https://wyx619.github.io/VasGBIF/reference/set_threads.md)
   : Normalize the number of worker threads
+- [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
+  : Detect native status from WGSRPD distributions
+- [`restore_duplicates()`](https://wyx619.github.io/VasGBIF/reference/restore_duplicates.md)
+  : Restore missing metadata from duplicate records
 
 ## Internal datasets
 

@@ -63,8 +63,12 @@ install.packages("VasGBIF")
 ``` r
 
 if (!require(pak)) install.packages(pak)
-pak::pak('wyx619/VasGBIF')
+pak::pak('wyx619/VasGBIF@master')
 ```
+
+## Wiki
+
+Online wiki website is at <https://wyx619.github.io/VasGBIF/>.
 
 ## Workflow
 
@@ -294,10 +298,6 @@ NaturalLanguage Text” 3: 655. <https://doi.org/10.21105/joss.00655>.
 
 - [`refine_records()`](https://wyx619.github.io/VasGBIF/reference/refine_records.md)
   : Validate coordinates, restore metadata, and detect native status
-- [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
-  : Detect native status from WGSRPD distributions
-- [`restore_duplicates()`](https://wyx619.github.io/VasGBIF/reference/restore_duplicates.md)
-  : Restore missing metadata from duplicate records
 
 ## Stage 4 — Export and visualisation
 
@@ -310,6 +310,10 @@ NaturalLanguage Text” 3: 655. <https://doi.org/10.21105/joss.00655>.
 
 - [`set_threads()`](https://wyx619.github.io/VasGBIF/reference/set_threads.md)
   : Normalize the number of worker threads
+- [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
+  : Detect native status from WGSRPD distributions
+- [`restore_duplicates()`](https://wyx619.github.io/VasGBIF/reference/restore_duplicates.md)
+  : Restore missing metadata from duplicate records
 
 ## Internal datasets
 

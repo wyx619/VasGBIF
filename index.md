@@ -63,8 +63,12 @@ install.packages("VasGBIF")
 ``` r
 
 if (!require(pak)) install.packages(pak)
-pak::pak('wyx619/VasGBIF')
+pak::pak('wyx619/VasGBIF@master')
 ```
+
+## Wiki
+
+Online wiki website is at <https://wyx619.github.io/VasGBIF/>.
 
 ## Workflow
 
