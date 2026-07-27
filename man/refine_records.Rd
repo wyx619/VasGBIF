@@ -2,144 +2,108 @@
 % Please edit documentation in R/refine_records.R
 \name{refine_records}
 \alias{refine_records}
-\title{Validate coordinates, restore metadata, and extract geographic distribution status}
+\title{Validate coordinates, restore metadata, and detect native status}
 \usage{
 refine_records(
   voucher = NA,
   threads = 4,
-  save_path = NA,
   tests = c("capitals", "centroids", "equal", "gbif", "institutions", "outliers", "seas",
     "zeros")
 )
 }
 \arguments{
-\item{voucher}{UltraGBIF_voucher object from \code{\link{set_digital_voucher}}}
+\item{voucher}{A \code{vouchers} object returned by \code{\link[=set_vouchers]{set_vouchers()}}.}
 
-\item{threads}{number of threads for parallel coordinate validation. Can be specified as:
-\itemize{
-\item An integer >= 1: absolute number of threads to use
-\item A value between 0 and 1: proportion of available cores to use (e.g., 0.5 = 50\%)
-}
-Default is 4.}
+\item{threads}{Number of threads to use for coordinate validation. Use an integer \verb{>= 1} for an
+absolute count, or a value between \code{0} and \code{1} for a proportion of available cores. The
+default is \code{4}.}
 
-\item{save_path}{local directory path where refined records will be exported as compressed CSV files.
-If not provided, results are returned in memory only.}
-
-\item{tests}{character vector specifying which CoordinateCleaner validation tests to apply.
-Choose one or more from: \code{"capitals"}, \code{"centroids"}, \code{"equal"}, \code{"gbif"},
-\code{"institutions"}, \code{"outliers"}, \code{"seas"}, \code{"zeros"}.
-Default is all tests.}
+\item{tests}{Character vector of CoordinateCleaner validation tests to apply. Choose one or
+more of \code{"capitals"}, \code{"centroids"}, \code{"equal"}, \code{"gbif"}, \code{"institutions"},
+\code{"outliers"}, \code{"seas"}, and \code{"zeros"}. The default uses all tests.}
 }
 \value{
-UltraGBIF_refine list containing:
+A \code{refined} object (list) with three elements:
 \itemize{
-\item \code{native_records}: A data.table of records classified as native occurrences,
-including validated coordinates, restored metadata, and WGSRPD area codes
-\item \code{other_records}: A data.table of records classified as non-native (introduced,
-extinct, location_doubtful, or unknown)
-\item \code{runtime}: Execution time of the function
+\item \code{all_records}: a \code{data.table} of records with validated coordinates, restored metadata, and
+native status classification
+\item \code{CoordinateProblematic}: a \code{data.table} of records that failed one or more CoordinateCleaner
+tests
+\item \code{runtime}: the elapsed execution time
 }
-When \code{save_path} is specified, two compressed CSV files are generated:
-\itemize{
-\item \code{usable_refined_records.csv.gz}: All refined records with validated coordinates
-and restored metadata
-\item \code{native_refined_records.csv.gz}: Subset of refined records classified as native
-occurrences
-}
+
+Use \code{\link[=export_records]{export_records()}} to write results to compressed CSV files.
 }
 \description{
-This module validates spatial information and restores detailed metadata for usable
-vouchers. It performs automated coordinate validation using CoordinateCleaner (Zizka et al., 2019)
-to flag spatial errors (e.g., centroids, capitals, institutions). It also extracts native status
-information based on the World Geographical Scheme for Recording Plant Distributions (WGSRPD) to
-classify records as native or non-native.
+Validates spatial information, restores metadata for usable vouchers, and
+classifies records by geographic distribution status.
 
-The function implements the following workflow:
-\itemize{
-\item \strong{Metadata restoration}: For each digital voucher identified in the previous step,
-consolidates missing or incomplete metadata fields from its associated duplicate records.
-Fields such as locality descriptions, habitat information, and collection dates are merged
-to produce the most complete record possible
-\item \strong{Coordinate validation}: Applies CoordinateCleaner's automated spatial validation
-suite to detect and flag common geospatial errors, including records located at country centroids,
-capital cities, biodiversity institutions, maritime coordinates, and other known error patterns
-\item \strong{Geographic distribution extraction}: Matches each record's coordinates against
-WGSRPD Level 3 areas and cross-references with WCVP (World Checklist of Vascular Plants)
-distribution data to determine whether the occurrence falls within the species' native range
-\item \strong{Native status classification}: Classifies records as "native", "introduced",
-"extinct", "location_doubtful", or "unknown" based on the intersection of observed coordinates
-with documented distribution areas
-\item \strong{Parallel processing}: Distributes coordinate validation across multiple threads
-to accelerate processing of large datasets
+The function combines three steps:
+\enumerate{
+\item Restores missing metadata from duplicate records via \code{\link[=restore_duplicates]{restore_duplicates()}}.
+\item Runs \link[CoordinateCleaner:clean_coordinates]{CoordinateCleaner::clean_coordinates} checks in parallel to flag common spatial issues such as centroids,
+capitals, institutions, and marine records.
+\item Assigns native status by matching validated coordinates to WGSRPD Level 3 areas and WCVP
+distribution data via \code{\link[=detect_native_status]{detect_native_status()}}.
 }
 }
 \details{
-\strong{Metadata Restoration Strategy:}
+\subsection{Metadata restoration}{
 
-For each voucher record marked as "usable", the function identifies duplicate records sharing
-the same collection event key. It then iterates through a predefined set of metadata fields
-(e.g., \code{Ctrl_identifiedBy}, \code{Ctrl_locality}, \code{Ctrl_habitat}) and fills in missing
-values from the first available duplicate. Fields exceeding 10,000 characters are excluded to
-prevent memory issues.
-
-\strong{Coordinate Validation Tests:}
-
-The following spatial validation tests are available via CoordinateCleaner:
-\itemize{
-\item \code{capitals}: Flags records located at country capital coordinates
-\item \code{centroids}: Flags records at country or province centroids
-\item \code{equal}: Flags records with identical latitude and longitude values
-\item \code{gbif}: Flags records matching known GBIF geospatial issues
-\item \code{institutions}: Flags records at known herbarium or museum coordinates
-\item \code{outliers}: Flags records that are geographic outliers within their species' range
-\item \code{seas}: Flags records located in marine areas for terrestrial species
-\item \code{zeros}: Flags records at coordinates (0, 0)
+\code{\link[=restore_duplicates]{restore_duplicates()}} fills missing metadata fields in usable voucher records using values from
+duplicate records that share the same collection event key. Restored fields include \code{eventDate},
+\code{year}, \code{month}, \code{day}, \code{identifiedBy}, \code{countryCode}, \code{stateProvince}, and \code{locality}.
+Candidate values longer than 10,000 characters are skipped.
 }
 
-\strong{WGSRPD Area Classification:}
+\subsection{Coordinate validation}{
 
-The native status classification is determined by intersecting validated coordinates with
-WGSRPD Level 3 administrative areas and cross-referencing with WCVP distribution data:
+Coordinate validation is performed with CoordinateCleaner. Available tests are:
 \itemize{
-\item \code{native}: Record falls within the species' documented native range
-\item \code{introduced}: Record falls within an area where the species is known to be introduced
-\item \code{extinct}: Record falls within an area where the species is documented as extinct
-\item \code{location_doubtful}: WCVP flags the distribution record as uncertain
-\item \code{unknown}: No matching distribution data or area assignment available
+\item \code{capitals}: records at country capital coordinates
+\item \code{centroids}: records at country or province centroids
+\item \code{equal}: records with identical latitude and longitude values
+\item \code{gbif}: records matching known GBIF geospatial issues
+\item \code{institutions}: records at known herbarium or museum coordinates
+\item \code{outliers}: geographic outliers within a species range
+\item \code{seas}: records located in marine areas for terrestrial species
+\item \code{zeros}: records at coordinates \verb{(0, 0)}
+}
+}
+
+\subsection{Native status detection}{
+
+Delegated to \code{\link[=detect_native_status]{detect_native_status()}}. Records that pass coordinate validation are matched
+against WCVP distribution data via WGSRPD Level 3 polygons using a two-stage priority-based
+classification. The result is a \code{native_status} label for each record: \code{"native"},
+\code{"introduced"}, \code{"extinct"}, \code{"location_doubtful"}, or \code{"unknown"}.
 }
 }
 \examples{
-\dontrun{
-taxa_checked <- check_occ_taxon(occ_import = occ_import,accuracy = 0.9)
+\dontshow{if (interactive() && exists("voucher")) withAutoprint(\{ # examplesIf}
 
-collectors_dictionary <- check_collectors(occ_import = occ_import,
-min_char = 2)
-
-collection_key <- set_collection_mark(occ_import = occ_import,
-collectors_dictionary = collectors_dictionary)
-
-voucher <- set_digital_voucher(occ_import = occ_import,
-taxa_checked = taxa_checked,
-collection_key = collection_key)
-
-refined_records <- refine_records(voucher = voucher,
-threads = 4,
-save_path = getwd(),
-tests = c("capitals", "centroids", "equal", "gbif",
-"institutions", "outliers", "seas","zeros"))
-}
+refined_records <- refine_records(
+  voucher = voucher,
+  threads = 4,
+  tests = c(
+    "capitals", "centroids", "equal", "gbif",
+    "institutions", "outliers", "seas", "zeros"
+  )
+)
+\dontshow{\}) # examplesIf}
 }
 \references{
 \itemize{
-\item Zizka, A., Silvestro, D., Andermann, T., Azevedo, J., Duarte Ritter, C., Edler, D., Farooq, H.,
-Herdean, A., Ariza, M., Scharn, R., Svantesson, S., Wengstrom, N., Vitecek, S., & Antonelli, A.
-(2019). CoordinateCleaner: Standardized cleaning of occurrence records from biological collection
-databases. \emph{Methods in Ecology and Evolution}, 10(5), 744-751. \doi{10.1111/2041-210X.13152}
-\item Govaerts, R., Nic Lughadha, E., Black, N. et al. The World Checklist of Vascular Plants,
-a continuously updated resource for exploring global plant diversity.
-\emph{Sci Data} 8, 215 (2021). \doi{10.1038/s41597-021-00997-6}
+\item Zizka, A., Silvestro, D., Andermann, T., Azevedo, J., Duarte Ritter, C., Edler, D., Farooq,
+H., Herdean, A., Ariza, M., Scharn, R., Svantesson, S., Wengstrom, N., Vitecek, S., &
+Antonelli, A. (2019). CoordinateCleaner: Standardized cleaning of occurrence records from
+biological collection databases. \emph{Methods in Ecology and Evolution}, 10(5), 744-751.
+\doi{10.1111/2041-210X.13152}
+\item Govaerts, R., Nic Lughadha, E., Black, N. et al. The World Checklist of Vascular Plants, a
+continuously updated resource for exploring global plant diversity. \emph{Scientific Data}, 8, 215
+(2021). \doi{10.1038/s41597-021-00997-6}
 }
 }
 \seealso{
-\code{\link[CoordinateCleaner]{clean_coordinates}}
+\code{\link[CoordinateCleaner:clean_coordinates]{clean_coordinates()}}, \code{\link[=export_records]{export_records()}}
 }

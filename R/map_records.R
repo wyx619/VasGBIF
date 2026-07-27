@@ -1,141 +1,133 @@
-#' @title Visualize refined records on a dynamic interactive map
-#' @name map_records
+#' Visualize refined records on interactive maps
 #'
-#' @description This optional module renders refined GBIF occurrence records on a dynamic interactive
-#' map, facilitating spatial exploration and quality assessment of the processed dataset. It employs
-#' geohash-based deduplication to reduce visual clutter at various zoom levels, and displays records
-#' color-coded by their native status classification.
+#' Renders refined occurrence records on interactive maps for spatial
+#' exploration and quality assessment. Records are deduplicated with geohashes
+#' and color-coded by their native status.
 #'
-#' The function implements the following workflow:
-#' \itemize{
-#'   \item \strong{Record aggregation}: Combines native and non-native refined records that have
-#'   passed spatial validation (\code{UltraGBIF_useful_for_spatial_analysis = TRUE})
-#'   \item \strong{Geohash deduplication}: Applies geohash encoding at a user-specified precision
-#'   level to collapse nearby points into single representatives, reducing overplotting and
-#'   improving map rendering performance
-#'   \item \strong{Interactive visualization}: Generates a multi-layer interactive map using
-#'   \code{mapview}, with records color-coded by \code{wcvp_area_status} (native, introduced,
-#'   extinct, location_doubtful)
-#'   \item \strong{Multi-basemap support}: Provides three basemap options (OpenStreetMap,
-#'   Esri World Imagery, Stadia Stamen Watercolor) for different visualization contexts
-#' }
+#' The workflow has four stages:
 #'
-#' @param refined_records UltraGBIF_refine object from \code{\link{refine_records}}
-#' @param precision positive integer controlling the spatial resolution of geohash-based
-#'   deduplication. Higher values produce finer-grained deduplication:
-#'   \itemize{
-#'     \item \code{4}: approximately 20 km resolution
-#'     \item \code{3}: approximately 156 km resolution
-#'     \item \code{2}: approximately 1250 km resolution
-#'   }
-#'   Default is 4.
-#' @param cex numeric value controlling the point size of occurrence records on the map.
-#'   Default is 4.
+#' * **Record aggregation:** Combines native and non-native refined records that
+#'   passed spatial validation (`VasGBIF_useful_for_spatial_analysis = TRUE`).
+#' * **Geohash deduplication:** Encodes coordinates at the requested precision
+#'   and retains one representative record per species, geohash cell, and native
+#'   status.
+#' * **Interactive visualization:** Builds a multi-layer map with records
+#'   color-coded by `native_status`.
+#' * **Basemap selection:** Provides OpenStreetMap, Esri World Imagery, and
+#'   Stadia Stamen Watercolor basemaps.
+#'
+#' @param refined_records A `refined` object returned by [refine_records()].
+#' @param precision Positive integer controlling the spatial resolution of
+#'   geohash-based deduplication. Higher values produce finer-grained cells. For
+#'   reference, precision values of 4, 3, and 2 represent approximately 20 km,
+#'   156 km, and 1,250 km resolution, respectively. Defaults to `3`.
+#' @param cex Numeric value controlling the point size of occurrence records on
+#'   the map. Defaults to `3`.
 #'
 #' @details
-#' \strong{Geohash Deduplication Strategy:}
+#' ## Geohash deduplication
 #'
-#' Geohash encoding converts latitude-longitude pairs into alphanumeric strings representing
-#' grid cells of varying sizes. By grouping records by species name, geohash cell, and native
-#' status, then selecting the first record from each group, the function effectively reduces
-#' visual overplotting while preserving the spatial distribution pattern. This is particularly
-#' useful for densely sampled regions where thousands of records may cluster within small areas.
+#' Geohash encoding converts latitude-longitude pairs into alphanumeric strings
+#' representing grid cells of varying sizes. The function groups records by
+#' species name, geohash cell, and native status, then retains the first record
+#' from each group. This reduces visual overplotting while preserving the
+#' broad spatial distribution pattern, which is useful for densely sampled
+#' regions.
 #'
-#' \strong{Map Layers and Interactivity:}
+#' ## Map layers and interactivity
 #'
 #' The generated map includes:
-#' \itemize{
-#'   \item A color-coded legend based on \code{wcvp_area_status} categories
-#'   \item Popups displaying record attributes (GBIF ID, collection key, taxon name, etc.)
-#'   \item Toggleable basemap layers for different visualization contexts
-#'   \item Adjustable point transparency (\code{alpha.regions = 0.6}) for better density perception
-#' }
 #'
-#' \strong{Record Selection Criteria:}
+#' * A color-coded legend based on `native_status` categories.
+#' * Popups displaying record attributes such as GBIF ID, collection key, and
+#'   taxon name.
+#' * Toggleable basemap layers for different visualization contexts.
+#' * Point transparency set to `alpha.regions = 0.6` to improve density
+#'   perception.
 #'
-#' Only records meeting the following criteria are included in the map:
-#' \itemize{
-#'   \item \code{UltraGBIF_useful_for_spatial_analysis = TRUE}: Coordinates passed GBIF validation
-#'   \item For non-native records: \code{wcvp_area_status != "unknown"}: Must have a defined
-#'   geographic classification
-#' }
+#' ## Record selection
 #'
-#' @return A \code{mapview} interactive map object displaying refined occurrence records color-coded
-#'   by \code{wcvp_area_status}. The map includes:
-#'   \itemize{
-#'     \item A legend showing the native status classification scheme
-#'     \item Three switchable basemap layers (OpenStreetMap, Esri World Imagery, Stadia Stamen Watercolor)
-#'     \item Clickable popups with record metadata
-#'   }
+#' Records are included only when `VasGBIF_useful_for_spatial_analysis = TRUE`.
+#' For non-native records, `native_status` must also differ from `"unknown"`.
+#' Records with missing longitude or latitude are removed before geohash
+#' deduplication.
 #'
-#' @seealso \code{\link[geohashTools]{gh_encode}}, \code{\link[mapview]{mapView}}
+#' @returns
+#' A `mapview` interactive map object displaying refined occurrence records
+#' color-coded by `native_status`. The map contains a native-status legend,
+#' three switchable basemap layers, and clickable popups with record metadata.
+#'
+#' @seealso
+#' [`gh_encode()`][geohashTools::gh_encode] for geohash encoding and
+#' [`mapView()`][mapview::mapView] for interactive map construction.
 #'
 #' @import data.table
 #' @import geohashTools
 #' @import mapview
 #' @importFrom dplyr %>% filter mutate select slice ungroup group_by
 #'
-#' @examples
-#' \dontrun{
-#' # Make sur you have got refined_records from function refine_records
-#' # This function may open your browser in the background; please be aware.
-#' map_records(refined_records=refined_records,precision=4,cex=4)
-#'}
+#' @examplesIf interactive() && exists("refined_records")
+#' map_records(refined_records = refined_records, precision = 3, cex = 3)
+#'
 #' @export
-map_records <- function(refined_records=NA,
-                        precision=4,
-                        cex=4){
-
-  all_records <- refined_records$native_records[UltraGBIF_useful_for_spatial_analysis==T,
-                                            .(Ctrl_gbifID,
-                                              Ctrl_key,
-                                              UltraGBIF_wcvp_family,
-                                              UltraGBIF_decimalLatitude,
-                                              UltraGBIF_decimalLongitude,
-                                              UltraGBIF_wcvp_taxon_status,
-                                              UltraGBIF_wcvp_taxon_name,
-                                              LEVEL3_COD,
-                                              wcvp_area_status)]%>%
-    rbind(refined_records$other_records[UltraGBIF_useful_for_spatial_analysis==T&wcvp_area_status!='unknown',
-                                         .(Ctrl_gbifID,
-                                           Ctrl_key,
-                                           UltraGBIF_wcvp_family,
-                                           UltraGBIF_decimalLatitude,
-                                           UltraGBIF_decimalLongitude,
-                                           UltraGBIF_wcvp_taxon_status,
-                                           UltraGBIF_wcvp_taxon_name,
-                                           LEVEL3_COD,
-                                           wcvp_area_status)])
+map_records <- function(refined_records = NA, precision = 3, cex = 3) {
+  all_records <- refined_records$all_records[
+    VasGBIF_useful_for_spatial_analysis == T & native_status != 'unknown',
+    .(
+      gbifID,
+      collection_key,
+      VasGBIF_wcvp_family,
+      VasGBIF_decimalLatitude,
+      VasGBIF_decimalLongitude,
+      VasGBIF_wcvp_taxon_status,
+      VasGBIF_wcvp_taxon_name,
+      LEVEL3_COD,
+      native_status
+    )
+  ]
 
   dedup_by_geohash <- function(data, precision) {
     # 4 for 20 km, 3 for 156 km, 2 for 1250 km
     data <- data %>%
-      filter(!is.na(UltraGBIF_decimalLatitude), !is.na(UltraGBIF_decimalLongitude)) %>%
-      mutate(
-        geohash = gh_encode(UltraGBIF_decimalLatitude, UltraGBIF_decimalLongitude, precision)
+      filter(
+        !is.na(VasGBIF_decimalLatitude),
+        !is.na(VasGBIF_decimalLongitude)
       ) %>%
-      group_by(UltraGBIF_wcvp_taxon_name, geohash, wcvp_area_status) %>%
+      mutate(
+        geohash = gh_encode(
+          VasGBIF_decimalLatitude,
+          VasGBIF_decimalLongitude,
+          precision
+        )
+      ) %>%
+      group_by(VasGBIF_wcvp_taxon_name, geohash, native_status) %>%
       slice(1) %>%
       ungroup() %>%
       select(-geohash)
     return(data)
   }
 
-  dedup <- dedup_by_geohash(all_records, precision)%>%setDT()
+  dedup <- dedup_by_geohash(all_records, precision) %>% setDT()
 
-  dedup_vect <- terra::vect(dedup,
-                            geom = c("UltraGBIF_decimalLongitude","UltraGBIF_decimalLatitude"),
-                            crs = "EPSG:4326")
-  map=mapView(
+  dedup_vect <- terra::vect(
+    dedup,
+    geom = c("VasGBIF_decimalLongitude", "VasGBIF_decimalLatitude"),
+    crs = "EPSG:4326"
+  )
+  map <- mapView(
     x = dedup_vect,
-    zcol = "wcvp_area_status",
+    zcol = "native_status",
     legend = TRUE,
-    layer.name = "wcvp_area_status",
+    layer.name = "native_status",
     popup = T,
     cex = cex,
     alpha.regions = 0.6,
-    map.types = c("OpenStreetMap","Esri.WorldImagery","Stadia.StamenWatercolor"),
-    alpha=0.3
+    map.types = c(
+      "OpenStreetMap",
+      "Esri.WorldImagery",
+      "Stadia.StamenWatercolor"
+    ),
+    alpha = 0.3
   )
 
   message("Finished!")

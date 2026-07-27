@@ -1,0 +1,286 @@
+---
+title: "Application"
+author:
+  - name: Yuxuan Wang
+    affiliation: Sichuan University
+    email: wyx1743@gmail.com
+    orcid: "0009-0003-7817-748X"
+date: "`r Sys.Date()`"
+output:
+  html_document: 
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+    theme: readable
+    highlight: tango
+  rmarkdown::html_vignette:
+    toc: true
+    number_sections: true
+  word_document: 
+    fig_caption: true
+    number_sections: true
+    highlight: tango
+  pdf_document:
+    latex_engine: xelatex
+    highlight: arrow
+    number_sections: false
+vignette: >
+  %\VignetteIndexEntry{Application}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+bibliography: references.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE,eval = F
+)
+```
+
+# Applications: from VasGBIF to *letsR*
+
+This vignette demonstrates how to take the output of VasGBIF and feed it into **letsR** for macroecological analysis: constructing presence-absence matrices, mapping species richness, and integrating environmental variables.
+
+## Preparation: running the VasGBIF pipeline
+
+Before downstream analysis, we need a set of high-quality, non-redundant occurrence records with native-status annotations. The VasGBIF pipeline produces exactly that in five steps:
+
+1.  **Import** — load the GBIF occurrence download ZIP
+2.  **Resolve taxonomy** — match names against WCVP via TNRS
+3.  **Build collection-event keys** — group records by taxon + date + coordinates
+4.  **Select digital vouchers** — pick the highest-quality record per group
+5.  **Refine** — validate coordinates, restore metadata, and annotate native status
+
+Here we use the *Saxifraga records* (see <https://doi.org/10.15468/dl.4ty3ap>) as example. Substitute your own GBIF ZIP for real analyses (see the **GetRecords** vignette for download instructions).
+
+```{r get_records}
+library(rgbif)
+library(dplyr)
+## Records can be downloaded with rgbif by DOI without requiring authentication.
+DOI <- "10.15468/dl.4ty3ap"
+gbif_file <- occ_download_doi(DOI)$key %>% occ_download_get(path = tempdir()) %>% as.character()
+```
+
+```{r preparation, message=FALSE}
+library(VasGBIF)
+library(data.table)
+
+occ_import <- import_records(path = gbif_file)
+
+taxa_checked <- check_taxon(occ_import = occ_import, accuracy = 0.9)
+
+collection_keys <- get_collections(
+  occ_import = occ_import,
+  taxa_checked = taxa_checked,
+  precision = 2L
+)
+
+voucher <- set_vouchers(
+  occ_import = occ_import,
+  taxa_checked = taxa_checked,
+  collection_keys = collection_keys
+)
+
+refined_records <- refine_records(voucher = voucher, threads = 4)
+```
+
+The `refined_records` object contains two key components:
+
+- `all_records` — validated records with `native_status` classification
+- `CoordinateProblematic` — records that failed coordinate validation
+
+## Introducing *letsR* and Presence-Absence Matrices
+
+***letsR***[@vilela2015] is an R package designed for macroecological analyses based on species geographic distributions. The package transforms species range maps into presence-absence matrices (PAMs), where rows represent grid cells and columns represent species. It provides a comprehensive workflow for spatial biodiversity analyses, including tools to:
+
+1.  construct PAMs from shapefiles or occurrence points;
+
+2.  integrate environmental variables into species distribution data;
+
+3.  calculate species-level macroecological metrics such as range size, range overlap, and distributional midpoints;
+
+4.  map species richness across geographic, environmental, and trait spaces;
+
+5.  perform grid-level analyses of biodiversity patterns.
+
+The package implements an S3 class structure (**`PresenceAbsence`**) that facilitates reproducible spatial analyses and supports integration with IUCN Red List and BirdLife data. All spatial operations are optimized for large-scale datasets, making ***letsR*** particularly suitable for comparative biogeography and conservation prioritization studies.
+
+## Introduce Presence-Absence-Matrix
+
+**A Presence-Absence Matrix (PAM) is the fundamental data structure in macroecological research that represents species distributions in a discrete spatial framework.**
+
+In essence, a PAM is a two-dimensional matrix where:
+
+- **Rows** represent discrete spatial units (grid cells) covering a geographic domain
+
+- **Columns** represent species
+
+- **Values** are binary: **`1`** indicates presence, **`0`** indicates absence
+
+The first two columns typically store the longitude (x) and latitude (y) coordinates of each grid cell's centroid, allowing the matrix to be spatially referenced.
+
+**Why PAMs matter:**
+
+1.  **Standardization** — Converting continuous range maps (shapefiles) or scattered occurrence points into a standardized grid allows meaningful comparisons across species with vastly different distributions
+
+2.  **Computational efficiency** — Binary matrices enable rapid calculations of biodiversity metrics (richness, turnover, endemism) across thousands of species and millions of cells
+
+3.  **Multi-scale integration** — PAMs serve as the bridge between species-level data (traits, phylogeny, conservation status) and environmental data (climate, land use, topography)
+
+4.  **Reproducibility** — Explicitly defined grid systems eliminate ambiguities in spatial resolution, projection, and extent
+
+**In letsR's implementation:**
+
+The package wraps PAMs in a **`PresenceAbsence`** S3 object that bundles:
+
+- The presence-absence matrix itself
+
+- A raster layer of species richness
+
+- Species names and metadata
+
+- Grid system parameters (resolution, projection, extent)
+
+This design allows you to apply generic R functions (**`plot`**, **`summary`**, **`print`**) directly to the object while maintaining spatial integrity throughout analytical workflows.
+
+## From VasGBIF Results to PAM
+
+Filter the refined records to native occurrences, extract the columns needed by *letsR*, and construct the matrix:
+
+```{r PAM, message=FALSE}
+library(letsR)
+library(stringi)
+
+# Subset native records & prepare input for letsR
+PAM_pre <- refined_records$all_records[native_status == "native", .(
+  VasGBIF_wcvp_taxon_name,
+  genus            = stri_extract_first_regex(VasGBIF_wcvp_taxon_name, "^[^ ]+"),
+  VasGBIF_wcvp_family,
+  VasGBIF_decimalLongitude,
+  VasGBIF_decimalLatitude
+)]
+
+head(PAM_pre, 5)
+
+# Optionally filter to a specific genus or family:
+# PAM_pre <- PAM_pre[genus == "Saxifraga", ]
+```
+
+Construct the Presence-Absence Matrix at 1° resolution:
+
+```{r lets.presab.points}
+PAM <- lets.presab.points(
+  xy      = as.matrix(PAM_pre[, .(VasGBIF_decimalLongitude, VasGBIF_decimalLatitude)]),
+  species = PAM_pre$VasGBIF_wcvp_taxon_name,
+  resol   = 1,     # 1-degree grid cells
+  count   = FALSE  # set TRUE for progress bar on large datasets
+)
+```
+
+## Summary Statistics
+
+Basic information about the Presence-Absence object:
+
+```{r Statistics}
+summary(PAM)
+names(PAM)
+PAM$Presence_and_Absence_Matrix[1:10, 1:10] |>
+  as.data.table()
+head(PAM$Species_name)
+```
+
+Which species has the widest distribution range (occupying the most grid cells)?
+
+```{r lets.rangesize}
+lets.rangesize(x = PAM, units = "cell") |>
+  as.data.frame() |>
+  arrange(desc(Range_size)) |>
+  head(5)
+```
+
+What are the characteristics of the distribution range sizes?
+
+```{r hist}
+range_sizes <- lets.rangesize(x = PAM, units = "cell")
+
+# Mean range size
+mean(range_sizes)
+
+# Proportion of species exceeding the mean range size
+mean_range <- mean(range_sizes)
+sum(range_sizes > mean_range) / nrow(range_sizes)
+
+# Histogram of log-transformed range sizes
+hist(
+  log(range_sizes),
+  main = "Distribution of species range sizes",
+  xlab = "log(number of grid cells)"
+)
+```
+
+Most species occupy relatively few grid cells; only a small fraction exceed the mean range size.
+
+## Plot a Single Taxon Occurrence Map
+
+```{r occ_map}
+# Replace with any species name from PAM$Species_name
+selected_taxon <- lets.rangesize(x = PAM, units = "cell") |>
+  as.data.frame() |>
+  arrange(desc(Range_size)) |>
+  head(1)%>%row.names()
+plot(PAM,
+     name = selected_taxon,
+     main = paste(selected_taxon, "occurrence"))
+```
+
+## Add Environmental Variables
+
+Environmental variables can be integrated into the presence-absence matrix using `lets.addvar()`. The function handles spatial alignment automatically: cropping, aggregation, and extraction at grid cell centroids.
+
+Here we use global annual mean temperature (°C) at 10-arcminute resolution from the *letsR* built-in dataset:
+
+```{r PAM_env, message=FALSE, warning=FALSE}
+temp <- terra::unwrap(letsR::temp)  # worldclim bio_1: annual mean temperature
+PAM_env <- lets.addvar(PAM, temp, fun = mean)
+
+# First 5 rows: longitude, latitude, and mean temperature
+PAM_env[1:5, c(1, 2, ncol(PAM_env))]
+```
+
+Summarise mean temperature per species:
+
+```{r temp_mean}
+temp_mean <- lets.summarizer(PAM_env, ncol(PAM_env))
+
+# Species with the warmest distributions
+temp_mean |>
+  arrange(desc(wc2.1_10m_bio_1_mean)) |>
+  head(5)
+
+# Species with the coldest distributions
+temp_mean |>
+  arrange(wc2.1_10m_bio_1_mean) |>
+  head(5)
+```
+
+## Generate a Richness Map
+
+```{r Richness_map}
+plot(PAM,
+     xlab = "Longitude",
+     ylab = "Latitude",
+     main = "Saxifraga richness map")
+```
+
+# References
+
+Appelhans, Tim, Florian Detsch, Christoph Reudenbach, and Stefan Woellauer. 2023. “Mapview: Interactive Viewing of Spatial Data in r.” <https://CRAN.R-project.org/package=mapview>.
+
+Boyle, Brad, Nicole Hopkins, Zhenyuan Lu, Juan Antonio Raygoza Garay, Dmitry Mozzherin, Tony Rees, Naim Matasci, et al. 2013. “The Taxonomic Name Resolution Service: An Online Tool for Automated Standardization of Plant Names.” BMC Bioinformatics 14 (1): 16. <https://doi.org/10.1186/1471-2105-14-16>.
+
+Chirico, Michael. 2023. “geohashTools: Tools for Working with Geohashes.” <https://CRAN.R-project.org/package=geohashTools>.
+
+Zizka, Alexander, Daniele Silvestro, Tobias Andermann, Josué Azevedo, Camila Duarte Ritter, Daniel Edler, Harith Farooq, et al. 2019. “CoordinateCleaner : Standardized Cleaning of Occurrence Records from Biological Collection Databases.” Edited by Tiago Quental. Methods in Ecology and Evolution 10 (5): 744–51. <https://doi.org/10.1111/2041-210X.13152>.

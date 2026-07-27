@@ -1,187 +1,202 @@
-#' @title Import GBIF occurrence records
-#' @name import_records
+#' Import GBIF occurrence records
 #'
-#' @description This function loads initial GBIF occurrence records from a downloaded zip file
-#' and automatically extracts GBIF issue flags for downstream quality assessment. It serves as
-#' the entry point of the UltraGBIF workflow, transforming raw GBIF data into a structured
-#' format ready for taxonomic and spatial processing.
+#' Imports occurrence records from a GBIF ZIP download and prepares the result
+#' for subsequent VasGBIF processing. The function reads the occurrence data
+#' file in the archive, retains the fields required by the package, expands GBIF
+#' issue codes into record-level logical indicators, and creates an issue-count
+#' summary.
 #'
-#' The function implements the following workflow:
-#' \itemize{
-#'   \item \strong{File validation}: Verifies that the input is a valid GBIF zip file
-#'   \item \strong{Decompression}: Automatically extracts the \code{occurrence.txt} file from
-#'   the GBIF download archive
-#'   \item \strong{Data loading}: Reads occurrence records using \code{fread} with optimized
-#'   column selection (60 core fields including taxonomy, geography, collection metadata,
-#'   and GBIF issues)
-#'   \item \strong{Issue extraction}: Parses the \code{issue} field to identify all GBIF
-#'   quality flags (e.g., \code{COORDINATE_ROUNDED}, \code{COUNTRY_COORDINATE_MISMATCH},
-#'   \code{BASIS_OF_RECORD_INVALID}) for each record
-#'   \item \strong{Summary compilation}: Generates a frequency table of all detected issues,
-#'   sorted by occurrence count
-#' }
-#'
-#' @param GBIF_file path to the zip file downloaded from GBIF. Must be a valid \code{.zip} file
-#'   containing an \code{occurrence.txt} file.
-#' @param only_PRESERVED_SPECIMEN logical; if \code{TRUE}, filters occurrence records to retain
-#'   only those with \code{basisOfRecord = "PRESERVED_SPECIMEN"}. Default is \code{FALSE}.
+#' @param path Character scalar giving the path to a GBIF ZIP file. The archive
+#'   must contain exactly one tab-separated occurrence data file.
+#' @param remove_tempfile Logical scalar. If `TRUE`, the temporary extraction
+#'   directory is removed when the function exits, including after an error. If
+#'   `FALSE`, the extracted directory is retained and its path is reported.
+#'   Defaults to `TRUE`.
 #'
 #' @details
-#' \strong{Column Selection:}
 #'
-#' The function loads core fields from the GBIF occurrence dataset, including:
-#' \itemize{
-#'   \item \strong{Identifiers}: \code{gbifID}, \code{occurrenceID}, \code{catalogNumber},
-#'   \code{recordNumber}
-#'   \item \strong{Taxonomy}: \code{scientificName}, \code{family}, \code{taxonRank},
-#'   \code{taxonomicStatus}, \code{verbatimIdentification}
-#'   \item \strong{Geography}: \code{decimalLatitude}, \code{decimalLongitude}, \code{countryCode},
-#'   \code{stateProvince}, \code{locality}, \code{verbatimLocality}
-#'   \item \strong{Collection metadata}: \code{recordedBy}, \code{eventDate}, \code{year},
-#'   \code{month}, \code{day}, \code{institutionCode}, \code{collectionCode}
-#'   \item \strong{Quality flags}: \code{issue}, \code{hasCoordinate}, \code{hasGeospatialIssues}
-#'   \item \strong{Others}: other useful fields.
-#' }
+#' The input archive is extracted into a temporary directory rather than next
+#' to the ZIP file. This also prevents a ZIP stored in a package's
+#' `inst/extdata` directory from being modified during import.
 #'
-#' All column names are prefixed with \code{Ctrl_} to avoid naming conflicts with R reserved
-#' words and to clearly distinguish UltraGBIF-processed fields.
+#' The function performs the following steps:
 #'
-#' \strong{GBIF Issue Extraction:}
+#' * Checks that `path` is a character path with a `.zip` extension.
+#' * Checks that the archive contains exactly one member and extracts that
+#'   member to a unique temporary directory.
+#' * Reads the tab-separated, UTF-8 occurrence file with
+#'   [data.table::fread()] and selects the GBIF fields used by the VasGBIF
+#'   workflow.
+#' * Coerces `gbifID` to character.
+#' * Parses the pipe-separated `issue` field. For each issue code in
+#'   [`EnumOccurrenceIssue`], it creates a logical column indicating whether
+#'   that issue occurs in each record, then counts the flagged records by issue
+#'   code.
 #'
-#' The \code{issue} field in GBIF downloads contains a pipe-separated list of quality flags
-#' (e.g., \code{"COORDINATE_ROUNDED|COUNTRY_COORDINATE_MISMATCH"}). This function parses
-#' these flags using \code{stringi::stri_detect_fixed()} to create a binary indicator matrix
-#' where each column represents a specific issue type and each row indicates whether that
-#' issue is present for the corresponding record.
+#' The function does not filter records by basis of record, taxon, geography,
+#' or issue status. It also does not correct or remove records flagged by GBIF;
+#' it only imports the selected fields and creates diagnostic indicators.
 #'
-#' Common issue types include:
-#' \itemize{
-#'   \item \code{COORDINATE_ROUNDED}: Coordinates have been rounded to fewer decimal places
-#'   \item \code{COUNTRY_COORDINATE_MISMATCH}: Coordinate does not match the recorded country
-#'   \item \code{COORDINATE_UNCERTAINTY_METERS}: Coordinate uncertainty is specified
-#'   \item \code{GEODETIC_DATUM_ASSUMED_WGS84}: Geodetic datum was assumed to be WGS84
-#'   \item \code{BASIS_OF_RECORD_INVALID}: Basis of record is not a recognized value
-#' }
+#' The `occ_issue` component uses the `gbifID` column to link issue indicators
+#' back to `occ`. The available issue columns are determined by the package
+#' dataset [`EnumOccurrenceIssue`]; they can therefore change if that dataset
+#' is updated.
 #'
-#' \strong{Performance Considerations:}
+#' When `remove_tempfile = FALSE`, the function leaves the extracted file in a
+#' system temporary directory. The caller is responsible for removing the
+#' retained directory after inspecting it.
 #'
-#' The function uses \code{data.table::fread()} for fast file reading, which is significantly
-#' faster than \code{read.csv()} for large GBIF datasets. Column selection (\code{select}
-#' parameter) reduces memory usage by loading only the fields required for downstream processing.
+#' @returns
+#' An object of class `import`, implemented as a list with four elements:
 #'
-#' @return UltraGBIF_import list containing:
-#'   \itemize{
-#'     \item \code{occ}: A data.table containing the processed occurrence records with all
-#'     column names prefixed by \code{Ctrl_}
-#'     \item \code{occ_gbif_issue}: A data.table containing binary indicators for each GBIF
-#'     issue type (one column per issue), plus the \code{Ctrl_gbifID} column for record linkage
-#'     \item \code{summary}: A data.table summarizing the frequency of each GBIF issue type,
-#'     sorted in descending order by occurrence count
-#'     \item \code{runtime}: Execution time of the function
-#'   }
+#' * `occ`: A `data.table` containing the selected occurrence fields. Its
+#'   columns retain the Darwin Core/GBIF field names.
+#' * `occ_issue`: A `data.table` containing one logical column for each issue
+#'   code in [`EnumOccurrenceIssue`], plus `gbifID` for linking the indicators
+#'   to `occ`.
+#' * `summary`: A `data.table` with columns `issue_keys` and `N`, giving the
+#'   number of records associated with each issue; rows are ordered by
+#'   decreasing `N`.
+#' * `runtime`: The elapsed time reported for the import operation.
 #'
 #' @seealso
-#' \itemize{
-#'   \item \code{\link{unzip}} for automatic decompression of GBIF downloads
-#'   \item Saxifraga occurrence records example: \doi{10.15468/dl.bythb4}
-#' }
+#' * [`unzip()`][utils::unzip] for listing or extracting ZIP archives.
+#' * [`data.table::fread()`][data.table::fread] for delimited-file import.
 #'
 #' @import data.table
 #' @import stringi
 #' @importFrom dplyr %>%
 #' @importFrom utils head
 #'
-#' @examples
-#' \dontrun{
-#' # Download and import Saxifraga occurrence records from GBIF
-#' url <- 'https://api.gbif.org/v1/occurrence/download/request/0021523-250402121839773.zip'
-#' gbif_occurrence_file <- paste0(getwd(), '/Saxifraga.zip')
-#' curl::curl_download(url, gbif_occurrence_file, quiet = FALSE)
-#'
-#' # Import records (filtered to preserved specimens only)
-#' occ_import <- import_records(GBIF_file = gbif_occurrence_file,
-#'                              only_PRESERVED_SPECIMEN = TRUE)
-#'
-#' # Or use file.choose() to choose the zip file
-#' occ_import <- import_records(GBIF_file = file.choose(),
-#'                              only_PRESERVED_SPECIMEN = TRUE)
-#'
-#' # View summary of detected GBIF issues
+#' @examplesIf interactive()
+#' gbif_file <- system.file(
+#'   "extdata",
+#'   "0003386-260721160103020.zip",
+#'   package = "VasGBIF"
+#' )
+#' occ_import <- import_records(path = gbif_file)
 #' head(occ_import$summary, 5)
-#' }
+#'
+#' # Or choose another GBIF ZIP file interactively.
+#' # occ_import <- import_records(path = file.choose())
+#'
+#' @references
+#' GBIF.org (23 July 2026) GBIF Occurrence Download
+#' \doi{10.15468/dl.nt5exp}
 #'
 #' @export
-import_records<-function(GBIF_file = '',only_PRESERVED_SPECIMEN=F)
-{
-  start=Sys.time()
+import_records <- function(path = '', remove_tempfile = TRUE) {
+  start <- Sys.time()
 
-  if (!is.character(GBIF_file)) stop('set path to GBIF zip file!')
-  if (is.character(GBIF_file)){if (GBIF_file == '') stop('require GBIF_file!')}
+  if (!is.character(path)) {
+    stop('set path to the downloaded SIMPLE_CSV zip!')
+  }
+  if (is.character(path)) {
+    if (path == '') stop('require path to the downloaded SIMPLE_CSV zip!')
+  }
 
-  col_sel <- c("gbifID", "bibliographicCitation", "language", "institutionCode",
-               "collectionCode", "datasetName", "basisOfRecord", "informationWithheld",
-               "dataGeneralizations", "occurrenceID", "catalogNumber", "recordNumber",
-               "recordedBy", "georeferenceVerificationStatus", "occurrenceStatus",
-               "eventDate", "year", "month", "day", "habitat", "fieldNotes",
-               "eventRemarks", "locationID", "higherGeography", "islandGroup",
-               "island", "countryCode", "stateProvince", "county", "municipality",
-               "locality", "verbatimLocality", "locationRemarks", "decimalLatitude",
-               "decimalLongitude", "verbatimCoordinateSystem", "verbatimIdentification",
-               "identificationQualifier", "typeStatus", "identifiedBy", "dateIdentified",
-               "scientificName", "family", "taxonRank", "nomenclaturalCode",
-               "taxonomicStatus", "issue", "mediaType", "hasCoordinate", "hasGeospatialIssues",
-               "verbatimScientificName", "level0Name", "level1Name", "level2Name",
-               "level3Name")
+  fields <- c(
+    "gbifID",
+    "occurrenceID",
+    "family",
+    "taxonRank",
+    "scientificName",
+    "verbatimScientificName",
+    "countryCode",
+    "locality",
+    "stateProvince",
+    "occurrenceStatus",
+    "decimalLatitude",
+    "decimalLongitude",
+    "eventDate",
+    "day",
+    "month",
+    "year",
+    "basisOfRecord",
+    "institutionCode",
+    "collectionCode",
+    "catalogNumber",
+    "recordNumber",
+    "identifiedBy",
+    "dateIdentified",
+    "recordedBy",
+    "typeStatus",
+    "mediaType",
+    "issue",
+    "coordinateUncertaintyInMeters"
+  )
 
-  if(tools::file_ext(GBIF_file)=="zip"){
-    message("Decompressing")
-    # Automatically decompressing occurrence.txt
-    ex_path=dirname(GBIF_file)
-    utils::unzip(GBIF_file, exdir = ex_path, files = "occurrence.txt",
-                 list = FALSE, overwrite = TRUE,
-                 junkpaths = FALSE, unzip = "internal", setTimes = FALSE)
-    GBIF_file=paste0(ex_path,"/occurrence.txt")
-    # Read data using fread
-    message("Loading records")
-    occ <- fread(GBIF_file,
-                 sep = '\t',
-                 encoding = 'UTF-8',
-                 select = col_sel,
-                 col.names = paste0('Ctrl_',col_sel),
-                 quote="",
-                 showProgress = FALSE)
-    occ[is.na(Ctrl_hasCoordinate), Ctrl_hasCoordinate := FALSE]
-    occ[,Ctrl_gbifID:=as.character(Ctrl_gbifID)]
-  } else {stop('should be a zip file from GBIF!')}
+  if (tolower(tools::file_ext(path)) != "zip") {
+    stop('should be the SIMPLE_CSV zip from GBIF!')
+  }
 
-  if (only_PRESERVED_SPECIMEN==T) occ <- occ[Ctrl_basisOfRecord=="PRESERVED_SPECIMEN",]
+  archive_files <- utils::unzip(path, list = TRUE)$Name
+  if (length(archive_files) != 1L) {
+    archive_files <- 'occurrence.txt'
+  }
+
+  ex_path <- tempfile("VasGBIF-")
+  dir.create(ex_path)
+  if (isTRUE(remove_tempfile)) {
+    on.exit(unlink(ex_path, recursive = TRUE, force = TRUE), add = TRUE)
+  }
+
+  message("Decompressing")
+  utils::unzip(
+    path,
+    files = archive_files,
+    exdir = ex_path,
+    list = FALSE,
+    overwrite = TRUE,
+    junkpaths = FALSE,
+    unzip = "internal",
+    setTimes = FALSE
+  )
+  path_occ <- file.path(ex_path, archive_files)
+
+  message("Loading records")
+  occ <- fread(
+    path_occ,
+    sep = '\t',
+    encoding = 'UTF-8',
+    select = fields,
+    quote = "",
+    showProgress = FALSE
+  )
+  occ[, gbifID := as.character(gbifID)]
+
+  if (!isTRUE(remove_tempfile)) {
+    message("Preserved extracted files in ", ex_path)
+  }
 
   # extract_gbif_issue
 
   EnumOccurrenceIssue <- EnumOccurrenceIssue
-  issue_keys = EnumOccurrenceIssue[,constant]
+  issue_keys <- EnumOccurrenceIssue[, constant]
 
   message("Compiling GBIF issues")
 
-  fix=function(issue) stri_detect_fixed(occ[,Ctrl_issue], issue)
-  occ_gbif_issue <- sapply(issue_keys, fix) %>% as.data.table()
+  fix <- function(issue) stri_detect_fixed(occ[, issue], issue)
+  occ_issue <- sapply(issue_keys, fix) %>% as.data.table()
 
   summary <- data.table(
     issue_keys = issue_keys,
-    n_occ = colSums(occ_gbif_issue)
-  )[order(-n_occ)]
+    N = colSums(occ_issue)
+  )[order(-N)]
 
-  occ_gbif_issue[,Ctrl_gbifID:=occ$Ctrl_gbifID]
+  occ_issue[, gbifID := occ$gbifID]
 
-  end=Sys.time()
-  used=end-start
+  end <- Sys.time()
+  used <- end - start
 
-  message(paste('used',used%>%round(1),attributes(used)$units))
+  message(paste('used', used %>% round(1), attributes(used)$units))
 
-  occ_import <- list(occ = occ,
-                     occ_gbif_issue = occ_gbif_issue,
-                     summary = summary,
-                     runtime = used)
-  class(occ_import) <- "UltraGBIF_import"
+  occ_import <- list(
+    occ = occ,
+    occ_issue = occ_issue,
+    summary = summary,
+    runtime = used
+  )
+  class(occ_import) <- "import"
   return(occ_import)
 }

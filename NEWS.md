@@ -1,37 +1,101 @@
-# UltraGBIF 3.4.1
+# VasGBIF 3.5.1
+
+## Bug Fixes
+
+- **`check_taxon()`: fixed merge failure for names containing commas.** The TNRS internally converts commas to spaces in submitted scientific names, but the merge key on the package side used the original comma-containing name, causing records to fail to match their TNRS resolution results. A comma-stripped key column (`wcvp_searchedName2`) is now created for the merge, while the original `wcvp_searchedName` is preserved unchanged.
+- **`refine_records()`: removed erroneous pre-filter before `restore_duplicates()`.** The call `restore_duplicates(voucher$occ_digital_voucher[VasGBIF_dataset_result != "unusable"])` stripped all `unusable` records from the input.
+
+# VasGBIF 3.5.0
+
+*Major release: package renamed from UltraGBIF to VasGBIF with a substantially simplified pipeline.*
+
+## Breaking Changes
+
+### Package Rename
+
+- The package has been renamed from **UltraGBIF** to **VasGBIF**. All function names, class names, and column prefixes have been updated accordingly (e.g., `UltraGBIF_dataset_result` → `VasGBIF_dataset_result`).
+
+### Removed Functions
+
+- `check_collectors()` and `get_collectors_name()` have been removed. The collector-based duplicate detection stage has been replaced by a coordinate- and date-based collection-event key system in `get_collections()`.
+- `check_occ_taxon()` replaced by `check_taxon()`.
+- `set_collection_mark()` replaced by `get_collections()`.
+- `set_digital_voucher()` replaced by `set_vouchers()`.
+
+### Removed Data
+
+- `occ_import`, `ref_wcvp_names`, `seas_ref`, and `wcvp_distributions` datasets have been removed from the package. The internal datasets `Distributions`, `WGSRPD3`, `WorldLandMap`, and `EnumOccurrenceIssue` remain available.
+
+### Function Signature Changes
+
+- `import_records()`: parameter `GBIF_file` renamed to `path`; `only_PRESERVED_SPECIMEN` removed; new `remove_tempfile` parameter.
+- `refine_records()`: parameter `export_path` removed (use `export_records()` instead); `save_path` removed; return value is now a `refined` object with elements `all_records`, `CoordinateProblematic`, and `runtime`.
+- `check_taxon()` replaces `check_occ_taxon()`: default `sources` changed from `c("wcvp", "wfo")` to `"wcvp"` only.
+
+## New Functions
+
+- `detect_native_status()` detects native status by matching validated coordinates to WGSRPD Level 3 polygons and WCVP distribution data. Classification uses a priority-based scheme: location_doubtful \> introduced \> extinct \> native \> unknown.
+- `export_records()` writes refined records to disk as three gzip-compressed CSV files: all usable records, the native subset, and records that failed coordinate validation.
+- `restore_duplicates()` is a new internal helper that fills missing metadata fields (`eventDate`, `year`, `month`, `day`, `identifiedBy`, `countryCode`, `stateProvince`, `locality`) in usable voucher records using data from duplicate records sharing the same collection key.
+
+## Improvements
+
+- **Simplified pipeline**: The workflow has been reduced from 8 modules (with collector checking) to 7 core functions across 4 stages. The collector name standardization stage has been removed entirely; duplicate detection now uses composite keys of `taxon_name|eventDate|latitude|longitude` via `get_collections()`.
+- `refine_records()` has been modularised into a three-step internal pipeline: `restore_duplicates()` → CoordinateCleaner → `detect_native_status()`.
+- `get_collections()` builds collection-event keys from resolved taxon names, event dates, and rounded coordinates, with user-controlled spatial precision.
+- `set_vouchers()` implements a refined quality scoring system (metadata completeness + geospatial penalty) and returns a `vouchers` object.
+- `restore_duplicates()` now restores `month` and `day` in addition to the previously restored fields.
+- `set_threads()` is now exported for normalising thread counts.
+
+## Dependency Changes
+
+- Removed `tokenizers` from Imports (no longer needed after collector module removal).
+- Added `lubridate` to Imports.
+- Added `@import bit64` to NAMESPACE.
+
+## Documentation
+
+- All roxygen2 documentation rewritten in Markdown-first style (roxygen2 ≥ 8.0.0).
+- `RoxygenNote` replaced by `Config/roxygen2/version: 8.0.0` in DESCRIPTION.
+- Pipeline overview in package documentation and README updated to reflect the seven-function, four-stage workflow.
+- `Tutorial_of_UltraGBIF.Rmd` vignette replaced by `Application.Rmd` and `Example.Rmd`.
+- `utils::globalVariables()` expanded to suppress data.table NSE notes in R CMD check.
+- Author field de-anonymised with ORCID.
+
+# VasGBIF 3.4.1
 
 ## Bug Fixes
 
 - fix some big integers with `bit64`
 - fix function `refine_records` with *identifiedBy*
 
-# UltraGBIF 3.4.0
+# VasGBIF 3.4.0
 
 ## Improvements
 
 - change Record Completeness Score calculation in `set_digital_voucher()`, replace *fieledNotes* with *identifiedBy*.
 - test the package on R 4.6.0
 
-# UltraGBIF 3.3.2
+# VasGBIF 3.3.2
 
 ## Improvements
 
 - fix some help documents.
 
-# UltraGBIF 3.3.1
+# VasGBIF 3.3.1
 
 ## Improvements
 
 - update lots of help documents.
 - remove functions about richness.
 
-# UltraGBIF 3.3.0
+# VasGBIF 3.3.0
 
 ## Improvements
 
 - `check_occ_taxon` Implemented timeout and automatic redial logic for data chunks to resolve connection hangs during TNRS queries, ensuring robust processing of large datasets under unstable network conditions.
 
-# UltraGBIF 3.2.9
+# VasGBIF 3.2.9
 
 ## Bug Fixes
 
@@ -41,7 +105,7 @@
 
 - perf(`check_occ_taxon`): Optimize TNRS query performance by processing large datasets in chunks
 
-# UltraGBIF 3.2.8
+# VasGBIF 3.2.8
 
 ## Improvements
 
@@ -54,17 +118,17 @@
 
 ## Documentation
 
-- **Standardized DOI citation format**: Updated all R documentation files to use `\doi{}` macro instead of `\url{https://doi.org/...}` for academic reference formatting across `UltraGBIF-package.R`, `import_records.R`, `check_occ_taxon.R`, `refine_records.R`, `plot_richness.R`, and `data.R`.
+- **Standardized DOI citation format**: Updated all R documentation files to use `\doi{}` macro instead of `\url{https://doi.org/...}` for academic reference formatting across `VasGBIF-package.R`, `import_records.R`, `check_occ_taxon.R`, `refine_records.R`, `plot_richness.R`, and `data.R`.
 - **Updated README.md**: Refreshed the README with the new four-stage workflow diagram, updated installation instructions, and refined descriptions of all modules.
-- **Complete tutorial restructuring**: Rewrote `Tutorial_of_UltraGBIF.Rmd` following a 4-stage, 8-module structure with academic English, clear organization, and comprehensive workflow explanations. Added summary section for core modules with statistics table explaining data reduction process.
+- **Complete tutorial restructuring**: Rewrote `Tutorial_of_VasGBIF.Rmd` following a 4-stage, 8-module structure with academic English, clear organization, and comprehensive workflow explanations. Added summary section for core modules with statistics table explaining data reduction process.
 
-# UltraGBIF 3.2.7
+# VasGBIF 3.2.7
 
 ## Major Improvements
 
 ### Dependency Restructuring
 
-- **Removed dependency on rWCVP and rWCVPdata**: UltraGBIF now fully relies on the Taxonomic Name Resolution Service (TNRS) for taxonomic name resolution instead of the discontinued rWCVP packages. This critical change enables UltraGBIF to meet CRAN submission requirements, as packages published on CRAN may only depend on other CRAN-hosted packages. Users can now install UltraGBIF with a single `install.packages("UltraGBIF")` call.
+- **Removed dependency on rWCVP and rWCVPdata**: VasGBIF now fully relies on the Taxonomic Name Resolution Service (TNRS) for taxonomic name resolution instead of the discontinued rWCVP packages. This critical change enables VasGBIF to meet CRAN submission requirements, as packages published on CRAN may only depend on other CRAN-hosted packages. Users can now install VasGBIF with a single `install.packages("VasGBIF")` call.
 - **Streamlined taxonomic databases**: The required WCVP databases are now bundled within the package, eliminating external data dependencies and ensuring consistent behavior across installations.
 
 ### Taxonomic Name Resolution
@@ -82,13 +146,13 @@
 
 - **Refactored collector name standardization**: Completely restructured the collector name normalization and collection event mark generation functionality. The new `check_collectors()` function simplifies the workflow by using `tokenizers::tokenize_words()` for robust word tokenization, replacing the previous complex string splitting logic with multiple parameters.
 
-- **New S3 class system**: Introduced R's S3 class system for UltraGBIF objects, providing a clearer workflow structure with well-defined return types:
+- **New S3 class system**: Introduced R's S3 class system for VasGBIF objects, providing a clearer workflow structure with well-defined return types:
 
-  - `UltraGBIF_import` class for `import_records()` output
-  - `UltraGBIF_taxa_checked` class for `check_occ_taxon()` output
-  - `UltraGBIF_collection_key` class for `set_collection_mark()` output
-  - `UltraGBIF_voucher` class for `set_digital_voucher()` output
-  - `UltraGBIF_refined` class for `refine_records()` output
+  - `VasGBIF_import` class for `import_records()` output
+  - `VasGBIF_taxa_checked` class for `check_occ_taxon()` output
+  - `VasGBIF_collection_key` class for `set_collection_mark()` output
+  - `VasGBIF_voucher` class for `set_digital_voucher()` output
+  - `VasGBIF_refined` class for `refine_records()` output
 
 - **Deleted deprecated ref_dictionary data**: Removed the built-in collector name reference dictionary (`ref_dictionary`) and related functions, reducing package size and simplifying dependencies.
 
@@ -106,7 +170,7 @@
   - Comprehensive `@return` descriptions
   - Academic references where applicable
 
-- **Package-level documentation**: Added complete package-level documentation in `UltraGBIF-package.R`, providing:
+- **Package-level documentation**: Added complete package-level documentation in `VasGBIF-package.R`, providing:
 
   - Three-stage workflow overview (Data Acquisition → Duplicate Removal → Refine Records)
   - Eight-module function reference with cross-links

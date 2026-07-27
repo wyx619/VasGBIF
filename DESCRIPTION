@@ -1,20 +1,21 @@
-Package: UltraGBIF
-Title: Fast and Easy Compilation of GBIF Plant Occurrence Records in One R Package 
-Version: 3.4.1
-Date: 2026-04-26
+Package: VasGBIF
+Title: Fast and Easy Compilation of Vascular Plants Occurrence Records from GBIF
+Version: 3.5.1
+Date: 2026-07-27
 Type: Package
-Maintainer: Anonymous <Anonymous@Anonymous.com>
+Maintainer: Yuxuan Wang <wyx1743@gmail.com>
 Authors@R: 
-    person("Anonymous", email = "Anonymous@Anonymous.com", role = c("aut", "cre"))
-Description: GBIF hosts over 3 billion occurrence records. However, dealing with them typically involves lots of workflows and runtime, posing significant challenges for researchers. To address these limitations, we present UltraGBIF, a fast and easy R package to parse and merge enormous GBIF occurrence records.
+    person("Yuxuan Wang", email = "wyx1743@gmail.com",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0009-0003-7817-748X"))
+Description: GBIF hosts over 500 million occurrence records of tracheophyte (vascular plants). However, dealing with them typically involves lots of workflows and time, posing significant challenges for researchers. To address these limitations, we present VasGBIF, a fast and easy R package to parse and merge enormous tracheophyte records.
 License: GPL (>= 3) | file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
 LazyData: true
 LazyDataCompression: xz
 Depends: R (>= 4.1),data.table,bit64
-Imports: dplyr,stringi,terra,tokenizers,CoordinateCleaner,TNRS,geohashTools,mapview,foreach,doParallel,rnaturalearthdata
+Imports: dplyr,stringi,terra,lubridate,CoordinateCleaner,TNRS,geohashTools,mapview,foreach,doParallel,rnaturalearthdata
 Suggests: 
     knitr,
     leaflet,
@@ -26,3 +27,5 @@ Suggests:
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
 Config/testthat/edition: 3
+Config/roxygen2/version: 8.0.0
+Config/Needs/website: pkgdown, knitr, rmarkdown, rgbif, letsR, sf, rnaturalearth, leaflet

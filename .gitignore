@@ -1,13 +1,28 @@
-.Rproj.user
+# ---- R / RStudio ----
+.Rproj.user/
 .Rhistory
+.RData
 .Rdata
-.httr-oauth
+
+# ---- Posit IDE ----
+.posit/
+
+# ---- R package build artifacts ----
+*.tar.gz
+*.Rcheck/
+Meta/
+
+# ---- vignette outputs (source vignettes are in vignettes/) ----
+inst/doc/
+
+# ---- OS files ----
 .DS_Store
+Thumbs.db
+
+# ---- Misc ----
+.httr-oauth
 .quarto
 references.bib
-/vignettes
-.Rbuildignore
-.Rproj
-.RData
-
+docs/
+/doc/
 /Meta/

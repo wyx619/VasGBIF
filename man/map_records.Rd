@@ -2,89 +2,81 @@
 % Please edit documentation in R/map_records.R
 \name{map_records}
 \alias{map_records}
-\title{Visualize refined records on a dynamic interactive map}
+\title{Visualize refined records on interactive maps}
 \usage{
-map_records(refined_records = NA, precision = 4, cex = 4)
+map_records(refined_records = NA, precision = 3, cex = 3)
 }
 \arguments{
-\item{refined_records}{UltraGBIF_refine object from \code{\link{refine_records}}}
+\item{refined_records}{A \code{refined} object returned by \code{\link[=refine_records]{refine_records()}}.}
 
-\item{precision}{positive integer controlling the spatial resolution of geohash-based
-deduplication. Higher values produce finer-grained deduplication:
-\itemize{
-\item \code{4}: approximately 20 km resolution
-\item \code{3}: approximately 156 km resolution
-\item \code{2}: approximately 1250 km resolution
-}
-Default is 4.}
+\item{precision}{Positive integer controlling the spatial resolution of
+geohash-based deduplication. Higher values produce finer-grained cells. For
+reference, precision values of 4, 3, and 2 represent approximately 20 km,
+156 km, and 1,250 km resolution, respectively. Defaults to \code{3}.}
 
-\item{cex}{numeric value controlling the point size of occurrence records on the map.
-Default is 4.}
+\item{cex}{Numeric value controlling the point size of occurrence records on
+the map. Defaults to \code{3}.}
 }
 \value{
-A \code{mapview} interactive map object displaying refined occurrence records color-coded
-by \code{wcvp_area_status}. The map includes:
-\itemize{
-\item A legend showing the native status classification scheme
-\item Three switchable basemap layers (OpenStreetMap, Esri World Imagery, Stadia Stamen Watercolor)
-\item Clickable popups with record metadata
-}
+A \code{mapview} interactive map object displaying refined occurrence records
+color-coded by \code{native_status}. The map contains a native-status legend,
+three switchable basemap layers, and clickable popups with record metadata.
 }
 \description{
-This optional module renders refined GBIF occurrence records on a dynamic interactive
-map, facilitating spatial exploration and quality assessment of the processed dataset. It employs
-geohash-based deduplication to reduce visual clutter at various zoom levels, and displays records
-color-coded by their native status classification.
-
-The function implements the following workflow:
-\itemize{
-\item \strong{Record aggregation}: Combines native and non-native refined records that have
-passed spatial validation (\code{UltraGBIF_useful_for_spatial_analysis = TRUE})
-\item \strong{Geohash deduplication}: Applies geohash encoding at a user-specified precision
-level to collapse nearby points into single representatives, reducing overplotting and
-improving map rendering performance
-\item \strong{Interactive visualization}: Generates a multi-layer interactive map using
-\code{mapview}, with records color-coded by \code{wcvp_area_status} (native, introduced,
-extinct, location_doubtful)
-\item \strong{Multi-basemap support}: Provides three basemap options (OpenStreetMap,
-Esri World Imagery, Stadia Stamen Watercolor) for different visualization contexts
-}
+Renders refined occurrence records on interactive maps for spatial
+exploration and quality assessment. Records are deduplicated with geohashes
+and color-coded by their native status.
 }
 \details{
-\strong{Geohash Deduplication Strategy:}
+The workflow has four stages:
+\itemize{
+\item \strong{Record aggregation:} Combines native and non-native refined records that
+passed spatial validation (\code{VasGBIF_useful_for_spatial_analysis = TRUE}).
+\item \strong{Geohash deduplication:} Encodes coordinates at the requested precision
+and retains one representative record per species, geohash cell, and native
+status.
+\item \strong{Interactive visualization:} Builds a multi-layer map with records
+color-coded by \code{native_status}.
+\item \strong{Basemap selection:} Provides OpenStreetMap, Esri World Imagery, and
+Stadia Stamen Watercolor basemaps.
+}
+\subsection{Geohash deduplication}{
 
-Geohash encoding converts latitude-longitude pairs into alphanumeric strings representing
-grid cells of varying sizes. By grouping records by species name, geohash cell, and native
-status, then selecting the first record from each group, the function effectively reduces
-visual overplotting while preserving the spatial distribution pattern. This is particularly
-useful for densely sampled regions where thousands of records may cluster within small areas.
+Geohash encoding converts latitude-longitude pairs into alphanumeric strings
+representing grid cells of varying sizes. The function groups records by
+species name, geohash cell, and native status, then retains the first record
+from each group. This reduces visual overplotting while preserving the
+broad spatial distribution pattern, which is useful for densely sampled
+regions.
+}
 
-\strong{Map Layers and Interactivity:}
+\subsection{Map layers and interactivity}{
 
 The generated map includes:
 \itemize{
-\item A color-coded legend based on \code{wcvp_area_status} categories
-\item Popups displaying record attributes (GBIF ID, collection key, taxon name, etc.)
-\item Toggleable basemap layers for different visualization contexts
-\item Adjustable point transparency (\code{alpha.regions = 0.6}) for better density perception
+\item A color-coded legend based on \code{native_status} categories.
+\item Popups displaying record attributes such as GBIF ID, collection key, and
+taxon name.
+\item Toggleable basemap layers for different visualization contexts.
+\item Point transparency set to \code{alpha.regions = 0.6} to improve density
+perception.
+}
 }
 
-\strong{Record Selection Criteria:}
+\subsection{Record selection}{
 
-Only records meeting the following criteria are included in the map:
-\itemize{
-\item \code{UltraGBIF_useful_for_spatial_analysis = TRUE}: Coordinates passed GBIF validation
-\item For non-native records: \code{wcvp_area_status != "unknown"}: Must have a defined
-geographic classification
+Records are included only when \code{VasGBIF_useful_for_spatial_analysis = TRUE}.
+For non-native records, \code{native_status} must also differ from \code{"unknown"}.
+Records with missing longitude or latitude are removed before geohash
+deduplication.
 }
 }
 \examples{
-\dontrun{
-# Make sur you have got refined_records from function refine_records
-# This function may open your browser in the background; please be aware.
-map_records(refined_records=refined_records,precision=4,cex=4)
-}
+\dontshow{if (interactive() && exists("refined_records")) withAutoprint(\{ # examplesIf}
+map_records(refined_records = refined_records, precision = 3, cex = 3)
+\dontshow{\}) # examplesIf}
 }
 \seealso{
-\code{\link[geohashTools]{gh_encode}}, \code{\link[mapview]{mapView}}
+\code{\link[geohashTools:gh_encode]{gh_encode()}} for geohash encoding and
+\code{\link[mapview:mapView]{mapView()}} for interactive map construction.
 }

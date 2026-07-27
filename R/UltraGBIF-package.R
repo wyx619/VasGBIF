@@ -1,218 +1,308 @@
-#' @title Fast and Easy Compilation of GBIF Plant Occurrence Records in One R Package
-#' @name UltraGBIF
+#' @title Fast and Easy Compilation of Vascular Plants Occurrence Records from GBIF
+#' @name VasGBIF
 #' @keywords package
 #'
 #' @description
 #' \if{html}{\figure{logo.png}{options: width="120" alt="logo" style="float: right"}}
 #'
-#' GBIF hosts over 3 billion occurrence records. However, processing them typically
-#' involves complex workflows and substantial computational overhead, posing significant
-#' challenges for biodiversity researchers. To address these limitations, we present
-#' \strong{UltraGBIF}, a fast and easy R package to parse, validate, and merge enormous
-#' GBIF plant occurrence records into analysis-ready datasets.
+#' GBIF hosts over 500 million tracheophyte (vascular plant) occurrence
+#' records, but processing them typically involves complex workflows and
+#' substantial computational overhead. **VasGBIF** is a fast, plant-optimised
+#' R package that parses, validates, and consolidates GBIF occurrence records
+#' into analysis-ready datasets.
 #'
-#' UltraGBIF integrates taxonomic resolution, spatial validation, duplicate consolidation,
-#' and botanical region annotation within a high-performance framework. Its optimized
-#' vectorized programming methods and intelligent parallelization enable compiling one
-#' million GBIF occurrence records on a laptop within 15 minutes, without requiring
-#' high-memory infrastructure.
+#' VasGBIF integrates taxonomic resolution via the [TNRS], spatial validation
+#' via [CoordinateCleaner], duplicate consolidation, and native-range
+#' annotation against WCVP and WGSRPD within a single high-performance
+#' pipeline. Its vectorised design and selective parallelisation let it process
+#' one million records on a laptop in under 15 minutes without specialised
+#' hardware.
 #'
 #' @details
-#' \strong{Getting Started:}
+#' ## Pipeline overview
 #'
-#' UltraGBIF provides a reproducible, plant-optimized, and computationally efficient
-#' framework for transforming raw GBIF occurrence records into analysis-ready datasets.
-#' The package functions are organized into 4 stages and 7 distinct modules,
-#' designed to be executed sequentially. After the core stages (modules 1-6), typically
-#' approximately 30% of the initial occurrence records are retained as high-quality,
-#' non-redundant data.
+#' VasGBIF provides a reproducible workflow organised into four sequential
+#' stages built around seven core functions. The core pipeline typically
+#' retains approximately 35% of input records as high-quality, non-redundant
+#' data.
 #'
-#' \strong{Stage 1: Data Acquisition and Preparation}
+#' ### Stage 1 — Import and taxonomic standardisation
 #'
-#' This stage ensures data accuracy and consistency through three modules:
+#' - [import_records()]: loads a GBIF occurrence download ZIP, extracts the
+#'   occurrence table, and parses GBIF issue flags.
+#' - [check_taxon()]: submits species- and infraspecific-rank names to the
+#'   Taxonomic Name Resolution Service (TNRS; Boyle et al. 2013) for
+#'   resolution against the World Checklist of Vascular Plants (WCVP).
+#'   Synonyms are resolved to accepted names; names that cannot be matched
+#'   are flagged for review.
 #'
-#' \itemize{
-#'   \item \strong{1. Import Records} (\code{\link{import_records}}): Receives a path to the
-#'   GBIF occurrence download zip file. Loads all initial occurrence records and
-#'   automatically extracts their GBIF issue flags for downstream quality assessment.
+#' ### Stage 2 — Duplicate detection via collection-event keys
 #'
-#'   \item \strong{2. Check Taxon Name} (\code{\link{check_occ_taxon}}): Implements taxonomic
-#'   name standardization using the Taxonomic Name Resolution Service (TNRS; Boyle et al.,
-#'   2013) against the World Checklist of Vascular Plants (WCVP). Resolves synonyms,
-#'   corrects misspellings, and assigns accepted names to ensure taxonomic consistency.
+#' - [get_collections()]: builds a composite key for each record from its
+#'   accepted taxon name, collection date, and rounded coordinates. Records
+#'   sharing the same key are treated as potential duplicates from a single
+#'   gathering event.
+#' - [set_vouchers()]: scores each record on metadata completeness (nine
+#'   fields) and geospatial quality (GBIF issue flags) and selects the
+#'   highest-scoring record in each duplicate group as the master digital
+#'   voucher. Records with incomplete keys are kept as independent vouchers.
 #'
-#'   \item \strong{3. Check Collectors} (\code{\link{check_collectors}}): Simplifies and
-#'   extracts the primary collector's name from the \code{recordedBy} field, then builds
-#'   a cleaned collector table This reduces inconsistencies that can fragment
-#'   single collection events and improves the accuracy of subsequent duplicate detection.
-#' }
+#' ### Stage 3 — Coordinate validation and native-status annotation
 #'
-#' \strong{Stage 2: Duplicate Removal and Reliability Filtering}
+#' - [refine_records()]: restores missing metadata from duplicate records via
+#'   [restore_duplicates()], then validates coordinates with
+#'   [CoordinateCleaner::clean_coordinates()] (Zizka et al. 2019) to flag spatial errors such as
+#'   centroids, capitals, marine coordinates, and zero coordinates. Matches
+#'   validated coordinates to [WGSRPD Level 3][WGSRPD3] and [WCVP
+#'   distribution][Distributions] data via [detect_native_status()] to
+#'   classify each record as native, introduced, extinct, location_doubtful,
+#'   or unknown.
 #'
-#' This stage improves data reliability by identifying high-quality, non-redundant
-#' occurrence records:
+#' ### Stage 4 — Export and visualisation
 #'
-#' \itemize{
-#'   \item \strong{4. Set Unique Collection Mark} (\code{\link{set_collection_mark}}):
-#'   Identifies and consolidates duplicates into unique collection events. A collection
-#'   event represents a distinct sampling instance (a specific collector at a specific
-#'   date or with a specific record number). The collection event key is constructed as
-#'   \code{Family + RecordBy + RecordNumber/EventDate}, enabling robust duplicate grouping.
+#' - [export_records()]: writes the refined records to disk as three
+#'   gzip-compressed CSV files: all usable records, the native subset, and
+#'   records that failed coordinate validation.
+#' - [map_records()]: renders refined records on interactive maps via
+#'   [`mapView()`][mapview::mapView], with geohash-based decluttering and
+#'   colour-coding by native status. Supports multiple basemap layers
+#'   (OpenStreetMap, Esri World Imagery, and others).
 #'
-#'   \item \strong{5. Set Digital Voucher} (\code{\link{set_digital_voucher}}): Records
-#'   possessing a "full collection mark" are grouped, and those within each group are
-#'   scored across multiple dimensions (record completeness and geospatial quality).
-#'   The record exhibiting the highest metadata quality is retained as the "digital
-#'   voucher." Records lacking any component of this definition are treated as unique
-#'   entities and proceed directly to scoring without aggregation. This strategy
-#'   preserves the most geographically informative data while minimizing redundancy.
-#' }
+#' ## Quick start
 #'
-#' \strong{Stage 3: Refine Records}
+#' The built-in example dataset lets you run the full pipeline without a
+#' GBIF download:
 #'
-#' This stage restores key information for usable records from their duplicates with
-#' the same collection mark, enhances geospatial accuracy, and extracts native status:
+#' ```r
+#' library(VasGBIF)
 #'
-#' \itemize{
-#'   \item \strong{6. Refine Records} (\code{\link{refine_records}}): Validates spatial
-#'   information using CoordinateCleaner (Zizka et al., 2019) to flag spatial errors
-#'   (e.g., centroids, capitals, institutions, seas, zeros). Restores detailed metadata
-#'   from duplicate records to the selected digital vouchers. Extracts native status
-#'   information by cross-referencing occurrence coordinates with WCVP distribution
-#'   data and WGSRPD Level 3 areas, classifying records as native, introduced, extinct,
-#'   location_doubtful, or unknown.
-#' }
+#' # Step 1: Import (built-in example, or use your own ZIP)
+#' gbif_file <- system.file(
+#'   "extdata", "0003386-260721160103020.zip",
+#'   package = "VasGBIF"
+#' )
+#' occ_import <- import_records(path = gbif_file)
 #'
-#' \strong{Stage 4: Visualization}
+#' # Step 2: Resolve taxon names against WCVP
+#' taxa_checked <- check_taxon(occ_import = occ_import, accuracy = 0.9)
 #'
-#' After completing the core pipeline, an optional module is available for visualization:
+#' # Step 3: Build collection-event keys
+#' collection_keys <- get_collections(
+#'   occ_import = occ_import,
+#'   taxa_checked = taxa_checked,
+#'   precision = 2L
+#' )
 #'
-#' \itemize{
-#'   \item \strong{Map Records} (\code{\link{map_records}}): Renders verified records
-#'   onto customizable, dynamic interactive maps using \code{mapview}. Employs geohash-based
-#'   deduplication to reduce visual clutter and displays records color-coded by native
-#'   status classification. Supports multiple basemap layers (OpenStreetMap, Esri World
-#'   Imagery, Stadia Stamen Watercolor).
-#' }
+#' # Step 4: Select digital vouchers
+#' voucher <- set_vouchers(
+#'   occ_import = occ_import,
+#'   taxa_checked = taxa_checked,
+#'   collection_keys = collection_keys
+#' )
 #'
-#' \strong{Quick Start Example:}
+#' # Step 5: Validate coordinates and annotate native status
+#' refined_records <- refine_records(
+#'   voucher = voucher,
+#'   threads = 4
+#' )
 #'
-#' \preformatted{
-#' # Step 1: Import GBIF occurrence records
-#' occ_import <- import_records(path = "path/to/gbif_download.zip")
+#' # Step 6: Export records
+#' export_records(refined_records = refined_records,
+#'   export_path = getwd())
 #'
-#' # Step 2: Standardize taxonomic names
-#' taxa_checked <- check_occ_taxon(occ_import = occ_import, accuracy = 0.9)
+#' # Optional: visualise on an interactive map
+#' map_records(refined_records = refined_records, precision = 3,
+#'   cex = 3)
+#' ```
 #'
-#' # Step 3: Standardize collector names
-#' collectors_dictionary <- check_collectors(occ_import = occ_import, min_char = 2)
+#' ## Performance
 #'
-#' # Step 4: Generate collection event keys
-#' collection_key <- set_collection_mark(occ_import = occ_import,
-#'                                       collectors_dictionary = collectors_dictionary)
+#' VasGBIF achieves its speed through several architectural choices:
 #'
-#' # Step 5: Select digital vouchers
-#' voucher <- set_digital_voucher(occ_import = occ_import,
-#'                                taxa_checked = taxa_checked,
-#'                                collection_key = collection_key)
+#' - **C/C++ backends**: core operations are delegated to [data.table],
+#'   [stringi], and [terra] — packages written in C/C++ that bypass R's
+#'   per-iteration interpretive overhead.
+#' - **Vectorisation over explicit loops**: functions such as [set_vouchers()]
+#'   use vectorised string matching [`stri_detect_fixed()`][stringi::stri_detect_fixed]
+#'   and conditional assignment [`fcase()`][data.table::fcase] to process
+#'   entire columns in a single compiled call rather than iterating in R.
+#' - **SIMD exploitation**: vectorised routines in [stringi] and
+#'   [`terra::extract()`][terra::extract] allow the compiler to emit SIMD
+#'   instructions (AVX, AVX-512) that process multiple data elements per CPU
+#'   cycle.
+#' - **Memory-efficient design**: [data.table]'s in-place modification
+#'   `:=`, [`set()`][data.table::set]) avoids unnecessary copies, and
+#'   contiguous memory access patterns improve CPU cache utilisation.
+#' - **Selective parallelisation**: [refine_records()] partitions the dataset
+#'   into chunks and distributes [CoordinateCleaner] validation across
+#'   workers via [foreach] and [doParallel], combining vectorised processing
+#'   within each chunk with parallel execution across chunks.
 #'
-#' # Step 6: Refine records (coordinate validation + native status)
-#' refined_records <- refine_records(voucher = voucher,
-#'                                   threads = 4,
-#'                                   save_path = getwd())
+#' On a standard laptop, VasGBIF compiles one million occurrence records
+#' within 15 minutes.
 #'
-#' # Optional: Visualize results
-#' map <- map_records(refined_records = refined_records, precision = 4, cex = 4)
-#'
-#' }
-#'
-#' \strong{Performance:}
-#'
-#' UltraGBIF achieves its outstanding performance through specific technical architectures:
-#'
-#' \itemize{
-#'   \item \strong{C/C++ Backend Integration}: UltraGBIF strategically leverages three
-#'   high-performance R packages---\code{data.table}, \code{stringi}, and \code{terra}---all
-#'   implemented in C/C++ at their core. This architecture bypasses R's interpretive overhead,
-#'   delegating computationally intensive operations to compiled code where type checking,
-#'   memory allocation, and function dispatch occur once upon entry rather than per-iteration.
-#'
-#'   \item \strong{Vectorization Over Explicit Loops}: R, as an interpreted language, imposes
-#'   substantial overhead on explicit \code{for} loops: type checking, bounds checking, and
-#'   function dispatch execute at each iteration, often exceeding actual computation time.
-#'   Furthermore, R's copy-on-modify semantics can trigger repeated memory allocation when
-#'   dynamically growing vectors. Vectorized operations circumvent these bottlenecks by
-#'   dispatching to pre-compiled C/Fortran routines that process entire vectors in a single
-#'   call. The \code{prepare_collectors_dictionary()} function exemplifies this through
-#'   \code{Vectorize()}, while \code{set_digital_voucher()} employs vectorized string matching
-#'   (\code{stri_detect_fixed()}) and conditional assignment (\code{fcase()}) to eliminate
-#'   interpreter overhead.
-#'
-#'   \item \strong{SIMD Exploitation}: Modern CPUs support Single Instruction Multiple Data
-#'   (SIMD) parallelism---executing one instruction across multiple data elements simultaneously.
-#'   Traditional scalar computation processes one datum per cycle, whereas SIMD instructions
-#'   (e.g., AVX, AVX-512) process 8-16 elements concurrently. Vectorized R functions,
-#'   particularly matrix operations in \code{terra::extract()} and string processing in
-#'   \code{stringi}, enable compiler-level SIMD auto-vectorization. Explicit R loops cannot
-#'   exploit this hardware capability due to interpreter intervention between iterations.
-#'   The \code{plot_richness()} function demonstrates this: presence-absence matrix construction
-#'   via vectorized cell indexing achieves near-hundredfold speedup over nested-loop alternatives.
-#'
-#'   \item \strong{Memory-Efficient Design}: Beyond speed, vectorization exhibits superior
-#'   memory locality. Contiguous vector access patterns optimize CPU cache utilization---prefetchers
-#'   efficiently load sequential memory blocks into L1/L2 cache. Conversely, \code{for} loops
-#'   with random or indirect access suffer cache misses, incurring expensive RAM latency.
-#'   \code{data.table} further enhances memory efficiency through in-place modification
-#'   (\code{set()}, \code{:=}), eliminating intermediate copies during column updates---a
-#'   critical optimization for million-record biodiversity datasets.
-#'
-#'   \item \strong{Chunk-Based Parallelization}: Computational parallelization is selectively
-#'   deployed in \code{refine_records()}, where the dataset is partitioned into chunks
-#'   proportional to available cores before distributing CoordinateCleaner validation across
-#'   workers via \code{foreach}/\code{doParallel}. This hybrid approach---vectorized processing
-#'   within chunks, parallel execution across chunks---maximizes throughput while minimizing
-#'   inter-process communication overhead.
-#' }
-#'
-#' On a standard laptop, UltraGBIF can compile one million occurrence records within 15 minutes.
-#' The core pipeline typically retains approximately 35% of initial records as high-quality,
-#' non-redundant data suitable for downstream analyses.
-#'
-#' @examples
-#' \donttest{
-#' # Browse the comprehensive tutorial vignette
-#' vignette('Tutorial_of_UltraGBIF', package = 'UltraGBIF')
-#' }
+#' @examplesIf interactive()
+#' # Three vignettes walk through the entire VasGBIF workflow, from
+#' # data acquisition to final export:
+#' vignette("GetRecords",   package = "VasGBIF")  # search & download GBIF data
+#' vignette("Example",      package = "VasGBIF")  # quick-start with built-in data
+#' vignette("Application",  package = "VasGBIF")  # real-world full-pipeline walk-through
 #'
 #' @references
-#' \enumerate{
-#'   \item Appelhans, Tim, Florian Detsch, Christoph Reudenbach, and Stefan Woellauer. 2023.
-#'   "Mapview: Interactive Viewing of Spatial Data in R."
-#'   \url{https://CRAN.R-project.org/package=mapview}.
+#' 1. Appelhans, Tim, Florian Detsch, Christoph Reudenbach, and Stefan
+#'    Woellauer. 2023. "Mapview: Interactive Viewing of Spatial Data in R."
+#'    <https://CRAN.R-project.org/package=mapview>.
 #'
-#'   \item Boyle, Brad, Nicole Hopkins, Zhenyuan Lu, Juan Antonio Raygoza Garay, Dmitry Mozzherin,
-#'   Tony Rees, Naim Matasci, et al. 2013. "The Taxonomic Name Resolution Service: An Online
-#'   Tool for Automated Standardization of Plant Names." \emph{BMC Bioinformatics} 14 (1): 16.
-#'   \doi{10.1186/1471-2105-14-16}.
+#' 2. Boyle, Brad, Nicole Hopkins, Zhenyuan Lu, Juan Antonio Raygoza Garay,
+#'    Dmitry Mozzherin, Tony Rees, Naim Matasci, et al. 2013. "The Taxonomic
+#'    Name Resolution Service: An Online Tool for Automated Standardization
+#'    of Plant Names." *BMC Bioinformatics* 14 (1): 16.
+#'    \doi{10.1186/1471-2105-14-16}.
 #'
-#'   \item Chirico, Michael. 2023. "geohashTools: Tools for Working with Geohashes."
-#'   \url{https://CRAN.R-project.org/package=geohashTools}.
+#' 3. Chirico, Michael. 2023. "geohashTools: Tools for Working with
+#'    Geohashes." <https://CRAN.R-project.org/package=geohashTools>.
 #'
-#'   \item De Melo, Pablo Hendrigo Alves, Nadia Bystriakova, Eve Lucas, and Alexandre K. Monro. 2024.
-#'   "A New R Package to Parse Plant Species Occurrence Records into Unique Collection Events
-#'   Efficiently Reduces Data Redundancy." \emph{Scientific Reports} 14 (1): 5450.
-#'   \doi{10.1038/s41598-024-56158-3}.
+#' 4. De Melo, Pablo Hendrigo Alves, Nadia Bystriakova, Eve Lucas, and
+#'    Alexandre K. Monro. 2024. "A New R Package to Parse Plant Species
+#'    Occurrence Records into Unique Collection Events Efficiently Reduces
+#'    Data Redundancy." *Scientific Reports* 14 (1): 5450.
+#'    \doi{10.1038/s41598-024-56158-3}.
 #'
-#'   \item Vilela, Bruno, and Fabricio Villalobos. 2015. "letsR: A New R Package for Data Handling
-#'   and Analysis in Macroecology." Edited by Timothée Poisot. \emph{Methods in Ecology and
-#'   Evolution} 6 (10): 1229-34.
-#'   \doi{10.1111/2041-210x.12401}.
+#' 5. Vilela, Bruno, and Fabricio Villalobos. 2015. "letsR: A New R Package
+#'    for Data Handling and Analysis in Macroecology." Edited by Timothée
+#'    Poisot. *Methods in Ecology and Evolution* 6 (10): 1229-34.
+#'    \doi{10.1111/2041-210x.12401}.
 #'
-#'   \item Zizka, Alexander, Daniele Silvestro, Tobias Andermann, Josue Azevedo, Camila Duarte Ritter,
-#'   Daniel Edler, Harith Farooq, et al. 2019. "CoordinateCleaner: Standardized Cleaning of
-#'   Occurrence Records from Biological Collection Databases." Edited by Tiago Quental.
-#'   \emph{Methods in Ecology and Evolution} 10 (5): 744-51.
-#'   \doi{10.1111/2041-210X.13152}.
-#' }
+#' 6. Zizka, Alexander, Daniele Silvestro, Tobias Andermann, Josue Azevedo,
+#'    Camila Duarte Ritter, Daniel Edler, Harith Farooq, et al. 2019.
+#'    "CoordinateCleaner: Standardized Cleaning of Occurrence Records from
+#'    Biological Collection Databases." Edited by Tiago Quental.
+#'    *Methods in Ecology and Evolution* 10 (5): 744-51.
+#'    \doi{10.1111/2041-210X.13152}.
 #'
+#' @import bit64
 NULL
+
+# ---- Suppress data.table NSE notes in R CMD check ---------------------------
+utils::globalVariables(c(
+  # dplyr pipe placeholder
+  ".",
+  # data.table specials
+  "N",
+  # ---- GBIF occurrence fields (from import_records) ----
+  "gbifID",
+  "scientificName",
+  "taxonRank",
+  "eventDate",
+  "decimalLatitude",
+  "decimalLongitude",
+  "countryCode",
+  "institutionCode",
+  "catalogNumber",
+  "recordedBy",
+  "recordNumber",
+  "stateProvince",
+  "locality",
+  "identifiedBy",
+  # ---- WCVP taxonomic fields (from TNRS / check_taxon) ----
+  "wcvp_searchedName",
+  "Name_submitted",
+  "Name_matched_id",
+  "Name_matched",
+  "Author_matched",
+  "Taxonomic_status",
+  "Accepted_name_id",
+  "Accepted_name",
+  "Accepted_name_author",
+  "Accepted_name_rank",
+  "Accepted_family",
+  "wcvp_plant_name_id",
+  "wcvp_taxon_rank",
+  "wcvp_taxon_status",
+  "wcvp_family",
+  "wcvp_taxon_name",
+  "wcvp_taxon_authors",
+  "wcvp_accepted_plant_name_id",
+  "wcvp_reviewed",
+  "wcvp_taxon_status_of_searchedName",
+  "wcvp_plant_name_id_of_searchedName",
+  "wcvp_taxon_authors_of_searchedName",
+  "wcvp_verified_author",
+  "wcvp_verified_speciesName",
+  "wcvp_searchNotes",
+  "ori_sp_name",
+  # ---- VasGBIF internal columns (from set_vouchers etc.) ----
+  "collection_key",
+  "COUNTRY_INVALID",
+  "coordinates_validated_by_gbif_issue",
+  "geospatial_quality",
+  "verbatim_quality",
+  "moreInformativeRecord",
+  "is_non_groupable",
+  "num_duplicates",
+  "max_info_score",
+  "num_unique_taxa",
+  "coord_priority",
+  "best_lat",
+  "best_lon",
+  "VasGBIF_digital_voucher",
+  "VasGBIF_duplicates",
+  "VasGBIF_num_duplicates",
+  "VasGBIF_non_groupable_duplicates",
+  "VasGBIF_duplicates_grouping_status",
+  "VasGBIF_unidentified_sample",
+  "VasGBIF_sample_taxon_name",
+  "VasGBIF_sample_taxon_name_status",
+  "VasGBIF_number_taxon_names",
+  "VasGBIF_useful_for_spatial_analysis",
+  "VasGBIF_decimalLatitude",
+  "VasGBIF_decimalLongitude",
+  "VasGBIF_dataset_result",
+  "VasGBIF_wcvp_plant_name_id",
+  "VasGBIF_wcvp_taxon_rank",
+  "VasGBIF_wcvp_taxon_status",
+  "VasGBIF_wcvp_family",
+  "VasGBIF_wcvp_taxon_name",
+  "VasGBIF_wcvp_taxon_authors",
+  "VasGBIF_wcvp_reviewed",
+  "VasGBIF_restored_from_duplicate",
+  # ---- i.* join columns (data.table merge-by-reference) ----
+  "i.wcvp_taxon_name",
+  "i.wcvp_plant_name_id",
+  "i.num_unique_taxa",
+  "i.clean_value",
+  # ---- Temporary variables ----
+  "tem_year",
+  "tem_institutionCode",
+  "tem_catalogNumber",
+  "tem_recordedBy",
+  "tem_recordNumber",
+  "tem_COUNTRY",
+  "tem_stateProvince",
+  "tem_locality",
+  "tem_identifiedBy",
+  "clean_value",
+  "best_value",
+  "..col_tmp",
+  "..cols_to_keep",
+  "..fields_to_parse",
+  # ---- refine_records mapping columns ----
+  "taxon_name",
+  "native_status",
+  "location_doubtful",
+  "introduced",
+  "extinct",
+  "area_code_l3",
+  "LEVEL3_COD",
+  "summary",
+  # ---- map_records ----
+  "geohash",
+  # ---- Package datasets ----
+  "EnumOccurrenceIssue",
+  "constant",
+  "Distributions",
+  "WGSRPD3",
+  "WorldLandMap",
+  # ---- utils::data suggestion (used in package doc examples) ----
+  "data"
+))
