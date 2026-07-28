@@ -1,22 +1,24 @@
 ---
 title: "Example"
 author:
-  - name: Yuxuan Wang
-    affiliation: Sichuan University
-    email: wyx1743@gmail.com
-    orcid: "0009-0003-7817-748X"
+- name: Yuxuan Wang
+  affiliation: Sichuan University
+  email: wyx1743@gmail.com
+  orcid: "0009-0003-7817-748X"
 date: "`r Sys.Date()`"
 output:
-  html_document: 
+  pdf_document:
+    toc: false
+  rmarkdown::html_vignette:
+    toc: false
+  word_document: null
+  html_document:
     toc: true
     toc_float: true
     number_sections: false
     df_print: paged
     theme: readable
     highlight: tango
-  rmarkdown::html_vignette:
-    toc: false
-  word_document: 
 vignette: >
   %\VignetteIndexEntry{Example}
   %\VignetteEncoding{UTF-8}
@@ -25,7 +27,7 @@ bibliography: references.bib
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,eval = F)
 ```
 
 ## Overview
@@ -45,6 +47,7 @@ After all, approximately 30% of the initial records are retained as high-quality
 
 ```{r init}
 library(VasGBIF)
+library(data.table)
 VasGBIF_summary <- list()
 ```
 
@@ -79,10 +82,6 @@ The `import` object contains:
 
 ```{r check_taxon}
 taxa_checked <- check_taxon(occ_import = occ_import, accuracy = 0.9)
-VasGBIF_summary$taxa_submitted <- nrow(taxa_checked$occ_taxa_checked)
-VasGBIF_summary$taxa_resolved <- taxa_checked$occ_taxa_checked[
-  wcvp_searchNotes != "Not found", .N
-]
 ```
 
 The `occ_taxa` object contains:
@@ -202,12 +201,27 @@ VasGBIF_summary |>
   t()
 ```
 
+```{r}
+##                         [,1]
+## initial_records        12362
+## initial_taxa              15
+## taxa_submitted         12362
+## taxa_resolved          12362
+## complete_keys           9445
+## incomplete_keys          722
+## usable                 10443
+## duplicate               1849
+## all_refined             9055
+## native                   431
+## introduced              8224
+## coordinate_problematic  1388
+## final_taxa                 5
+```
+
 | Statistic | Description |
 |----|----|
 | `initial_records` | Total GBIF occurrence records imported |
 | `initial_taxa` | Unique scientific names before resolution |
-| `taxa_submitted` | Names submitted to TNRS |
-| `taxa_resolved` | Names successfully resolved against WCVP |
 | `complete_keys` | Records with complete collection-event keys |
 | `incomplete_keys` | Records with incomplete keys |
 | `usable` | Records classified as usable after voucher selection |

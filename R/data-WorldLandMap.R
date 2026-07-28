@@ -8,5 +8,6 @@
 #'   \item{geometry}{Geometry unit}
 #' }
 #' @importFrom utils data
+#' @seealso [rnaturalearth::ne_download()]
 #' @source \code{rnaturalearth::ne_download(scale = 110,type = 'land',category = 'physical',returnclass = "sf")}
 "WorldLandMap"

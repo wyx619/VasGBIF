@@ -39,9 +39,9 @@ This vignette demonstrates how to programmatically search for and download biodi
 The workflow consists of three steps:
 
 | Step | What | Requires password? |
-|----|----|----|
-| **1.** Account setup & package loading | Register a GBIF account and load required packages | — |
-| **2.** Search & submit a download request | Use `rgbif` to find a taxon key and submit a download job | **Yes** |
+|------------------------|------------------------|------------------------|
+| **1.** Account setup & package loading | Register a GBIF account and load required packages | Yes |
+| **2.** Search & submit a download request | Use `rgbif` to find a taxon key and submit a download job | Yes |
 | **3.** Download & import into VasGBIF | Retrieve the ZIP and feed it to `import_records()` | Only Path A (new request) |
 
 Step 2 is the only place where your GBIF credentials are needed. If you already possess a download key or DOI from a previous download, you can skip directly to Step 3.
@@ -92,7 +92,7 @@ cat(paste(genus,":",gbif_key$usageKey))
 The `pred()` family of functions lets you construct GBIF download queries. Common predicates include:
 
 | Function | Meaning | Example |
-|----|----|----|
+|------------------------|------------------------|------------------------|
 | `pred("taxonKey", key)` | Match a taxon | `pred("taxonKey", gbif_key$usageKey)` |
 | `pred("basisOfRecord", "PRESERVED_SPECIMEN")` | Filter by basis of record | Only physical specimens |
 | `pred("hasCoordinate", TRUE)` | Require coordinates | Exclude non-georeferenced records |
@@ -184,7 +184,7 @@ Once the download has succeeded (or if you already have a key or DOI), you can r
 Three entry points lead to the same result:
 
 | Path | Starting point | Code | Need Authentication? |
-|----|----|----|----|
+|------------------|------------------|------------------|------------------|
 | **A** (from Step 2) | `download_key` | `occ_download_get(download_key, path)` | No |
 | **B** (from DOI) | `"10.15468/dl.xxxxx"` | `occ_download_doi(DOI)$key %>% occ_download_get(path)` | No |
 | **C** (known key) | `"0021523-250402121839773"` | `occ_download_get(key, path)` | No |

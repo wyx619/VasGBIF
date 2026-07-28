@@ -16,7 +16,7 @@ A data.table with 1,983653 rows and 6 variables:
 }
 }
 \source{
-\url{http://sftp.kew.org/pub/data-repositories/WCVP/wcvp.zip}
+\url{https://sftp.kew.org/pub/data-repositories/WCVP/wcvp.zip}
 }
 \usage{
 Distributions

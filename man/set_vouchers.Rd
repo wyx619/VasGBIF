@@ -63,16 +63,16 @@ One point for each of these nine fields that is present and non-empty:
 scores 9; one with none scores 0.
 }
 
-\subsection{\code{geospatial_quality} — coordinate issue penalty (0 to −9)}{
+\subsection{\code{geospatial_quality} — coordinate issue penalty (0 to -9)}{
 
 Derived from the GBIF issue flags catalogued in \code{EnumOccurrenceIssue}:
 \itemize{
 \item \code{0}: no known geospatial issues.
-\item \verb{−1}: at least one severity-1 (cosmetic) issue, e.g.
+\item \code{-1}: at least one severity-1 (cosmetic) issue, e.g.
 \code{COORDINATE_ROUNDED}.
-\item \verb{−3}: at least one severity-2 (potential) issue, e.g.
+\item \code{-3}: at least one severity-2 (potential) issue, e.g.
 \code{COUNTRY_COORDINATE_MISMATCH}.
-\item \verb{−9}: at least one severity-3 (exclusion) issue, e.g.
+\item \code{-9}: at least one severity-3 (exclusion) issue, e.g.
 \code{ZERO_COORDINATE}, or coordinates are missing entirely.
 }
 }
@@ -82,9 +82,9 @@ Derived from the GBIF issue flags catalogued in \code{EnumOccurrenceIssue}:
 Suppose three records share the collection key
 \verb{Saxifraga oppositifolia|17095|30.45|79.07}:\tabular{llllllll}{
    Record \tab \code{recordedBy} \tab \code{year} \tab ... \tab \code{verbatim_quality} \tab GBIF issues \tab \code{geospatial_quality} \tab \code{moreInformativeRecord} \cr
-   A (complete, no issues) \tab ✓ \tab ✓ \tab ... \tab 7 \tab none \tab 0 \tab \strong{7} \cr
-   B (sparse, minor issue) \tab ✗ \tab ✗ \tab ... \tab 3 \tab \code{COORDINATE_ROUNDED} \tab −1 \tab 2 \cr
-   C (missing coordinates) \tab ✓ \tab ✓ \tab ... \tab 6 \tab \code{ZERO_COORDINATE} \tab −9 \tab −3 \cr
+   A (complete, no issues) \tab Yes \tab Yes \tab ... \tab 7 \tab none \tab 0 \tab \strong{7} \cr
+   B (sparse, minor issue) \tab No \tab No \tab ... \tab 3 \tab \code{COORDINATE_ROUNDED} \tab -1 \tab 2 \cr
+   C (missing coordinates) \tab Yes \tab Yes \tab ... \tab 6 \tab \code{ZERO_COORDINATE} \tab -9 \tab -3 \cr
 }
 
 
@@ -155,11 +155,4 @@ voucher <- set_vouchers(
   collection_keys = collection_keys
 )
 \dontshow{\}) # examplesIf}
-}
-\references{
-De Melo, Pablo Hendrigo Alves, Nadia Bystriakova, Eve Lucas, and
-Alexandre K. Monro. 2024. "A New R Package to Parse Plant Species
-Occurrence Records into Unique Collection Events Efficiently Reduces
-Data Redundancy." \emph{Scientific Reports} 14 (1): 5450.
-doi:10.1038/s41598-024-56158-3.
 }

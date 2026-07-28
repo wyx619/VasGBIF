@@ -1,7 +1,7 @@
 url: https://wyx619.github.io/VasGBIF/
 template:
   bootstrap: 5
-  math-rendering: mathjax
+  math-rendering: mathjasx
   light-switch: true
   bslib:
     primary: "#0054AD"
@@ -15,19 +15,19 @@ navbar:
     right: [search, lightswitch, github]
   components:
     getstart:
-      text: Get started
+      text: Start
       href: reference/VasGBIF.html
     reference:
-      text: Reference
+      text: Functions
       href: reference/index.html
     articles:
-      text: Articles
+      text: Manuals
       menu:
-        - text: Get Records (GBIF download)
+        - text: Get records from GBIF
           href: articles/GetRecords.html
-        - text: Quick-start example
+        - text: Minimal example
           href: articles/Example.html
-        - text: Full application (with letsR)
+        - text: Full application with letsR
           href: articles/Application.html
     news:
       text: News

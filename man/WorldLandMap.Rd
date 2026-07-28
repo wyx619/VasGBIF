@@ -20,4 +20,7 @@ WorldLandMap
 \description{
 An integrated land map
 }
+\seealso{
+\code{\link[rnaturalearth:ne_download]{rnaturalearth::ne_download()}}
+}
 \keyword{datasets}

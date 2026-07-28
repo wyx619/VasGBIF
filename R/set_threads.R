@@ -17,10 +17,6 @@
 #' [parallel::detectCores()] are silently capped to that limit with a message.
 #' Values less than or equal to zero and non-numeric inputs produce an error.
 #'
-#' During `R CMD check` (when the environment variable `_R_CHECK_LIMIT_CORES_`
-#' is set to `"TRUE"`), threads are capped to a maximum of 2 to comply with the
-#' check environment limit on parallel processes.
-#'
 #' This function is also used by [refine_records()] to normalize its `threads`
 #' argument.
 #'
@@ -34,14 +30,6 @@ set_threads <- function(x) {
   total <- parallel::detectCores()
   if (!is.numeric(x)) {
     stop("input must be numeric")
-  }
-
-  if (isTRUE(as.logical(Sys.getenv("_R_CHECK_LIMIT_CORES_", "FALSE")))) {
-    if (x > 2) {
-      message("R CMD check limits cores to 2; capping")
-      x <- 2
-    }
-    total <- min(total, 2L)
   }
 
   if (x > total) {

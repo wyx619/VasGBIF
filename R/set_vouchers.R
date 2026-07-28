@@ -38,16 +38,16 @@
 #' `COUNTRY_INVALID`), and `identifiedBy`. A record with all nine fields
 #' scores 9; one with none scores 0.
 #'
-#' ### `geospatial_quality` — coordinate issue penalty (0 to −9)
+#' ### `geospatial_quality` — coordinate issue penalty (0 to -9)
 #'
 #' Derived from the GBIF issue flags catalogued in `EnumOccurrenceIssue`:
 #'
 #' - `0`: no known geospatial issues.
-#' - `−1`: at least one severity-1 (cosmetic) issue, e.g.
+#' - `-1`: at least one severity-1 (cosmetic) issue, e.g.
 #'   `COORDINATE_ROUNDED`.
-#' - `−3`: at least one severity-2 (potential) issue, e.g.
+#' - `-3`: at least one severity-2 (potential) issue, e.g.
 #'   `COUNTRY_COORDINATE_MISMATCH`.
-#' - `−9`: at least one severity-3 (exclusion) issue, e.g.
+#' - `-9`: at least one severity-3 (exclusion) issue, e.g.
 #'   `ZERO_COORDINATE`, or coordinates are missing entirely.
 #'
 #' ### Worked example
@@ -57,9 +57,9 @@
 #'
 #' | Record | `recordedBy` | `year` | ... | `verbatim_quality` | GBIF issues | `geospatial_quality` | `moreInformativeRecord` |
 #' |--------|-------------|--------|-----|--------------------|-------------|-------------------------|---------------------------|
-#' | A (complete, no issues) | ✓ | ✓ | ... | 7 | none | 0 | **7** |
-#' | B (sparse, minor issue) | ✗ | ✗ | ... | 3 | `COORDINATE_ROUNDED` | −1 | 2 |
-#' | C (missing coordinates) | ✓ | ✓ | ... | 6 | `ZERO_COORDINATE` | −9 | −3 |
+#' | A (complete, no issues) | Yes | Yes | ... | 7 | none | 0 | **7** |
+#' | B (sparse, minor issue) | No | No | ... | 3 | `COORDINATE_ROUNDED` | -1 | 2 |
+#' | C (missing coordinates) | Yes | Yes | ... | 6 | `ZERO_COORDINATE` | -9 | -3 |
 #'
 #' Record A has the highest `moreInformativeRecord` (7) and becomes the
 #' digital voucher. Its coordinates are propagated to B and C. Records B
@@ -118,12 +118,6 @@
 #' @import data.table
 #' @import stringi
 #' @importFrom dplyr %>% select
-#' @references
-#' De Melo, Pablo Hendrigo Alves, Nadia Bystriakova, Eve Lucas, and
-#' Alexandre K. Monro. 2024. "A New R Package to Parse Plant Species
-#' Occurrence Records into Unique Collection Events Efficiently Reduces
-#' Data Redundancy." *Scientific Reports* 14 (1): 5450.
-#' doi:10.1038/s41598-024-56158-3.
 #' @examplesIf interactive()
 #' taxa_checked <- check_taxon(occ_import = occ_import, accuracy = 0.9)
 #'
@@ -551,8 +545,8 @@ set_vouchers <- function(
     # Add final dataset result classification
     occ_all[,
       VasGBIF_dataset_result := fcase(
-        VasGBIF_digital_voucher == TRUE & VasGBIF_unidentified_sample == FALSE & VasGBIF_useful_for_spatial_analysis == TRUE                                               , "usable"    ,
-        VasGBIF_digital_voucher == FALSE                                                                                                                                       , "duplicate" ,
+        VasGBIF_digital_voucher == TRUE & VasGBIF_unidentified_sample == FALSE & VasGBIF_useful_for_spatial_analysis == TRUE                                             , "usable"    ,
+        VasGBIF_digital_voucher == FALSE                                                                                                                                 , "duplicate" ,
         VasGBIF_digital_voucher == TRUE & (VasGBIF_unidentified_sample == TRUE | VasGBIF_useful_for_spatial_analysis == FALSE | is.na(VasGBIF_decimalLongitude) == TRUE) , "unusable"
       )
     ]

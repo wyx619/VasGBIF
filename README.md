@@ -2,7 +2,7 @@
 
 ## Fast and Easy Compilation of Vascular Plants Occurrence Records from GBIF
 
-[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active) [![codecov.io](https://codecov.io/github/wyx619/VasGBIF/coverage.svg?branch=master)](https://codecov.io/github/wyx619/VasGBIF?branch=master) [![R-CMD-check](https://github.com/r-lib/rcmdcheck/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/github/wyx619/actions/workflows/R-CMD-check.yaml)
+[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active) [![codecov.io](https://codecov.io/github/wyx619/VasGBIF/coverage.svg?branch=master)](https://app.codecov.io/github/wyx619/VasGBIF?branch=master) [![R-CMD-check](https://github.com/r-lib/rcmdcheck/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml)
 
 ## Introduction
 
@@ -14,7 +14,7 @@ Generally, [`rgbif`](https://doi.org/10.32614/CRAN.package.rgbif), [`TNRS`](http
 
 To rectify this situation, we introduce VasGBIF, an efficient R package that unifies taxonomic resolution, spatial validation, duplicate consolidation, and botanical region annotation within a high-performance framework.
 
-Its optimized C/CPP-based dependencies, practical vectorized programming methods leveraging the SIMD instruction sets of modern computer CPUs and parallelization enable compiling one million GBIF occurrence records on a laptop within 15 minutes.
+With optimized C/CPP-based dependencies, practical vectorized programming methods leveraging the SIMD instruction sets of modern CPUs and parallelization, VasGBIF compiles one million GBIF occurrence records on a laptop within 15 minutes.
 
 In a word, VasGBIF resolves challenges in reproducibility, scalability, and spatial-taxonomic integrity without increasing adoption barriers for biodiversity researchers.
 
@@ -41,7 +41,7 @@ Online wiki website is at <https://wyx619.github.io/VasGBIF/>.
 
 ## Workflow
 
-***4 stages of VasGBIF.** Before export, approximately 30% of the initial occurrence records are retained as high-quality, non-redundant data.* ![Workflow](man/figures/Workflow.jpg "VasGBIF workflow")
+***4 stages and 7 primary functions of VasGBIF.** Before export, approximately 30% of the initial occurrence records are retained as high-quality, non-redundant data.* ![Workflow](man/figures/workflow.png "VasGBIF workflow")
 
 VasGBIF provides a reproducible, tracheophyte-optimized, and computationally efficient framework for transforming GBIF records into analysis-ready datasets. The package functions are organized into 4 stages built around 7 core functions.
 
@@ -146,4 +146,4 @@ Vilela, Bruno, and Fabricio Villalobos. 2015. “letsR: A New R Package for Data
 
 Zizka, Alexander, Daniele Silvestro, Tobias Andermann, Josué Azevedo, Camila Duarte Ritter, Daniel Edler, Harith Farooq, et al. 2019. “CoordinateCleaner : Standardized Cleaning of Occurrence Records from Biological Collection Databases.” Edited by Tiago Quental. *Methods in Ecology and Evolution* 10 (5): 744–51. <https://doi.org/10.1111/2041-210X.13152>.
 
-Mullen, Lincoln A., Kenneth Benoit, Os Keyes, Dmitry Selivanov, andJeffrey Arnold. 2018. “Fast, Consistent Tokenization of NaturalLanguage Text” 3: 655. <https://doi.org/10.21105/joss.00655>.
+GBIF.org (23 July 2026) GBIF Occurrence Download [doi:10.15468/dl.nt5exp](https://doi.org/10.15468/dl.nt5exp)

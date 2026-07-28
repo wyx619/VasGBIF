@@ -15,7 +15,7 @@
 #' }
 #' @importFrom utils data
 #' @source
-#' \url{http://sftp.kew.org/pub/data-repositories/WCVP/wcvp.zip}
+#' \url{https://sftp.kew.org/pub/data-repositories/WCVP/wcvp.zip}
 #' @references
 #' Govaerts, R., Nic Lughadha, E., Black, N. et al. The World Checklist of Vascular Plants, a continuously updated resource for exploring global plant diversity. \emph{Sci Data} 8, 215 (2021). \doi{10.1038/s41597-021-00997-6}
 "Distributions"

@@ -7,13 +7,10 @@ author:
     orcid: "0009-0003-7817-748X"
 date: "`r Sys.Date()`"
 output:
-  html_document: 
-    toc: true
-    toc_float: true
-    number_sections: true
-    df_print: paged
-    theme: readable
-    highlight: tango
+  pdf_document:
+    latex_engine: xelatex
+    highlight: arrow
+    number_sections: false
   rmarkdown::html_vignette:
     toc: true
     number_sections: true
@@ -21,10 +18,13 @@ output:
     fig_caption: true
     number_sections: true
     highlight: tango
-  pdf_document:
-    latex_engine: xelatex
-    highlight: arrow
-    number_sections: false
+  html_document: 
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+    theme: readable
+    highlight: tango
 vignette: >
   %\VignetteIndexEntry{Application}
   %\VignetteEncoding{UTF-8}
@@ -94,7 +94,7 @@ The `refined_records` object contains two key components:
 
 ## Introducing *letsR* and Presence-Absence Matrices
 
-***letsR***[@vilela2015] is an R package designed for macroecological analyses based on species geographic distributions. The package transforms species range maps into presence-absence matrices (PAMs), where rows represent grid cells and columns represent species. It provides a comprehensive workflow for spatial biodiversity analyses, including tools to:
+***letsR*** (Vilela and Villalobos 2015) is an R package designed for macroecological analyses based on species geographic distributions. The package transforms species range maps into presence-absence matrices (PAMs), where rows represent grid cells and columns represent species. It provides a comprehensive workflow for spatial biodiversity analyses, including tools to:
 
 1.  construct PAMs from shapefiles or occurrence points;
 
@@ -284,3 +284,5 @@ Boyle, Brad, Nicole Hopkins, Zhenyuan Lu, Juan Antonio Raygoza Garay, Dmitry Moz
 Chirico, Michael. 2023. “geohashTools: Tools for Working with Geohashes.” <https://CRAN.R-project.org/package=geohashTools>.
 
 Zizka, Alexander, Daniele Silvestro, Tobias Andermann, Josué Azevedo, Camila Duarte Ritter, Daniel Edler, Harith Farooq, et al. 2019. “CoordinateCleaner : Standardized Cleaning of Occurrence Records from Biological Collection Databases.” Edited by Tiago Quental. Methods in Ecology and Evolution 10 (5): 744–51. <https://doi.org/10.1111/2041-210X.13152>.
+
+Vilela, Bruno, and Fabricio Villalobos. 2015. “letsR: A New r Package for Data Handling and Analysis in Macroecology.” *Methods in Ecology and Evolution* 6 (10): 1229–34. <https://doi.org/10.1111/2041-210x.12401>.
