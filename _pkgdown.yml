@@ -1,7 +1,7 @@
 url: https://wyx619.github.io/VasGBIF/
 template:
   bootstrap: 5
-  math-rendering: mathjasx
+  math-rendering: mathjax
   light-switch: true
   bslib:
     primary: "#0054AD"
