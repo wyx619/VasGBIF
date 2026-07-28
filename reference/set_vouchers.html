@@ -19,7 +19,7 @@ dimensions, and the highest-scoring record in each group is retained."><meta pro
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.5.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.5.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -27,13 +27,13 @@ dimensions, and the highest-scoring record in each group is retained."><meta pro
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../reference/VasGBIF.html">Get started</a></li>
-<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../reference/VasGBIF.html">Start</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Functions</a></li>
 <li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/GetRecords.html">Get Records (GBIF download)</a></li>
-    <li><a class="dropdown-item" href="../articles/Example.html">Quick-start example</a></li>
-    <li><a class="dropdown-item" href="../articles/Application.html">Full application (with letsR)</a></li>
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-manuals" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Manuals</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-manuals"><li><a class="dropdown-item" href="../articles/GetRecords.html">Get records from GBIF</a></li>
+    <li><a class="dropdown-item" href="../articles/Example.html">Minimal example</a></li>
+    <li><a class="dropdown-item" href="../articles/Application.html">Full application with letsR</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -134,15 +134,15 @@ scores 9; one with none scores 0.</p>
 </div>
 
 <div class="section">
-<h4 id="geospatial-quality-coordinate-issue-penalty-to-"><code>geospatial_quality</code> — coordinate issue penalty (0 to −9)<a class="anchor" aria-label="anchor" href="#geospatial-quality-coordinate-issue-penalty-to-"></a></h4>
+<h4 id="geospatial-quality-coordinate-issue-penalty-to-"><code>geospatial_quality</code> — coordinate issue penalty (0 to -9)<a class="anchor" aria-label="anchor" href="#geospatial-quality-coordinate-issue-penalty-to-"></a></h4>
 
 
 <p>Derived from the GBIF issue flags catalogued in <code>EnumOccurrenceIssue</code>:</p><ul><li><p><code>0</code>: no known geospatial issues.</p></li>
-<li><p><code>−1</code>: at least one severity-1 (cosmetic) issue, e.g.
+<li><p><code>-1</code>: at least one severity-1 (cosmetic) issue, e.g.
 <code>COORDINATE_ROUNDED</code>.</p></li>
-<li><p><code>−3</code>: at least one severity-2 (potential) issue, e.g.
+<li><p><code>-3</code>: at least one severity-2 (potential) issue, e.g.
 <code>COUNTRY_COORDINATE_MISMATCH</code>.</p></li>
-<li><p><code>−9</code>: at least one severity-3 (exclusion) issue, e.g.
+<li><p><code>-9</code>: at least one severity-3 (exclusion) issue, e.g.
 <code>ZERO_COORDINATE</code>, or coordinates are missing entirely.</p></li>
 </ul></div>
 
@@ -151,7 +151,7 @@ scores 9; one with none scores 0.</p>
 
 
 <p>Suppose three records share the collection key
-<code>Saxifraga oppositifolia|17095|30.45|79.07</code>:</p><table class="table table"><tr><td>Record</td><td><code>recordedBy</code></td><td><code>year</code></td><td>...</td><td><code>verbatim_quality</code></td><td>GBIF issues</td><td><code>geospatial_quality</code></td><td><code>moreInformativeRecord</code></td></tr><tr><td>A (complete, no issues)</td><td>✓</td><td>✓</td><td>...</td><td>7</td><td>none</td><td>0</td><td><strong>7</strong></td></tr><tr><td>B (sparse, minor issue)</td><td>✗</td><td>✗</td><td>...</td><td>3</td><td><code>COORDINATE_ROUNDED</code></td><td>−1</td><td>2</td></tr><tr><td>C (missing coordinates)</td><td>✓</td><td>✓</td><td>...</td><td>6</td><td><code>ZERO_COORDINATE</code></td><td>−9</td><td>−3</td></tr></table><p>Record A has the highest <code>moreInformativeRecord</code> (7) and becomes the
+<code>Saxifraga oppositifolia|17095|30.45|79.07</code>:</p><table class="table table"><tr><td>Record</td><td><code>recordedBy</code></td><td><code>year</code></td><td>...</td><td><code>verbatim_quality</code></td><td>GBIF issues</td><td><code>geospatial_quality</code></td><td><code>moreInformativeRecord</code></td></tr><tr><td>A (complete, no issues)</td><td>Yes</td><td>Yes</td><td>...</td><td>7</td><td>none</td><td>0</td><td><strong>7</strong></td></tr><tr><td>B (sparse, minor issue)</td><td>No</td><td>No</td><td>...</td><td>3</td><td><code>COORDINATE_ROUNDED</code></td><td>-1</td><td>2</td></tr><tr><td>C (missing coordinates)</td><td>Yes</td><td>Yes</td><td>...</td><td>6</td><td><code>ZERO_COORDINATE</code></td><td>-9</td><td>-3</td></tr></table><p>Record A has the highest <code>moreInformativeRecord</code> (7) and becomes the
 digital voucher. Its coordinates are propagated to B and C. Records B
 and C are classified as <code>"duplicate"</code>.</p>
 </div>
@@ -204,14 +204,6 @@ useful (has validated coordinates).</p></li>
 validated coordinates, or both.</p></li>
 </ul></div>
 
-    </div>
-    <div class="section level2">
-    <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
-    <p>De Melo, Pablo Hendrigo Alves, Nadia Bystriakova, Eve Lucas, and
-Alexandre K. Monro. 2024. "A New R Package to Parse Plant Species
-Occurrence Records into Unique Collection Events Efficiently Reduces
-Data Redundancy." <em>Scientific Reports</em> 14 (1): 5450.
-doi:10.1038/s41598-024-56158-3.</p>
     </div>
 
     <div class="section level2">

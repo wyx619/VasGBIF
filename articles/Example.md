@@ -22,6 +22,7 @@ high-quality, non-redundant data.
 ``` r
 
 library(VasGBIF)
+library(data.table)
 VasGBIF_summary <- list()
 ```
 
@@ -65,10 +66,6 @@ Service (TNRS).
 ``` r
 
 taxa_checked <- check_taxon(occ_import = occ_import, accuracy = 0.9)
-VasGBIF_summary$taxa_submitted <- nrow(taxa_checked$occ_taxa_checked)
-VasGBIF_summary$taxa_resolved <- taxa_checked$occ_taxa_checked[
-  wcvp_searchNotes != "Not found", .N
-]
 ```
 
 The `occ_taxa` object contains:
@@ -215,27 +212,28 @@ VasGBIF_summary |>
   t()
 ```
 
-    ##                         [,1]
-    ## initial_records        12362
-    ## initial_taxa              15
-    ## taxa_submitted         12362
-    ## taxa_resolved          12362
-    ## complete_keys           9445
-    ## incomplete_keys          722
-    ## usable                 10443
-    ## duplicate               1849
-    ## all_refined             9055
-    ## native                   431
-    ## introduced              8224
-    ## coordinate_problematic  1388
-    ## final_taxa                 5
+``` r
+
+##                         [,1]
+## initial_records        12362
+## initial_taxa              15
+## taxa_submitted         12362
+## taxa_resolved          12362
+## complete_keys           9445
+## incomplete_keys          722
+## usable                 10443
+## duplicate               1849
+## all_refined             9055
+## native                   431
+## introduced              8224
+## coordinate_problematic  1388
+## final_taxa                 5
+```
 
 | Statistic | Description |
 |----|----|
 | `initial_records` | Total GBIF occurrence records imported |
 | `initial_taxa` | Unique scientific names before resolution |
-| `taxa_submitted` | Names submitted to TNRS |
-| `taxa_resolved` | Names successfully resolved against WCVP |
 | `complete_keys` | Records with complete collection-event keys |
 | `incomplete_keys` | Records with incomplete keys |
 | `usable` | Records classified as usable after voucher selection |

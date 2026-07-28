@@ -1,5 +1,78 @@
 # Changelog
 
+## VasGBIF 3.5.2
+
+### Website
+
+- **Added search and dark/light mode toggle** to the pkgdown navbar.
+- **Simplified navbar labels**: “Get started” → “Start”, “Reference” →
+  “Functions”, “Articles” → “Manuals”.
+- Reorganized reference index:
+  [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
+  and
+  [`restore_duplicates()`](https://wyx619.github.io/VasGBIF/reference/restore_duplicates.md)
+  moved under Utilities.
+- Workflow diagram converted from JPG to PNG.
+
+### Documentation
+
+- **Fixed Unicode characters in
+  [`set_vouchers()`](https://wyx619.github.io/VasGBIF/reference/set_vouchers.md)
+  documentation** (`✓`, `✗`, `−`) that caused the PDF manual to fail
+  building under LaTeX.
+- Updated `Distributions` data source URL from `http` to `https`.
+- Added `@seealso` reference in `WorldLandMap` documentation.
+- README: updated codecov and R-CMD-check badge links, added GBIF DOI
+  citation, rephrased performance statement.
+- Vignette `Example.Rmd`: all code chunks set to `eval = FALSE` to avoid
+  network-dependent failures during `R CMD check`.
+- Vignette `Application.Rmd`: fixed citation format and added missing
+  letsR reference.
+- Vignette `GetRecords.Rmd`: fixed table column alignment.
+- Reported retention rate updated from ~35% to ~30% across package docs
+  and vignettes.
+
+### Testing
+
+- Added testthat snapshot files for
+  [`set_threads()`](https://wyx619.github.io/VasGBIF/reference/set_threads.md)
+  and
+  [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md)
+  error messages.
+- **Added comprehensive test suite across five core functions** (81 new
+  tests, 177 total):
+  - [`set_vouchers()`](https://wyx619.github.io/VasGBIF/reference/set_vouchers.md)
+    (54 tests): return structure, `verbatim_quality` scoring (0–9),
+    `geospatial_quality` scoring (0 to -9), `moreInformativeRecord`
+    calculation, non-groupable record handling, voucher selection,
+    tie-breaking, coordinate propagation, taxonomic consensus
+    (identified / divergent / unidentified), and final classification
+    (usable / duplicate / unusable).
+  - [`get_collections()`](https://wyx619.github.io/VasGBIF/reference/get_collections.md)
+    (26 tests): return structure, key format `taxon|date|lat|lon`,
+    precision-controlled coordinate rounding, complete vs. incomplete
+    key counting, precision parameter validation, and eventDate parsing
+    (full dates, dates with time, year-month only).
+  - [`restore_duplicates()`](https://wyx619.github.io/VasGBIF/reference/restore_duplicates.md)
+    (26 tests): return structure, restoration of all eight metadata
+    fields (`eventDate`, `year`, `month`, `day`, `identifiedBy`,
+    `countryCode`, `stateProvince`, `locality`), integer coercion for
+    `year`/`month`/`day`, `"NA"` string treated as missing, skipping of
+    values \>10,000 characters, special character stripping, and
+    first-available-duplicate selection.
+  - [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
+    (14 tests): return structure, unknown status for taxa absent from
+    `Distributions`, known-native classification (e.g. *Rosa canina* in
+    Denmark), independent multi-taxon processing, and verification of
+    the `fcase` priority logic (location_doubtful \> introduced \>
+    extinct \> native \> unknown).
+  - [`refine_records()`](https://wyx619.github.io/VasGBIF/reference/refine_records.md)
+    (15 tests): return structure, `native_status` column integration,
+    valid coordinate pass-through, zero-coordinate flagging by the
+    `"zeros"` test, equal lat/lon flagging by `"equal"`, empty `tests`
+    parameter behaviour, and exclusion of `"unusable"` records by
+    [`restore_duplicates()`](https://wyx619.github.io/VasGBIF/reference/restore_duplicates.md).
+
 ## VasGBIF 3.5.1
 
 ### Bug Fixes

@@ -23,3 +23,7 @@ A simple features object
 ## Source
 
 `rnaturalearth::ne_download(scale = 110,type = 'land',category = 'physical',returnclass = "sf")`
+
+## See also
+
+[`rnaturalearth::ne_download()`](https://docs.ropensci.org/rnaturalearth/reference/ne_download.html)

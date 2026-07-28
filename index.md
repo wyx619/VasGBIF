@@ -5,8 +5,8 @@
 [![Project Status: Active – The project has reached a stable, usable
 state and is being actively
 developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
-[![codecov.io](https://codecov.io/github/wyx619/VasGBIF/coverage.svg?branch=master)](https://codecov.io/github/wyx619/VasGBIF?branch=master)
-[![R-CMD-check](https://github.com/r-lib/rcmdcheck/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/github/wyx619/actions/workflows/R-CMD-check.yaml)
+[![codecov.io](https://codecov.io/github/wyx619/VasGBIF/coverage.svg?branch=master)](https://app.codecov.io/github/wyx619/VasGBIF?branch=master)
+[![R-CMD-check](https://github.com/r-lib/rcmdcheck/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml)
 
 ## Introduction
 
@@ -38,10 +38,10 @@ that unifies taxonomic resolution, spatial validation, duplicate
 consolidation, and botanical region annotation within a high-performance
 framework.
 
-Its optimized C/CPP-based dependencies, practical vectorized programming
-methods leveraging the SIMD instruction sets of modern computer CPUs and
-parallelization enable compiling one million GBIF occurrence records on
-a laptop within 15 minutes.
+With optimized C/CPP-based dependencies, practical vectorized
+programming methods leveraging the SIMD instruction sets of modern CPUs
+and parallelization, VasGBIF compiles one million GBIF occurrence
+records on a laptop within 15 minutes.
 
 In a word, VasGBIF resolves challenges in reproducibility, scalability,
 and spatial-taxonomic integrity without increasing adoption barriers for
@@ -72,9 +72,10 @@ Online wiki website is at <https://wyx619.github.io/VasGBIF/>.
 
 ## Workflow
 
-***4 stages of VasGBIF.** Before export, approximately 30% of the
-initial occurrence records are retained as high-quality, non-redundant
-data.* ![Workflow](reference/figures/Workflow.jpg "VasGBIF workflow")
+***4 stages and 7 primary functions of VasGBIF.** Before export,
+approximately 30% of the initial occurrence records are retained as
+high-quality, non-redundant data.*
+![Workflow](reference/figures/workflow.png "VasGBIF workflow")
 
 VasGBIF provides a reproducible, tracheophyte-optimized, and
 computationally efficient framework for transforming GBIF records into
@@ -266,6 +267,5 @@ Biological Collection Databases.” Edited by Tiago Quental. *Methods in
 Ecology and Evolution* 10 (5): 744–51.
 <https://doi.org/10.1111/2041-210X.13152>.
 
-Mullen, Lincoln A., Kenneth Benoit, Os Keyes, Dmitry Selivanov,
-andJeffrey Arnold. 2018. “Fast, Consistent Tokenization of
-NaturalLanguage Text” 3: 655. <https://doi.org/10.21105/joss.00655>.
+GBIF.org (23 July 2026) GBIF Occurrence
+Download [doi:10.15468/dl.nt5exp](https://doi.org/10.15468/dl.nt5exp)

@@ -12,8 +12,8 @@ The workflow consists of three steps:
 
 | Step | What | Requires password? |
 |----|----|----|
-| **1.** Account setup & package loading | Register a GBIF account and load required packages | — |
-| **2.** Search & submit a download request | Use `rgbif` to find a taxon key and submit a download job | **Yes** |
+| **1.** Account setup & package loading | Register a GBIF account and load required packages | Yes |
+| **2.** Search & submit a download request | Use `rgbif` to find a taxon key and submit a download job | Yes |
 | **3.** Download & import into VasGBIF | Retrieve the ZIP and feed it to [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md) | Only Path A (new request) |
 
 Step 2 is the only place where your GBIF credentials are needed. If you

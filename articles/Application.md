@@ -67,7 +67,7 @@ The `refined_records` object contains two key components:
 
 ### Introducing *letsR* and Presence-Absence Matrices
 
-***letsR***(Vilela and Villalobos 2015) is an R package designed for
+***letsR*** (Vilela and Villalobos 2015) is an R package designed for
 macroecological analyses based on species geographic distributions. The
 package transforms species range maps into presence-absence matrices
 (PAMs), where rows represent grid cells and columns represent species.
@@ -316,6 +316,6 @@ Biological Collection Databases.” Edited by Tiago Quental. Methods in
 Ecology and Evolution 10 (5): 744–51.
 <https://doi.org/10.1111/2041-210X.13152>.
 
-Vilela, Bruno, and Fabricio Villalobos. 2015. “letsR: A New r Package
-for Data Handling and Analysis in Macroecology.” *Methods in Ecology and
-Evolution* 6 (10): 1229–34. <https://doi.org/10.1111/2041-210x.12401>.
+Vilela, Bruno, and Fabricio Villalobos. 2015. “letsR: A New r Package
+for Data Handling and Analysis in Macroecology.” *Methods in Ecology and
+Evolution* 6 (10): 1229–34. <https://doi.org/10.1111/2041-210x.12401>.
