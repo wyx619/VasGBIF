@@ -1,3 +1,95 @@
+# VasGBIF 3.6.0
+
+*Major release: the package has been completely redesigned. The duplicate-detection and voucher-selection pipeline that VasGBIF inherited from UltraGBIF has been removed and replaced by a new eight-function, four-stage workflow built around two new systems: a precise two-pass native-status detector and a fluent, fully auditable record filter.*
+
+## Breaking Changes
+
+### The new pipeline
+
+The workflow is now:
+
+`import_records()` → `extract_gbif_issues()` → `check_taxon()` → `custom_filter()` → `refine_coordinates()` → `detect_native_status()` → `export_records()` / `map_records()`
+
+### Removed functions
+
+- **`get_collections()`, `set_vouchers()`, and `restore_duplicates()` have been removed**, together with the entire collection-event key / digital-voucher / metadata-restoration stage. Deduplication by composite `taxon|date|latitude|longitude` keys, the metadata-completeness and geospatial-penalty scoring system, `moreInformativeRecord`, the `usable` / `duplicate` / `unusable` classification, and the `VasGBIF_dataset_result` column no longer exist. Records are now selected by explicit, individually auditable quality rules in `custom_filter()` instead of by an implicit voucher-quality ranking.
+- **`refine_records()` has been replaced by `refine_coordinates()`.** The old function bundled three unrelated jobs — metadata restoration, coordinate validation, and native-status detection — behind one call. Coordinate validation and native-status detection are now separate, independently callable steps.
+
+### Function signature and return-value changes
+
+- `refine_coordinates(custom_filtered, threads = 4, tests = ...)` takes a `customFiltered` object and returns a `CoordinateRefined` object with **four** elements: `CoordinateCleaned`, `CoordinateProblematic`, `Coordinateless`, and `runtime`. The new `Coordinateless` table means records missing longitude or latitude are no longer silently lost — they are carried forward and still receive a native status.
+- `detect_native_status(refined_coordinates, species_fallback = FALSE, buffer_km = 10, buffer_chunk_size = 2000)` is now exported as a pipeline stage in its own right and returns a `nativeDetected` object.
+- `export_records(refined_coordinates, native_detected, export_path)` and `map_records(native_detected, refined_coordinates, precision = 3, cex = 3)` now take the coordinate and native-status objects explicitly rather than deriving them from a single bundled result, and both validate their inputs by class.
+- `extract_gbif_issue()` has been **renamed to `extract_gbif_issues()`**.
+- All object classes have been renamed: `import`, `issue`, `occ_taxa`, `customFiltered`, `CoordinateRefined`, and `nativeDetected`.
+
+## New and Rewritten Functions
+
+### `detect_native_status()`: precise native-status detection
+
+Newly exported as a pipeline stage and rewritten from scratch, this is the analytical core of VasGBIF. It assigns `native`, `introduced`, `extinct`, `location_doubtful`, or `unknown` to **every** record by matching identification and position against WCVP distribution data organised by WGSRPD Level 3 areas. Classification runs in two passes so the most precise available evidence always wins:
+
+- **Spatial pass.** Records with validated coordinates are overlaid on the WGSRPD Level 3 polygon map with a single vectorised `terra::extract()` call. Each area code is looked up in a distribution table classified from the WCVP flags with a fixed priority: `location_doubtful` \> `introduced` \> `extinct` \> `native` \> `unknown`. Records falling in several areas receive the most preferred status, never an arbitrary one.
+- **Country-code pass.** Records without coordinates, and records the spatial pass left unresolved, are retried through `countryCode` mapped to Level 3 areas by the new `Level3maping` table. No geometry is used, so this pass is nearly free.
+
+Precision improvements over the previous implementation:
+
+- **Geodesic buffering.** Coastal points just outside a polygon are matched through `terra::buffer()` in metres, so `buffer_km` has the same meaning at every latitude. Buffered hits are always ranked below exact ones and flagged in the returned `buffered` column. Buffering is chunked (`buffer_chunk_size`) to keep the relate matrix small.
+- **Hybrid-name normalisation.** Taxon keys are canonicalised so `Alnus x pubescens` matches `Alnus × pubescens` in `Distributions`.
+- **Opt-in species fallback.** With `species_fallback = TRUE`, infraspecific taxa absent from `Distributions` inherit their parent species' status. This is off by default because it is a deliberate loss of precision — a subspecies may be introduced where the species is native.
+- **Full auditability.** The new `native_status_source` column records *how* each status was obtained (`accepted_name`, `accepted_species`, `country_code`, `country_code_after_spatial_miss`, `country_code_miss`, `unmatched`, with a `_species` suffix where the fallback was used), so no classification is a black box.
+- **CRS assertion.** The function verifies that the `WGSRPD3` polygons are in a longitude/latitude CRS, so a future data change cannot silently break the overlay.
+
+### `custom_filter()`: flexible and fluent filtering
+
+Replaces the implicit voucher-quality ranking with an explicit, user-controlled filter pipeline. It joins the three preceding outputs by `gbifID` and then applies a selected set of quality rules, one vectorised `data.table` pass per rule:
+
+- **Fluent rule control.** Each rule is an independently toggleable argument. Three are on by default (`filter_countryCode`, `filter_coordinateUncertainty = 10000`, `filter_gbif_issues_max = 5`); `filter_date`, `filter_identifiedBy`, and `filter_recordedBy` are opt-in, so no information is discarded without an explicit choice. Numeric thresholds share one uniform "off" convention — `NULL`, `NA`, or `''` — so any rule can be disabled without restructuring the call.
+- **Auditable pipeline.** Every step, including the `taxon_resolved` join, is logged in the returned `summary` table (`rule`, `dropped`, `remaining`).
+- **Strict joins.** The taxonomic join is an inner join, so unresolved records are dropped at a single visible point instead of carrying `NA` taxonomy through the rest of the workflow. The issue join is verified to be one-to-one and the function stops if any record lacks an issue count.
+- **Careful collector and identifier detection.** The `identifiedBy` and `recordedBy` rules remove only values containing no named person, using a curated multilingual keyword list (English, Spanish, Portuguese, French, German, Chinese) plus whole-value patterns such as `s.n.`, `n/a`, and `no collector`. Name separators protect values that mix a keyword with a real name (`"Unknown; Jongmans WJ"` is kept), and word-boundary matching keeps CJK keywords from splitting genuine names.
+
+### `refine_coordinates()`
+
+Coordinate validation, now a standalone step. It splits filtered records into those with complete coordinates and those without, then runs `CoordinateCleaner::clean_coordinates()` checks in parallel over chunked records, with the worker count capped to the number of records. `CoordinateProblematic` retains the CoordinateCleaner flag columns so the failing tests can be inspected. If no record has complete coordinates, validation is skipped rather than failing.
+
+### Print methods
+
+Six S3 `print()` methods have been added so every pipeline object gives an informative summary at the console instead of dumping a list: `print.import()`, `print.issue()`, `print.occ_taxa()`, `print.customFiltered()`, `print.CoordinateRefined()`, and `print.nativeDetected()`.
+
+## Improvements
+
+- **`import_records()` now supports Darwin Core Archive downloads** in addition to `SIMPLE_CSV`. Archives with more than one member are treated as a DWCA and their `occurrence.txt` core file is read. The archive is extracted into a dedicated directory rather than next to the ZIP, so a ZIP stored in `inst/extdata` is never modified. `tempdir` and `remove_tempfile` now have coordinated defaults: an auto-created directory is cleaned up on exit, a user-supplied one is kept, and either default can be overridden. The return value is a single `"import"` `data.table` rather than a list.
+- **`check_taxon()`** now returns `Accepted_species` and `Accepted_name_rank` alongside the existing TNRS columns, and `occ_taxa_checked` is filtered on three conditions rather than two: `Overall_score >= accuracy`, `Taxonomic_status` in `Accepted`/`Synonym`, and an `Accepted_name_rank` that is neither empty nor `genus`. Genus-level and unranked matches therefore no longer reach the distribution lookup, where they cannot be resolved.
+- **`export_records()`** writes `all_records.csv.gz`, `native_records.csv.gz`, and `CoordinateProblematic_records.csv.gz`, with `all_records.csv.gz` now covering records both with and without coordinates, each joined to its native status. `export_path` is validated before any file is written.
+
+## Bug Fixes
+
+- **`extract_gbif_issues()`: fixed the single-record case.** Building the issue matrix with `sapply()`/`vapply()` dropped dimensions when the input held one record, producing a malformed result. The matrix is now built with `lapply()` + `do.call(cbind, ...)`, which preserves the expected dimensions for any number of records.
+
+## New Data
+
+- **`Level3maping`**: the tabular component of the WGSRPD standard — 369 Level 3 units with code, name, parent Level 2 region, and ISO 3166-1 alpha-2 concordance — used by the country-code pass of `detect_native_status()`. Its documentation states plainly that the published `L3 ISOcode` column is neither complete nor one-to-one: one ISO code usually maps to several areas (`US` to 51, `RU` to 21), 42 areas carry no ISO code at all (including mainland France, Italy, Spain, Austria, Belgium, Ireland, Ukraine, and Korea, so a naive lookup silently returns only their offshore units), and Belarus is listed under `RU`, reflecting the standard's 2001 vintage.
+- **`Distributions`** has been rebuilt and now holds 1,647,045 rows (previously reported as 1,983,653), reducing the installed data size.
+
+## Dependency Changes
+
+- Added `tools::file_ext()` and `utils::unzip()` to NAMESPACE for the new ZIP handling in `import_records()`.
+- Removed the now-unused NAMESPACE imports `dplyr::case_when()`, `dplyr::if_else()`, `lubridate::as_date()`, `lubridate::parse_date_time()`, `stringi::stri_length()`, `stringi::stri_replace_all_regex()`, `stringi::stri_trans_toupper()`, `terra::extract()`, `terra::merge()`, `terra::vect()`, and `utils::head()`. The date parsing and string-length scoring they supported belonged to the removed voucher pipeline; the remaining `stringi` and `terra` calls are covered by `@import stringi` and by explicit `terra::` qualification.
+
+## Documentation
+
+- **Package-level documentation rewritten.** `VasGBIF-package.R` now documents the four-stage, eight-function workflow and leads with the two new systems, the native-status detector and the custom filter.
+- **README rewritten** in its Workflow, Minimal Complete Example, and Performance sections, with a new **Key Points** section describing the native-status detection and custom filter systems.
+- **`Example.Rmd` completely rewritten** against the current pipeline, reporting per-stage record counts from a real 228,494-record download: 205,527 after TNRS resolution, 145,366 after `custom_filter()`, then 65,081 coordinate-clean, 8,554 coordinate-problematic, and 71,731 coordinateless records, ending at 110,706 native, 354 introduced, 81 extinct, 2 location_doubtful, and 25,669 unknown. The description of the bundled example dataset has also been corrected.
+- **`_pkgdown.yml` reference index reorganised** into the four pipeline stages, with new sections for the print methods and for the `Level3maping` dataset.
+- DESCRIPTION `Title` and `Description` now quote 'GBIF', 'VasGBIF', and 'R' and give the GBIF URL, as CRAN requires.
+
+## Testing
+
+- Test suites for the removed functions (`set_vouchers()`, `get_collections()`, `restore_duplicates()`, `refine_records()`) have been deleted, along with the stale `import_records()` snapshots.
+- New and rewritten suites cover `custom_filter()`, `check_taxon()`, `extract_gbif_issues()`, `refine_coordinates()`, `import_records()`, `export_records()`, `detect_native_status()`, and `map_records()`, testing the new object classes, the per-rule filter summary, the two-pass status priority, buffered matching, and input validation for every exported function.
+
 # VasGBIF 3.5.2
 
 ## Website

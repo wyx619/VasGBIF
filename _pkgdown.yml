@@ -40,29 +40,37 @@ reference:
   - title: "Package overview"
     contents:
       - VasGBIF
-  - title: "Stage 1 — Import and taxonomic standardisation"
+  - title: "Stage 1 — Import and issue parsing"
     contents:
       - import_records
-      - check_taxon
-  - title: "Stage 2 — Duplicate detection via collection-event keys"
+      - extract_gbif_issues
+  - title: "Stage 2 — Taxonomic resolution and record filtering"
     contents:
-      - get_collections
-      - set_vouchers
+      - check_taxon
+      - custom_filter
   - title: "Stage 3 — Coordinate validation and native-status annotation"
     contents:
-      - refine_records
+      - refine_coordinates
+      - detect_native_status
   - title: "Stage 4 — Export and visualisation"
     contents:
       - export_records
       - map_records
+  - title: "Print methods"
+    contents:
+      - print.import
+      - print.issue
+      - print.occ_taxa
+      - print.CoordinateRefined
+      - print.customFiltered
+      - print.nativeDetected
   - title: "Utilities"
     contents:
       - set_threads
-      - detect_native_status
-      - restore_duplicates
   - title: "Internal datasets"
     contents:
       - Distributions
       - EnumOccurrenceIssue
+      - Level3maping
       - WGSRPD3
       - WorldLandMap

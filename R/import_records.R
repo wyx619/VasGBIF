@@ -1,72 +1,72 @@
 #' Import GBIF occurrence records
 #'
-#' Imports occurrence records from a GBIF ZIP download and prepares the result
-#' for subsequent VasGBIF processing. The function reads the occurrence data
-#' file in the archive, retains the fields required by the package, expands GBIF
-#' issue codes into record-level logical indicators, and creates an issue-count
-#' summary.
+#' Reads a GBIF occurrence download in 'SIMPLE_CSV' or Darwin Core Archive
+#' ('DWCA') format from a ZIP file, extracts the occurrence data file, and
+#' returns a `data.table` of the fields required by the 'VasGBIF' workflow.
+#' The returned table is the direct input to [extract_gbif_issues()].
 #'
-#' @param path Character scalar giving the path to a GBIF ZIP file. The archive
-#'   must contain exactly one tab-separated occurrence data file.
-#' @param remove_tempfile Logical scalar. If `TRUE`, the temporary extraction
-#'   directory is removed when the function exits, including after an error. If
-#'   `FALSE`, the extracted directory is retained and its path is reported.
-#'   Defaults to `TRUE`.
+#' @param path Character scalar. Path to a GBIF occurrence ZIP download in
+#'   'SIMPLE_CSV' or 'DWCA' format. The archive must contain a tab-separated
+#'   occurrence data file, named `occurrence.txt` when the archive contains
+#'   more than one member (as in a Darwin Core Archive).
+#' @param tempdir Character scalar or `NULL`. Directory into which the ZIP
+#'   archive is extracted.
+#'
+#'   * `NULL` (default): a unique subdirectory is created inside the system
+#'     temporary directory via [base::tempfile()], and it is deleted on exit
+#'     unless `remove_tempfile = FALSE`.
+#'   * A user-supplied path: if the directory does not exist it is created
+#'     (recursively). If it already exists and contains files, a warning is
+#'     issued because those files may be overwritten. The directory is
+#'     **not** deleted on exit by default; set `remove_tempfile = TRUE` to
+#'     override.
+#' @param remove_tempfile Logical scalar or `NULL`. Controls whether the
+#'   extraction directory is deleted when the function exits (including after
+#'   an error).
+#'
+#'   * `NULL` (default): behaves as `TRUE` when `tempdir = NULL` (auto
+#'     directory is cleaned up), and as `FALSE` when the user supplies a
+#'     `tempdir` (the directory is kept).
+#'   * `TRUE` or `FALSE`: override the default in either direction.
 #'
 #' @details
-#'
-#' The input archive is extracted into a temporary directory rather than next
-#' to the ZIP file. This also prevents a ZIP stored in a package's
-#' `inst/extdata` directory from being modified during import.
+#' The archive is extracted into a dedicated directory rather than next to the
+#' ZIP file, so a ZIP stored in `inst/extdata` is never modified.
 #'
 #' The function performs the following steps:
 #'
-#' * Checks that `path` is a character path with a `.zip` extension.
-#' * Checks that the archive contains exactly one member and extracts that
-#'   member to a unique temporary directory.
+#' * Validates that `path` is a non-empty character string with a `.zip`
+#'   extension.
+#' * Lists the archive members; a 'SIMPLE_CSV' download holds a single data
+#'   file which is extracted by name, while a 'DWCA' holds several members
+#'   (typically `meta.xml`, `occurrence.txt`, and extension files) and its
+#'   `occurrence.txt` core file is assumed.
 #' * Reads the tab-separated, UTF-8 occurrence file with
-#'   [data.table::fread()] and selects the GBIF fields used by the VasGBIF
-#'   workflow.
+#'   [data.table::fread()], selecting only the GBIF fields used by VasGBIF.
 #' * Coerces `gbifID` to character.
-#' * Parses the pipe-separated `issue` field. For each issue code in
-#'   [`EnumOccurrenceIssue`], it creates a logical column indicating whether
-#'   that issue occurs in each record, then counts the flagged records by issue
-#'   code.
 #'
-#' The function does not filter records by basis of record, taxon, geography,
-#' or issue status. It also does not correct or remove records flagged by GBIF;
-#' it only imports the selected fields and creates diagnostic indicators.
-#'
-#' The `occ_issue` component uses the `gbifID` column to link issue indicators
-#' back to `occ`. The available issue columns are determined by the package
-#' dataset [`EnumOccurrenceIssue`]; they can therefore change if that dataset
-#' is updated.
-#'
-#' When `remove_tempfile = FALSE`, the function leaves the extracted file in a
-#' system temporary directory. The caller is responsible for removing the
-#' retained directory after inspecting it.
+#' No records are filtered, corrected, or removed at this stage. All diagnostic
+#' fields — including the raw `issue` column — are preserved so that
+#' [extract_gbif_issues()] can parse them in the next step.
 #'
 #' @returns
-#' An object of class `import`, implemented as a list with four elements:
-#'
-#' * `occ`: A `data.table` containing the selected occurrence fields. Its
-#'   columns retain the Darwin Core/GBIF field names.
-#' * `occ_issue`: A `data.table` containing one logical column for each issue
-#'   code in [`EnumOccurrenceIssue`], plus `gbifID` for linking the indicators
-#'   to `occ`.
-#' * `summary`: A `data.table` with columns `issue_keys` and `N`, giving the
-#'   number of records associated with each issue; rows are ordered by
-#'   decreasing `N`.
-#' * `runtime`: The elapsed time reported for the import operation.
+#' A `data.table` of class `"import"` containing the selected occurrence
+#' fields with Darwin Core / GBIF column names. The `gbifID` column is always
+#' character. The `issue` column contains raw pipe-separated GBIF issue codes
+#' and is consumed by [extract_gbif_issues()].
 #'
 #' @seealso
-#' * [`unzip()`][utils::unzip] for listing or extracting ZIP archives.
-#' * [`data.table::fread()`][data.table::fread] for delimited-file import.
+#' * [extract_gbif_issues()] for the next step: parsing the `issue` column into
+#'   logical indicator columns.
+#' * [print.import()] for a one-line record count.
+#' * [data.table::fread()] for delimited-file import.
+#' * [`unzip()`][utils::unzip] for ZIP archive handling.
+#' * [GBIF download formats](https://techdocs.gbif.org/en/data-use/download-formats)
+#'   for the difference between 'SIMPLE_CSV' and 'DWCA' downloads.
 #'
 #' @import data.table
-#' @import stringi
-#' @importFrom dplyr %>%
-#' @importFrom utils head
+#' @importFrom utils unzip
+#' @importFrom tools file_ext
 #'
 #' @examplesIf interactive()
 #' gbif_file <- system.file(
@@ -74,40 +74,44 @@
 #'   "0003386-260721160103020.zip",
 #'   package = "VasGBIF"
 #' )
-#' occ_import <- import_records(path = gbif_file)
+#' occ <- import_records(path = gbif_file)
+#' occ_import <- extract_gbif_issues(occ)
 #' head(occ_import$summary, 5)
 #'
-#' # Or choose another GBIF ZIP file interactively.
-#' # occ_import <- import_records(path = file.choose())
+#' # Extract to a specific directory and keep it afterwards.
+#' # occ <- import_records(path = gbif_file, tempdir = "~/gbif_extracted")
 #'
 #' @references
 #' GBIF.org (23 July 2026) GBIF Occurrence Download
 #' \doi{10.15468/dl.nt5exp}
 #'
 #' @export
-import_records <- function(path = '', remove_tempfile = TRUE) {
-  start <- Sys.time()
-
-  if (!is.character(path)) {
-    stop('set path to the downloaded SIMPLE_CSV zip!')
+import_records <- function(path = '', tempdir = NULL, remove_tempfile = NULL) {
+  if (!is.character(path) || length(path) != 1L) {
+    stop('`path` must be a single character string.')
   }
-  if (is.character(path)) {
-    if (path == '') stop('require path to the downloaded SIMPLE_CSV zip!')
+  if (path == '') {
+    stop('`path` is empty. Provide the path to a GBIF SIMPLE_CSV or DWCA zip.')
+  }
+  if (tolower(tools::file_ext(path)) != "zip") {
+    stop('`path` must point to a .zip file from a GBIF SIMPLE_CSV or DWCA download.')
   }
 
   fields <- c(
     "gbifID",
-    "occurrenceID",
+    "order",
     "family",
+    "species",
     "taxonRank",
     "scientificName",
     "verbatimScientificName",
     "countryCode",
     "locality",
-    "stateProvince",
     "occurrenceStatus",
     "decimalLatitude",
     "decimalLongitude",
+    "coordinateUncertaintyInMeters",
+    "elevation",
     "eventDate",
     "day",
     "month",
@@ -115,30 +119,49 @@ import_records <- function(path = '', remove_tempfile = TRUE) {
     "basisOfRecord",
     "institutionCode",
     "collectionCode",
-    "catalogNumber",
-    "recordNumber",
     "identifiedBy",
-    "dateIdentified",
     "recordedBy",
-    "typeStatus",
-    "mediaType",
-    "issue",
-    "coordinateUncertaintyInMeters"
+    "issue"
   )
-
-  if (tolower(tools::file_ext(path)) != "zip") {
-    stop('should be the SIMPLE_CSV zip from GBIF!')
-  }
 
   archive_files <- utils::unzip(path, list = TRUE)$Name
   if (length(archive_files) != 1L) {
     archive_files <- 'occurrence.txt'
   }
 
-  ex_path <- tempfile("VasGBIF-")
-  dir.create(ex_path)
+  # Resolve extraction directory and cleanup behaviour
+  if (is.null(tempdir)) {
+    ex_path <- base::tempfile("VasGBIF-")
+    dir.create(ex_path)
+    if (is.null(remove_tempfile)) remove_tempfile <- TRUE
+  } else {
+    if (!is.character(tempdir) || length(tempdir) != 1L) {
+      stop('`tempdir` must be a single character string.')
+    }
+    ex_path <- tempdir
+    if (!dir.exists(ex_path)) {
+      message("Creating directory: ", ex_path)
+      dir.create(ex_path, recursive = TRUE, showWarnings = FALSE)
+    } else {
+      n_existing <- length(list.files(ex_path))
+      if (n_existing > 0L) {
+        warning(
+          "Directory '",
+          ex_path,
+          "' already contains ",
+          n_existing,
+          " file(s); existing files with the same name will be overwritten.",
+          call. = FALSE
+        )
+      }
+    }
+    if (is.null(remove_tempfile)) remove_tempfile <- FALSE
+  }
+
   if (isTRUE(remove_tempfile)) {
     on.exit(unlink(ex_path, recursive = TRUE, force = TRUE), add = TRUE)
+  } else {
+    message("Extracted files will be preserved in: ", ex_path)
   }
 
   message("Decompressing")
@@ -152,11 +175,10 @@ import_records <- function(path = '', remove_tempfile = TRUE) {
     unzip = "internal",
     setTimes = FALSE
   )
-  path_occ <- file.path(ex_path, archive_files)
 
   message("Loading records")
   occ <- fread(
-    path_occ,
+    file.path(ex_path, archive_files),
     sep = '\t',
     encoding = 'UTF-8',
     select = fields,
@@ -165,38 +187,24 @@ import_records <- function(path = '', remove_tempfile = TRUE) {
   )
   occ[, gbifID := as.character(gbifID)]
 
-  if (!isTRUE(remove_tempfile)) {
-    message("Preserved extracted files in ", ex_path)
-  }
+  class(occ) <- c('import', class(occ))
 
-  # extract_gbif_issue
+  occ
+}
 
-  EnumOccurrenceIssue <- EnumOccurrenceIssue
-  issue_keys <- EnumOccurrenceIssue[, constant]
-
-  message("Compiling GBIF issues")
-
-  fix <- function(issue) stri_detect_fixed(occ[, issue], issue)
-  occ_issue <- sapply(issue_keys, fix) %>% as.data.table()
-
-  summary <- data.table(
-    issue_keys = issue_keys,
-    N = colSums(occ_issue)
-  )[order(-N)]
-
-  occ_issue[, gbifID := occ$gbifID]
-
-  end <- Sys.time()
-  used <- end - start
-
-  message(paste('used', used %>% round(1), attributes(used)$units))
-
-  occ_import <- list(
-    occ = occ,
-    occ_issue = occ_issue,
-    summary = summary,
-    runtime = used
-  )
-  class(occ_import) <- "import"
-  return(occ_import)
+#' Print an `import` object
+#'
+#' Displays a one-line summary of an imported GBIF download: the number of
+#' occurrence records.
+#'
+#' @param x An object of class `"import"` returned by [import_records()].
+#' @param ... Additional arguments (unused, retained for S3 compatibility).
+#'
+#' @return Invisibly returns `x`.
+#'
+#' @export
+print.import <- function(x, ...) {
+  n_records <- if (is.data.frame(x)) nrow(x) else 0L
+  cat("<import> ", n_records, " records\n", sep = "")
+  invisible(x)
 }

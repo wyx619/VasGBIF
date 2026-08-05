@@ -4,70 +4,69 @@
 \alias{import_records}
 \title{Import GBIF occurrence records}
 \usage{
-import_records(path = "", remove_tempfile = TRUE)
+import_records(path = "", tempdir = NULL, remove_tempfile = NULL)
 }
 \arguments{
-\item{path}{Character scalar giving the path to a GBIF ZIP file. The archive
-must contain exactly one tab-separated occurrence data file.}
+\item{path}{Character scalar. Path to a GBIF occurrence ZIP download in
+'SIMPLE_CSV' or 'DWCA' format. The archive must contain a tab-separated
+occurrence data file, named \code{occurrence.txt} when the archive contains
+more than one member (as in a Darwin Core Archive).}
 
-\item{remove_tempfile}{Logical scalar. If \code{TRUE}, the temporary extraction
-directory is removed when the function exits, including after an error. If
-\code{FALSE}, the extracted directory is retained and its path is reported.
-Defaults to \code{TRUE}.}
+\item{tempdir}{Character scalar or \code{NULL}. Directory into which the ZIP
+archive is extracted.
+\itemize{
+\item \code{NULL} (default): a unique subdirectory is created inside the system
+temporary directory via \code{\link[base:tempfile]{base::tempfile()}}, and it is deleted on exit
+unless \code{remove_tempfile = FALSE}.
+\item A user-supplied path: if the directory does not exist it is created
+(recursively). If it already exists and contains files, a warning is
+issued because those files may be overwritten. The directory is
+\strong{not} deleted on exit by default; set \code{remove_tempfile = TRUE} to
+override.
+}}
+
+\item{remove_tempfile}{Logical scalar or \code{NULL}. Controls whether the
+extraction directory is deleted when the function exits (including after
+an error).
+\itemize{
+\item \code{NULL} (default): behaves as \code{TRUE} when \code{tempdir = NULL} (auto
+directory is cleaned up), and as \code{FALSE} when the user supplies a
+\code{tempdir} (the directory is kept).
+\item \code{TRUE} or \code{FALSE}: override the default in either direction.
+}}
 }
 \value{
-An object of class \code{import}, implemented as a list with four elements:
-\itemize{
-\item \code{occ}: A \code{data.table} containing the selected occurrence fields. Its
-columns retain the Darwin Core/GBIF field names.
-\item \code{occ_issue}: A \code{data.table} containing one logical column for each issue
-code in \code{\link{EnumOccurrenceIssue}}, plus \code{gbifID} for linking the indicators
-to \code{occ}.
-\item \code{summary}: A \code{data.table} with columns \code{issue_keys} and \code{N}, giving the
-number of records associated with each issue; rows are ordered by
-decreasing \code{N}.
-\item \code{runtime}: The elapsed time reported for the import operation.
-}
+A \code{data.table} of class \code{"import"} containing the selected occurrence
+fields with Darwin Core / GBIF column names. The \code{gbifID} column is always
+character. The \code{issue} column contains raw pipe-separated GBIF issue codes
+and is consumed by \code{\link[=extract_gbif_issues]{extract_gbif_issues()}}.
 }
 \description{
-Imports occurrence records from a GBIF ZIP download and prepares the result
-for subsequent VasGBIF processing. The function reads the occurrence data
-file in the archive, retains the fields required by the package, expands GBIF
-issue codes into record-level logical indicators, and creates an issue-count
-summary.
+Reads a GBIF occurrence download in 'SIMPLE_CSV' or Darwin Core Archive
+('DWCA') format from a ZIP file, extracts the occurrence data file, and
+returns a \code{data.table} of the fields required by the 'VasGBIF' workflow.
+The returned table is the direct input to \code{\link[=extract_gbif_issues]{extract_gbif_issues()}}.
 }
 \details{
-The input archive is extracted into a temporary directory rather than next
-to the ZIP file. This also prevents a ZIP stored in a package's
-\code{inst/extdata} directory from being modified during import.
+The archive is extracted into a dedicated directory rather than next to the
+ZIP file, so a ZIP stored in \code{inst/extdata} is never modified.
 
 The function performs the following steps:
 \itemize{
-\item Checks that \code{path} is a character path with a \code{.zip} extension.
-\item Checks that the archive contains exactly one member and extracts that
-member to a unique temporary directory.
+\item Validates that \code{path} is a non-empty character string with a \code{.zip}
+extension.
+\item Lists the archive members; a 'SIMPLE_CSV' download holds a single data
+file which is extracted by name, while a 'DWCA' holds several members
+(typically \code{meta.xml}, \code{occurrence.txt}, and extension files) and its
+\code{occurrence.txt} core file is assumed.
 \item Reads the tab-separated, UTF-8 occurrence file with
-\code{\link[data.table:fread]{data.table::fread()}} and selects the GBIF fields used by the VasGBIF
-workflow.
+\code{\link[data.table:fread]{data.table::fread()}}, selecting only the GBIF fields used by VasGBIF.
 \item Coerces \code{gbifID} to character.
-\item Parses the pipe-separated \code{issue} field. For each issue code in
-\code{\link{EnumOccurrenceIssue}}, it creates a logical column indicating whether
-that issue occurs in each record, then counts the flagged records by issue
-code.
 }
 
-The function does not filter records by basis of record, taxon, geography,
-or issue status. It also does not correct or remove records flagged by GBIF;
-it only imports the selected fields and creates diagnostic indicators.
-
-The \code{occ_issue} component uses the \code{gbifID} column to link issue indicators
-back to \code{occ}. The available issue columns are determined by the package
-dataset \code{\link{EnumOccurrenceIssue}}; they can therefore change if that dataset
-is updated.
-
-When \code{remove_tempfile = FALSE}, the function leaves the extracted file in a
-system temporary directory. The caller is responsible for removing the
-retained directory after inspecting it.
+No records are filtered, corrected, or removed at this stage. All diagnostic
+fields — including the raw \code{issue} column — are preserved so that
+\code{\link[=extract_gbif_issues]{extract_gbif_issues()}} can parse them in the next step.
 }
 \examples{
 \dontshow{if (interactive()) withAutoprint(\{ # examplesIf}
@@ -76,11 +75,12 @@ gbif_file <- system.file(
   "0003386-260721160103020.zip",
   package = "VasGBIF"
 )
-occ_import <- import_records(path = gbif_file)
+occ <- import_records(path = gbif_file)
+occ_import <- extract_gbif_issues(occ)
 head(occ_import$summary, 5)
 
-# Or choose another GBIF ZIP file interactively.
-# occ_import <- import_records(path = file.choose())
+# Extract to a specific directory and keep it afterwards.
+# occ <- import_records(path = gbif_file, tempdir = "~/gbif_extracted")
 \dontshow{\}) # examplesIf}
 }
 \references{
@@ -89,7 +89,12 @@ GBIF.org (23 July 2026) GBIF Occurrence Download
 }
 \seealso{
 \itemize{
-\item \code{\link[utils:unzip]{unzip()}} for listing or extracting ZIP archives.
+\item \code{\link[=extract_gbif_issues]{extract_gbif_issues()}} for the next step: parsing the \code{issue} column into
+logical indicator columns.
+\item \code{\link[=print.import]{print.import()}} for a one-line record count.
 \item \code{\link[data.table:fread]{data.table::fread()}} for delimited-file import.
+\item \code{\link[utils:unzip]{unzip()}} for ZIP archive handling.
+\item \href{https://techdocs.gbif.org/en/data-use/download-formats}{GBIF download formats}
+for the difference between 'SIMPLE_CSV' and 'DWCA' downloads.
 }
 }

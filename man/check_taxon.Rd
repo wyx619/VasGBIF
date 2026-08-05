@@ -4,116 +4,152 @@
 \alias{check_taxon}
 \title{Resolve taxon names via the Taxonomic Name Resolution Service}
 \usage{
-check_taxon(occ_import = NA, accuracy = 0.9, sources = c("wcvp", "wfo"))
+check_taxon(
+  occ_import = NA,
+  accuracy = 0.85,
+  sources = "wcvp",
+  timeout_minutes = 5
+)
 }
 \arguments{
-\item{occ_import}{An \code{import} object returned by \code{\link[=import_records]{import_records()}}.}
+\item{occ_import}{An \code{"import"} \code{data.table} returned by \code{\link[=import_records]{import_records()}},
+containing at least the columns \code{gbifID}, \code{scientificName}, and
+\code{taxonRank}.}
 
-\item{accuracy}{Numeric threshold between \code{0} and \code{1} controlling the
-minimum match score for a name to be considered resolved. The default is
-\code{0.9}. Passed to \code{\link[TNRS:TNRS]{TNRS::TNRS()}}.}
+\item{accuracy}{Numeric scalar between \code{0} and \code{1}. Minimum 'TNRS' match
+score for a resolution to be accepted. Defaults to \code{0.85}. Records whose
+\code{Overall_score} falls below this threshold are excluded from
+\code{occ_taxa_checked}. Passed directly to \code{\link[TNRS:TNRS]{TNRS::TNRS()}}.}
 
-\item{sources}{Character vector of taxonomic sources. The effective
-default is \code{"wcvp"}. \code{"wfo"} is also accepted.}
+\item{sources}{Character vector naming the taxonomic sources to resolve
+against. Defaults to \code{"wcvp"} (World Checklist of Vascular Plants).
+\code{"wfo"} (World Flora Online) is also accepted. Multiple
+sources can be combined, e.g. \code{c("wcvp", "wfo")}; the 'TNRS' API then
+returns the best match across all selected sources and the \code{Source}
+column records which source provided it. Passed directly to \code{\link[TNRS:TNRS]{TNRS::TNRS()}}.}
+
+\item{timeout_minutes}{Numeric scalar. Timeout per 'TNRS' chunk attempt in
+minutes. Defaults to \code{5}. If an attempt exceeds the timeout it is
+abandoned and retried.}
 }
 \value{
-A list of class \code{"occ_taxa"} with three elements:
+An object of class \code{"occ_taxa"}, implemented as a named list with
+three elements:
 \itemize{
-\item \code{occ_taxa_checked}: a \code{data.table} of all occurrence records (one row
-per \code{gbifID}) with WCVP taxonomic columns appended. Key columns include
-\code{wcvp_searchedName} (the original submitted name), \code{wcvp_taxon_name}
-(the accepted name), \code{wcvp_plant_name_id}, \code{wcvp_family},
-\code{wcvp_taxon_rank}, \code{wcvp_searchNotes}, and \code{wcvp_reviewed}.
-\item \code{summary}: a \code{data.table} of unique resolution outcomes (one row per
-submitted name), suitable for reviewing results and identifying names
-that require manual attention.
-\item \code{runtime}: the elapsed execution time.
+\item \code{occ_taxa_checked}: a \code{data.table} of occurrence records that passed the
+\code{accuracy} threshold and have an \code{"Accepted"} or \code{"Synonym"}
+\code{Taxonomic_status}. Columns from \code{occ_import} (\code{gbifID},
+\code{scientificName}) are joined with the following 'TNRS' result columns:
+\code{Overall_score}, \code{Taxonomic_status}, \code{Accepted_name}, \code{Accepted_species},
+\code{Accepted_name_id}, \code{Accepted_name_rank}, \code{Accepted_family}, \code{Source}.
+\item \code{summary}: a \code{data.table} of unique 'TNRS' resolution results (one row
+per submitted name), useful for reviewing match quality and identifying
+names that require manual attention. \code{scientificName} holds the string as
+submitted, while \code{Name_submitted} holds the possibly rewritten form
+echoed by 'TNRS'; comparing the two exposes names the API altered.
+\item \code{runtime}: a \code{difftime} object recording the total elapsed time.
 }
 }
 \description{
-Submits plant scientific names to the Taxonomic Name Resolution
-Service (TNRS) and resolves them against the World Checklist of Vascular
-Plants (WCVP). The TNRS corrects spelling errors, standardises variant
-spellings, and converts synonyms to their currently accepted names.
-
-The function works in three phases:
-\enumerate{
-\item Extracts unique names at species-level ranks (species, subspecies,
-variety, form) and submits them to the TNRS in chunks of up to 4,000
-names.
-\item Post-processes the TNRS response into a structured \code{data.table} with
-WCVP identifiers, accepted names, taxonomic status, and a resolution
-outcome label.
-\item Merges the results back into the full occurrence table. Records above
-species rank are not submitted and retain \code{NA} in all WCVP fields.
-}
+Submits plant scientific names from a GBIF occurrence table to the
+Taxonomic Name Resolution Service ('TNRS') and resolves them against the
+World Checklist of Vascular Plants ('WCVP') or World Flora Online ('WFO'),
+depending on \code{sources} (default \code{"wcvp"}). Spelling errors are corrected,
+variant spellings are standardised, and synonyms are converted to their
+currently accepted names. Only records that meet the \code{accuracy} threshold,
+have an accepted or synonym \code{Taxonomic_status}, and resolve to an accepted
+name at species rank or below are returned in \code{occ_taxa_checked}.
 }
 \details{
 \subsection{Taxon rank filtering}{
 
 Only records whose \code{taxonRank} is one of \code{"SPECIES"}, \code{"VARIETY"},
-\code{"SUBSPECIES"}, or \code{"FORM"} are submitted to the TNRS. Records at genus
-rank or above are retained in the output but receive \code{NA} for all WCVP
-fields and are not part of the resolution process.
+\code{"SUBSPECIES"}, or \code{"FORM"} are submitted to 'TNRS'. Records at genus rank
+or above are excluded from the query and are absent from both \code{summary}
+and \code{occ_taxa_checked}.
+
+This check filters on the \code{taxonRank} reported by GBIF for the submitted
+record. It is distinct from the output-side check on \code{Accepted_name_rank}
+described under "Output filtering", which filters on the rank of the
+\emph{resolved} accepted name returned by 'TNRS'.
 }
 
-\subsection{Handling of unresolved and uncertain names}{
+\subsection{Chunked submission}{
 
-All records are \strong{retained} in the output — none are removed. Names that
-cannot be resolved are identifiable through the \code{wcvp_searchNotes} column:
+Unique names are submitted in chunks of up to 4,000 to respect 'TNRS' API
+limits. Each name is assigned a row identifier before chunking, so the
+identifiers stay unique across the whole query. Results from all chunks are
+combined with \code{\link[data.table:rbindlist]{data.table::rbindlist()}} and then de-duplicated by \code{ID},
+guarding against occasional duplicate rows returned by the API.
+}
+
+\subsection{Joining results back to occurrences}{
+
+'TNRS' does not echo submitted names verbatim: commas are replaced by
+spaces and diacritics are normalised, so \code{Name_submitted} in the response
+may differ from the string that was sent. Results are therefore joined back
+to the occurrence table through the row identifier echoed in the \code{ID}
+column, which maps each result to the exact \code{scientificName} submitted.
+}
+
+\subsection{Output filtering}{
+
+After merging 'TNRS' results back into the occurrence table, only records
+satisfying \strong{all} of the following conditions are kept in
+\code{occ_taxa_checked}:
 \itemize{
-\item \code{"Accepted"}: the submitted name is already an accepted name in WCVP.
-\item \code{"Updated"}: the submitted name is a synonym and has been resolved to
-its accepted name. The accepted name appears in \code{wcvp_taxon_name} and
-its WCVP identifier in \code{wcvp_plant_name_id}.
-\item \code{"Not found"}: the TNRS could not match the name to any WCVP entry, or
-the match has no accepted name. All WCVP fields (\code{wcvp_taxon_name},
-\code{wcvp_plant_name_id}, \code{wcvp_family}, etc.) are \code{NA} for these records.
+\item \code{Overall_score >= accuracy}
+\item \code{Taxonomic_status} is \code{"Accepted"} or \code{"Synonym"}
+\item \code{Accepted_name_rank} is neither empty nor \code{"genus"}
 }
 
-Names with uncertain taxonomic status in WCVP — including \emph{unplaced},
-\emph{unresolved}, \emph{illegitimate}, and \emph{invalid} names — typically receive no
-accepted name from the TNRS and are therefore classified as
-\code{"Not found"}. They remain in the dataset with \code{NA} WCVP fields so that
-users can inspect and manually curate them.
-
-Names that the TNRS resolves only to genus level are also reclassified as
-\code{"Not found"}, since a genus-level identification is too coarse to be
-useful for the duplicate-detection and native-status workflows that
-consume this output.
-}
-
-\subsection{Review flag}{
-
-The \code{wcvp_reviewed} column is \code{"N"} for every name that received an
-accepted WCVP match (i.e. \code{wcvp_searchNotes} is \code{"Accepted"} or
-\code{"Updated"}). It is \code{NA} for names classified as \code{"Not found"}. Users can
-manually set it to \code{"Y"} after verifying a resolution, or fill it for
-unresolved names after manual curation.
+The rank condition excludes records whose best match only reached a
+genus-level or unranked accepted name, even when the score and status
+would pass. Records that fail any condition (unresolved names,
+low-confidence matches, names with uncertain status, or genus-level
+resolutions) are present in \code{summary} for manual review but absent from
+\code{occ_taxa_checked}.
 }
 
 \subsection{Retry logic}{
-
-Each TNRS chunk query is attempted up to 3 times with a 5-second wait
-between attempts and a 20-minute timeout per attempt. This guards against
-transient network failures and API timeouts.
+\itemize{
+\item \code{occ_taxa_checked}: a \code{data.table} of occurrence records that passed the
+\code{accuracy} threshold, have an \code{"Accepted"} or \code{"Synonym"}
+\code{Taxonomic_status}, and whose \code{Accepted_name_rank} is neither empty nor
+\code{"genus"}. Columns from \code{occ_import} (\code{gbifID},t, guarding
+against transient network failures. If all attempts fail for a chunk, the
+function stops with an informative error.
+}
 }
 }
 \examples{
 \dontshow{if (interactive()) withAutoprint(\{ # examplesIf}
-taxa_checked <- check_taxon(occ_import = occ_import, accuracy = 0.9)
+gbif_file <- system.file(
+  "extdata",
+  "0003386-260721160103020.zip",
+  package = "VasGBIF"
+)
+occ <- import_records(path = gbif_file)
+taxa_checked <- check_taxon(occ_import = occ, accuracy = 0.85)
+head(taxa_checked$summary, 10)
+nrow(taxa_checked$occ_taxa_checked)
 \dontshow{\}) # examplesIf}
 }
 \references{
-\itemize{
-\item Boyle, B. et al. (2013). The taxonomic name resolution service: an
-online tool for automated standardisation of plant names. \emph{BMC
-Bioinformatics}, 14, 16. doi:10.1186/1471-2105-14-16
-\item Govaerts, R. et al. (2021). The World Checklist of Vascular Plants, a
+Boyle, B. et al. (2013). The taxonomic name resolution service: an online
+tool for automated standardisation of plant names. \emph{BMC Bioinformatics},
+14, 16. \doi{10.1186/1471-2105-14-16}
+
+Govaerts, R. et al. (2021). The World Checklist of Vascular Plants, a
 continuously updated resource for exploring global plant diversity.
-\emph{Scientific Data}, 8, 215. doi:10.1038/s41597-021-00997-6
-}
+\emph{Scientific Data}, 8, 215. \doi{10.1038/s41597-021-00997-6}
 }
 \seealso{
-\code{\link[TNRS:TNRS]{TNRS()}}
+\itemize{
+\item \code{\link[=import_records]{import_records()}} for the first step that produces the \code{occ_import}
+input.
+\item \code{\link[=extract_gbif_issues]{extract_gbif_issues()}} for the parallel step that processes issue flags.
+\item \code{\link[TNRS:TNRS]{TNRS::TNRS()}} for the underlying name resolution function.
+\item \code{\link[=print.occ_taxa]{print.occ_taxa()}} for a compact summary of the result.
+}
 }

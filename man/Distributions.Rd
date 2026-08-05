@@ -5,7 +5,7 @@
 \alias{Distributions}
 \title{The World Checklist of Vascular Plants Distributions}
 \format{
-A data.table with 1,983653 rows and 6 variables:
+A data.table with 1,647,045 rows and 6 variables:
 \describe{
 \item{plant_name_id}{World Checklist of Vascular Plants (WCVP) identifier}
 \item{taxon_name}{Concatenation of genus with species and, where applicable, infraspecific epithets to make a binomial or trinomial name}

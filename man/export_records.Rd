@@ -4,10 +4,18 @@
 \alias{export_records}
 \title{Export refined records to compressed CSV files}
 \usage{
-export_records(refined_records = NA, export_path = NA)
+export_records(
+  refined_coordinates = NA,
+  native_detected = NA,
+  export_path = NA
+)
 }
 \arguments{
-\item{refined_records}{A \code{refined} object returned by \code{\link[=refine_records]{refine_records()}}.}
+\item{refined_coordinates}{A \code{CoordinateRefined} object returned by
+\code{\link[=refine_coordinates]{refine_coordinates()}}.}
+
+\item{native_detected}{A \code{nativeDetected} object returned by
+\code{\link[=detect_native_status]{detect_native_status()}}.}
 
 \item{export_path}{Directory where the compressed CSV files should be written.}
 }
@@ -16,25 +24,31 @@ Called for its side effect of writing files to \code{export_path}. Returns
 \code{NULL} invisibly.
 }
 \description{
-Writes the output of \code{\link[=refine_records]{refine_records()}} to disk as gzip-compressed
-CSV files. Three files are exported: all usable records, the native subset,
-and records that failed coordinate validation.
+Writes the results of \code{\link[=refine_coordinates]{refine_coordinates()}} and
+\code{\link[=detect_native_status]{detect_native_status()}} to disk as gzip-compressed CSV files. Three files
+are exported: all refined records joined with their native status, the
+native subset, and records that failed coordinate validation.
 }
 \details{
 The following files are written:
 \itemize{
-\item \code{usable_refined_records.csv.gz}: all records with validated coordinates
-and assigned native status
-\item \code{native_refined_records.csv.gz}: the subset classified as native
+\item \code{all_records.csv.gz}: all refined records — those with validated
+coordinates and those without — joined with their native status by \code{gbifID}
+\item \code{native_records.csv.gz}: the subset classified as \code{"native"}
 \item \code{CoordinateProblematic_records.csv.gz}: records that failed one or more
 CoordinateCleaner tests
 }
 
 Files are written with \code{fwrite(encoding = "UTF-8")}. \code{export_path} is
-validated before writing: if it exists as a file (not a directory) or is
-\code{NA}, the function stops with an error; if it does not exist, a warning is
-emitted and the directory is created automatically.
+validated before writing: if it is not a single character path or exists as
+a file (not a directory), the function stops with an error; if it does not
+exist, a warning is emitted and the directory is created automatically.
+
+The data inputs are validated first: \code{refined_coordinates} must be a
+\code{CoordinateRefined} object whose \code{CoordinateCleaned} and \code{Coordinateless}
+tables share identical columns and contain \code{gbifID}; \code{native_detected} must
+be a \code{nativeDetected} object with \code{gbifID} and \code{native_status}.
 }
 \seealso{
-\code{\link[=refine_records]{refine_records()}}
+\code{\link[=refine_coordinates]{refine_coordinates()}}, \code{\link[=detect_native_status]{detect_native_status()}}
 }

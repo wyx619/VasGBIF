@@ -4,35 +4,65 @@
 \alias{detect_native_status}
 \title{Detect native status from WGSRPD distributions}
 \usage{
-detect_native_status(CoordinateCleaned)
+detect_native_status(
+  refined_coordinates = NA,
+  species_fallback = FALSE,
+  buffer_km = 10,
+  buffer_chunk_size = 2000
+)
 }
 \arguments{
-\item{CoordinateCleaned}{A \code{data.table} of records that passed coordinate
-validation, containing at minimum \code{gbifID},
-\code{VasGBIF_decimalLongitude}, \code{VasGBIF_decimalLatitude}, and
-\code{VasGBIF_wcvp_taxon_name}.}
+\item{refined_coordinates}{A \code{CoordinateRefined} object (or a list with the
+same structure) containing \code{CoordinateCleaned} — records with validated
+coordinates — and \code{Coordinateless} — records without usable coordinates.}
+
+\item{species_fallback}{Logical scalar. When \code{TRUE}, records that could not
+be matched on \code{Accepted_name} are retried against \code{Accepted_species}, so
+that infraspecific taxa absent from \code{Distributions} inherit the status
+recorded for their parent species. This is a deliberate loss of precision:
+a subspecies may be introduced in an area where the species is native.
+Rows resolved this way are marked \code{"accepted_species"} (spatial stage) or
+with a \code{"_species"} suffix (country-code stage) in
+\code{native_status_source}. Defaults to \code{FALSE}.}
+
+\item{buffer_km}{Numeric scalar. Width of the spatial buffer in km applied
+to records the exact spatial match left unresolved. \code{0} disables the
+buffer. Defaults to \code{10}.}
+
+\item{buffer_chunk_size}{Numeric scalar. Maximum number of records buffered
+in one chunk, keeping the relate matrix small. Defaults to \code{2000}.}
 }
 \value{
-A \code{data.table} with columns:
+A \code{nativeDetected} object — a \code{data.table} subclass with one row
+per input record (all records from \code{CoordinateCleaned} and all from
+\code{Coordinateless}) and columns:
 \itemize{
 \item \code{gbifID}: the record identifier
 \item \code{LEVEL3_COD}: the assigned WGSRPD Level 3 area code, or \code{NA} if the
-taxon has no distribution data
+record could not be matched
 \item \code{native_status}: one of \code{"native"}, \code{"introduced"}, \code{"extinct"},
 \code{"location_doubtful"}, or \code{"unknown"}
+\item \code{native_status_source}: how the status was inferred. \code{"accepted_name"} /
+\code{"accepted_species"} are spatial matches; \code{"country_code"} /
+\code{"country_code_after_spatial_miss"} are country-code matches (with a
+\code{"_species"} suffix when \code{species_fallback} was used);
+\code{"country_code_miss"} means the country mapped to WGSRPD areas but the
+taxon had no distribution entry there; \code{"unmatched"} means the record had
+no usable key at all.
+\item \code{buffered}: \code{TRUE} when the status came from a buffered spatial hit
 }
 }
 \description{
-Assigns a native status classification to each occurrence record
-by matching validated coordinates to WCVP distribution data via WGSRPD
-Level 3 polygons.
+Assigns a native status classification to each occurrence
+record by matching it against WCVP distribution data (the internal
+\code{Distributions} dataset) via WGSRPD Level 3 areas. Classification proceeds
+in two stages.
 
-Native status is determined in two stages, working one taxon at a time.
-
-\strong{Stage 1 — classify WGSRPD areas.} The internal \code{Distributions} dataset
-links each WGSRPD Level 3 area code to WCVP flags (\code{introduced}, \code{extinct},
-\code{location_doubtful}). These flags are resolved into a single status label
-with the following priority:
+\strong{Spatial stage.} Records with validated coordinates are overlaid on the
+WGSRPD Level 3 polygon map (via \code{\link[terra:extract]{terra::extract()}}) to assign an area code
+to each record. That area code is looked up in a distribution table
+classified from the WCVP flags (\code{introduced}, \code{extinct},
+\code{location_doubtful}) with the following priority:
 \enumerate{
 \item If \code{location_doubtful == 1}, the area is classified as
 \code{"location_doubtful"} regardless of other flags.
@@ -42,11 +72,24 @@ with the following priority:
 \item Any remaining case defaults to \code{"unknown"}.
 }
 
-\strong{Stage 2 — spatial intersection.} For each taxon, the validated
-occurrence points are overlaid on the WGSRPD Level 3 polygon map (via
-\code{\link[terra:extract]{terra::extract()}}) to assign an area code to each record. That area code
-is then looked up in the classified distribution table. Records falling
-outside any documented area, or whose taxon has no entry in
-\code{Distributions}, are labelled \code{"unknown"}.
+A record that falls in several areas at once is assigned the most preferred
+status (\code{"native"} first). Unresolved records may be buffered (\code{buffer_km})
+so coastal points just outside a polygon can still be matched; buffered
+hits are ranked below exact ones. Records that the spatial stage still
+leaves unresolved are retried by country code (see below).
+
+\strong{Country-code stage.} Records without coordinates, plus records the
+spatial stage left unresolved, are matched through \code{countryCode} mapped to
+WGSRPD Level 3 areas by the \code{Level3maping} table; no geometry is used. The
+same status priority applies.
 }
-\keyword{internal}
+\details{
+\strong{Coordinate reference system.} Both the occurrence points and the
+internal \code{WGSRPD3} polygons are assumed to be in longitude/latitude
+(EPSG:4326); the function asserts this on the polygon side. \code{buffer_km} is
+applied as metres via \code{\link[terra:buffer]{terra::buffer()}}'s geodesic buffer, so it keeps the
+same meaning at every latitude.
+}
+\seealso{
+\code{\link[=print.nativeDetected]{print.nativeDetected()}} for a compact summary of the result.
+}

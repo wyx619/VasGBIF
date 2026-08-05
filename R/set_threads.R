@@ -17,10 +17,10 @@
 #' [parallel::detectCores()] are silently capped to that limit with a message.
 #' Values less than or equal to zero and non-numeric inputs produce an error.
 #'
-#' This function is also used by [refine_records()] to normalize its `threads`
+#' This function is also used by [refine_coordinates()] to normalize its `threads`
 #' argument.
 #'
-#' @seealso [parallel::detectCores()], [refine_records()]
+#' @seealso [parallel::detectCores()], [refine_coordinates()]
 #' @export
 #'
 #' @examples
