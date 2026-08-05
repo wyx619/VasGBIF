@@ -38,19 +38,28 @@ knitr::opts_chunk$set(
 
 # Applications: from VasGBIF to *letsR*
 
-This vignette demonstrates how to take the output of VasGBIF and feed it into **letsR** for macroecological analysis: constructing presence-absence matrices, mapping species richness, and integrating environmental variables.
+This vignette demonstrates how to take the output of VasGBIF and feed it into ***letsR*** for macroecological analysis: constructing presence-absence matrices, mapping species richness, and integrating environmental variables.
 
 ## Preparation: running the VasGBIF pipeline
 
-Before downstream analysis, we need a set of high-quality, non-redundant occurrence records with native-status annotations. The VasGBIF pipeline produces exactly that in five steps:
+A presence-absence matrix is only as good as the records behind it, so downstream analysis needs occurrences whose names resolve to an accepted taxonomy, whose coordinates have been validated, and whose native status is known. The VasGBIF pipeline delivers that in four stages:
 
-1.  **Import** — load the GBIF occurrence download ZIP
-2.  **Resolve taxonomy** — match names against WCVP via TNRS
-3.  **Build collection-event keys** — group records by taxon + date + coordinates
-4.  **Select digital vouchers** — pick the highest-quality record per group
-5.  **Refine** — validate coordinates, restore metadata, and annotate native status
+*Stage 1 — Import and issue parsing*
 
-Here we use the *Saxifraga records* (see <https://doi.org/10.15468/dl.4ty3ap>) as example. Substitute your own GBIF ZIP for real analyses (see the **GetRecords** vignette for download instructions).
+1.  **`import_records()`** — read the GBIF occurrence download ZIP (`SIMPLE_CSV` or Darwin Core Archive), keeping the raw `issue` field intact
+2.  **`extract_gbif_issues()`** — expand `issue` into one logical column per GBIF issue code, plus a per-record issue count
+
+*Stage 2 — Taxonomic resolution and record filtering*
+
+3.  **`check_taxon()`** — resolve scientific names against WCVP through TNRS, keeping matches that clear the `accuracy` threshold and resolve below genus level
+4.  **`custom_filter()`** — join the three outputs by `gbifID` and drop records rule by rule, logging every step
+
+*Stage 3 — Coordinate validation and native-status annotation*
+
+5.  **`refine_coordinates()`** — run CoordinateCleaner tests in parallel, splitting records into coordinate-clean, coordinate-problematic, and coordinate-less tables
+6.  **`detect_native_status()`** — classify each record as `native`, `introduced`, `extinct`, `location_doubtful`, or `unknown`
+
+Here we use the *Saxifraga* records (see <https://doi.org/10.15468/dl.4ty3ap>) as example. Substitute your own GBIF ZIP for real analyses (see the **GetRecords** vignette for download instructions).
 
 ```{r get_records}
 library(rgbif)
@@ -64,7 +73,7 @@ gbif_file <- occ_download_doi(DOI)$key %>% occ_download_get(path = tempdir()) %>
 library(VasGBIF)
 library(data.table)
 
-# Step 1: Import 
+# Step 1: Import the download
 occ_import <- import_records(path = gbif_file)
 
 # Step 2: Parse GBIF issue flags
@@ -80,17 +89,21 @@ filtered <- custom_filter(
   gbif_issue = gbif_issue
 )
 
-# Step 5: Validate coordinates and annotate native status
+# Step 5: Validate coordinates
 refined_coordinates <- refine_coordinates(
   custom_filtered = filtered,
   threads = 4
 )
+
+# Step 6: Annotate native status
 native_detected <- detect_native_status(
   refined_coordinates = refined_coordinates
 )
 ```
 
-Later we will use `refined_coordinates` and `native_detected`.
+Every object prints a summary, so `filtered$summary` shows how many records each rule removed, and `native_detected` reports the status breakdown — both worth inspecting before committing to a matrix.
+
+Two objects carry forward. `refined_coordinates$CoordinateCleaned` holds the records that passed every coordinate test, and `native_detected` holds one row per record with its `native_status`. Because `detect_native_status()` also classifies coordinate-less records, joining the two tables on `gbifID` keeps only native records that actually have coordinates — exactly what a presence-absence matrix requires.
 
 ## Introducing *letsR* and Presence-Absence Matrices
 
@@ -132,7 +145,7 @@ The first two columns typically store the longitude (x) and latitude (y) coordin
 
 4.  **Reproducibility** — Explicitly defined grid systems eliminate ambiguities in spatial resolution, projection, and extent
 
-**In letsR's implementation:**
+**In *letsR*'s implementation:**
 
 The package wraps PAMs in a **`PresenceAbsence`** S3 object that bundles:
 
@@ -155,13 +168,16 @@ library(letsR)
 library(stringi)
 
 # prepare input for letsR
-PAM_pre <- refined_coordinates$CoordinateCleaned[gbifID %chin% native_detected[native_status=='native',gbifID],.(
-  Accepted_name,
-  genus  = stri_extract_first_regex(Accepted_name, "^[^ ]+"),
-  family,
-  decimalLongitude,
-  decimalLatitude
-)]
+PAM_pre <- refined_coordinates$CoordinateCleaned[
+  gbifID %chin% native_detected[native_status == 'native', gbifID],
+  .(
+    Accepted_name,
+    genus = stri_extract_first_regex(Accepted_name, "^[^ ]+"),
+    family,
+    decimalLongitude,
+    decimalLatitude
+  )
+]
 
 head(PAM_pre, 5)
 
@@ -285,4 +301,4 @@ Chirico, Michael. 2023. “geohashTools: Tools for Working with Geohashes.” <h
 
 Zizka, Alexander, Daniele Silvestro, Tobias Andermann, Josué Azevedo, Camila Duarte Ritter, Daniel Edler, Harith Farooq, et al. 2019. “CoordinateCleaner : Standardized Cleaning of Occurrence Records from Biological Collection Databases.” Edited by Tiago Quental. Methods in Ecology and Evolution 10 (5): 744–51. <https://doi.org/10.1111/2041-210X.13152>.
 
-Vilela, Bruno, and Fabricio Villalobos. 2015. “letsR: A New r Package for Data Handling and Analysis in Macroecology.” *Methods in Ecology and Evolution* 6 (10): 1229–34. <https://doi.org/10.1111/2041-210x.12401>.
+Vilela, Bruno, and Fabricio Villalobos. 2015. “***letsR***: A New r Package for Data Handling and Analysis in Macroecology.” *Methods in Ecology and Evolution* 6 (10): 1229–34. <https://doi.org/10.1111/2041-210x.12401>.
