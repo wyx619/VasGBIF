@@ -8,7 +8,7 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/wyx619/VasGBIF/blob/master/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/wyx619/VasGBIF/blob/3.6.0/DESCRIPTION)
 
 Yuxuan Wang (2026). *VasGBIF: Fast and Easy Compilation of Vascular
 Plants Occurrence Records from 'GBIF'*. R package version 3.6.0,
