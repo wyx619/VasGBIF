@@ -1,5 +1,300 @@
 # Changelog
 
+## VasGBIF 3.6.0
+
+*Major release: the package has been completely redesigned. The
+duplicate-detection and voucher-selection pipeline that VasGBIF
+inherited from UltraGBIF has been removed and replaced by a new
+eight-function, four-stage workflow built around two new systems: a
+precise two-pass native-status detector and a fluent, fully auditable
+record filter.*
+
+### Breaking Changes
+
+#### The new pipeline
+
+The workflow is now:
+
+[`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md)
+→
+[`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md)
+→
+[`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md)
+→
+[`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md)
+→
+[`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
+→
+[`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
+→
+[`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)
+/
+[`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)
+
+#### Removed functions
+
+- **`get_collections()`, `set_vouchers()`, and `restore_duplicates()`
+  have been removed**, together with the entire collection-event key /
+  digital-voucher / metadata-restoration stage. Deduplication by
+  composite `taxon|date|latitude|longitude` keys, the
+  metadata-completeness and geospatial-penalty scoring system,
+  `moreInformativeRecord`, the `usable` / `duplicate` / `unusable`
+  classification, and the `VasGBIF_dataset_result` column no longer
+  exist. Records are now selected by explicit, individually auditable
+  quality rules in
+  [`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md)
+  instead of by an implicit voucher-quality ranking.
+- **`refine_records()` has been replaced by
+  [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md).**
+  The old function bundled three unrelated jobs — metadata restoration,
+  coordinate validation, and native-status detection — behind one call.
+  Coordinate validation and native-status detection are now separate,
+  independently callable steps.
+
+#### Function signature and return-value changes
+
+- `refine_coordinates(custom_filtered, threads = 4, tests = ...)` takes
+  a `customFiltered` object and returns a `CoordinateRefined` object
+  with **four** elements: `CoordinateCleaned`, `CoordinateProblematic`,
+  `Coordinateless`, and `runtime`. The new `Coordinateless` table means
+  records missing longitude or latitude are no longer silently lost —
+  they are carried forward and still receive a native status.
+- `detect_native_status(refined_coordinates, species_fallback = FALSE, buffer_km = 10, buffer_chunk_size = 2000)`
+  is now exported as a pipeline stage in its own right and returns a
+  `nativeDetected` object.
+- `export_records(refined_coordinates, native_detected, export_path)`
+  and
+  `map_records(native_detected, refined_coordinates, precision = 3, cex = 3)`
+  now take the coordinate and native-status objects explicitly rather
+  than deriving them from a single bundled result, and both validate
+  their inputs by class.
+- `extract_gbif_issue()` has been **renamed to
+  [`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md)**.
+- All object classes have been renamed: `import`, `issue`, `occ_taxa`,
+  `customFiltered`, `CoordinateRefined`, and `nativeDetected`.
+
+### New and Rewritten Functions
+
+#### `detect_native_status()`: precise native-status detection
+
+Newly exported as a pipeline stage and rewritten from scratch, this is
+the analytical core of VasGBIF. It assigns `native`, `introduced`,
+`extinct`, `location_doubtful`, or `unknown` to **every** record by
+matching identification and position against WCVP distribution data
+organised by WGSRPD Level 3 areas. Classification runs in two passes so
+the most precise available evidence always wins:
+
+- **Spatial pass.** Records with validated coordinates are overlaid on
+  the WGSRPD Level 3 polygon map with a single vectorised
+  [`terra::extract()`](https://rspatial.github.io/terra/reference/extract.html)
+  call. Each area code is looked up in a distribution table classified
+  from the WCVP flags with a fixed priority: `location_doubtful` \>
+  `introduced` \> `extinct` \> `native` \> `unknown`. Records falling in
+  several areas receive the most preferred status, never an arbitrary
+  one.
+- **Country-code pass.** Records without coordinates, and records the
+  spatial pass left unresolved, are retried through `countryCode` mapped
+  to Level 3 areas by the new `Level3maping` table. No geometry is used,
+  so this pass is nearly free.
+
+Precision improvements over the previous implementation:
+
+- **Geodesic buffering.** Coastal points just outside a polygon are
+  matched through
+  [`terra::buffer()`](https://rspatial.github.io/terra/reference/buffer.html)
+  in metres, so `buffer_km` has the same meaning at every latitude.
+  Buffered hits are always ranked below exact ones and flagged in the
+  returned `buffered` column. Buffering is chunked (`buffer_chunk_size`)
+  to keep the relate matrix small.
+- **Hybrid-name normalisation.** Taxon keys are canonicalised so
+  `Alnus x pubescens` matches `Alnus × pubescens` in `Distributions`.
+- **Opt-in species fallback.** With `species_fallback = TRUE`,
+  infraspecific taxa absent from `Distributions` inherit their parent
+  species’ status. This is off by default because it is a deliberate
+  loss of precision — a subspecies may be introduced where the species
+  is native.
+- **Full auditability.** The new `native_status_source` column records
+  *how* each status was obtained (`accepted_name`, `accepted_species`,
+  `country_code`, `country_code_after_spatial_miss`,
+  `country_code_miss`, `unmatched`, with a `_species` suffix where the
+  fallback was used), so no classification is a black box.
+- **CRS assertion.** The function verifies that the `WGSRPD3` polygons
+  are in a longitude/latitude CRS, so a future data change cannot
+  silently break the overlay.
+
+#### `custom_filter()`: flexible and fluent filtering
+
+Replaces the implicit voucher-quality ranking with an explicit,
+user-controlled filter pipeline. It joins the three preceding outputs by
+`gbifID` and then applies a selected set of quality rules, one
+vectorised `data.table` pass per rule:
+
+- **Fluent rule control.** Each rule is an independently toggleable
+  argument. Three are on by default (`filter_countryCode`,
+  `filter_coordinateUncertainty = 10000`, `filter_gbif_issues_max = 5`);
+  `filter_date`, `filter_identifiedBy`, and `filter_recordedBy` are
+  opt-in, so no information is discarded without an explicit choice.
+  Numeric thresholds share one uniform “off” convention — `NULL`, `NA`,
+  or `''` — so any rule can be disabled without restructuring the call.
+- **Auditable pipeline.** Every step, including the `taxon_resolved`
+  join, is logged in the returned `summary` table (`rule`, `dropped`,
+  `remaining`).
+- **Strict joins.** The taxonomic join is an inner join, so unresolved
+  records are dropped at a single visible point instead of carrying `NA`
+  taxonomy through the rest of the workflow. The issue join is verified
+  to be one-to-one and the function stops if any record lacks an issue
+  count.
+- **Careful collector and identifier detection.** The `identifiedBy` and
+  `recordedBy` rules remove only values containing no named person,
+  using a curated multilingual keyword list (English, Spanish,
+  Portuguese, French, German, Chinese) plus whole-value patterns such as
+  `s.n.`, `n/a`, and `no collector`. Name separators protect values that
+  mix a keyword with a real name (`"Unknown; Jongmans WJ"` is kept), and
+  word-boundary matching keeps CJK keywords from splitting genuine
+  names.
+
+#### `refine_coordinates()`
+
+Coordinate validation, now a standalone step. It splits filtered records
+into those with complete coordinates and those without, then runs
+[`CoordinateCleaner::clean_coordinates()`](https://ropensci.github.io/CoordinateCleaner/reference/clean_coordinates.html)
+checks in parallel over chunked records, with the worker count capped to
+the number of records. `CoordinateProblematic` retains the
+CoordinateCleaner flag columns so the failing tests can be inspected. If
+no record has complete coordinates, validation is skipped rather than
+failing.
+
+#### Print methods
+
+Six S3 [`print()`](https://rdrr.io/r/base/print.html) methods have been
+added so every pipeline object gives an informative summary at the
+console instead of dumping a list:
+[`print.import()`](https://wyx619.github.io/VasGBIF/reference/print.import.md),
+[`print.issue()`](https://wyx619.github.io/VasGBIF/reference/print.issue.md),
+[`print.occ_taxa()`](https://wyx619.github.io/VasGBIF/reference/print.occ_taxa.md),
+[`print.customFiltered()`](https://wyx619.github.io/VasGBIF/reference/print.customFiltered.md),
+[`print.CoordinateRefined()`](https://wyx619.github.io/VasGBIF/reference/print.CoordinateRefined.md),
+and
+[`print.nativeDetected()`](https://wyx619.github.io/VasGBIF/reference/print.nativeDetected.md).
+
+### Improvements
+
+- **[`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md)
+  now supports Darwin Core Archive downloads** in addition to
+  `SIMPLE_CSV`. Archives with more than one member are treated as a DWCA
+  and their `occurrence.txt` core file is read. The archive is extracted
+  into a dedicated directory rather than next to the ZIP, so a ZIP
+  stored in `inst/extdata` is never modified. `tempdir` and
+  `remove_tempfile` now have coordinated defaults: an auto-created
+  directory is cleaned up on exit, a user-supplied one is kept, and
+  either default can be overridden. The return value is a single
+  `"import"` `data.table` rather than a list.
+- **[`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md)**
+  now returns `Accepted_species` and `Accepted_name_rank` alongside the
+  existing TNRS columns, and `occ_taxa_checked` is filtered on three
+  conditions rather than two: `Overall_score >= accuracy`,
+  `Taxonomic_status` in `Accepted`/`Synonym`, and an
+  `Accepted_name_rank` that is neither empty nor `genus`. Genus-level
+  and unranked matches therefore no longer reach the distribution
+  lookup, where they cannot be resolved.
+- **[`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)**
+  writes `all_records.csv.gz`, `native_records.csv.gz`, and
+  `CoordinateProblematic_records.csv.gz`, with `all_records.csv.gz` now
+  covering records both with and without coordinates, each joined to its
+  native status. `export_path` is validated before any file is written.
+
+### Bug Fixes
+
+- **[`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md):
+  fixed the single-record case.** Building the issue matrix with
+  [`sapply()`](https://rdrr.io/r/base/lapply.html)/[`vapply()`](https://rdrr.io/r/base/lapply.html)
+  dropped dimensions when the input held one record, producing a
+  malformed result. The matrix is now built with
+  [`lapply()`](https://rdrr.io/r/base/lapply.html) +
+  `do.call(cbind, ...)`, which preserves the expected dimensions for any
+  number of records.
+
+### New Data
+
+- **`Level3maping`**: the tabular component of the WGSRPD standard — 369
+  Level 3 units with code, name, parent Level 2 region, and ISO 3166-1
+  alpha-2 concordance — used by the country-code pass of
+  [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md).
+  Its documentation states plainly that the published `L3 ISOcode`
+  column is neither complete nor one-to-one: one ISO code usually maps
+  to several areas (`US` to 51, `RU` to 21), 42 areas carry no ISO code
+  at all (including mainland France, Italy, Spain, Austria, Belgium,
+  Ireland, Ukraine, and Korea, so a naive lookup silently returns only
+  their offshore units), and Belarus is listed under `RU`, reflecting
+  the standard’s 2001 vintage.
+- **`Distributions`** has been rebuilt and now holds 1,647,045 rows
+  (previously reported as 1,983,653), reducing the installed data size.
+
+### Dependency Changes
+
+- Added [`tools::file_ext()`](https://rdrr.io/r/tools/fileutils.html)
+  and [`utils::unzip()`](https://rdrr.io/r/utils/unzip.html) to
+  NAMESPACE for the new ZIP handling in
+  [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md).
+- Removed the now-unused NAMESPACE imports
+  [`dplyr::case_when()`](https://dplyr.tidyverse.org/reference/case-and-replace-when.html),
+  [`dplyr::if_else()`](https://dplyr.tidyverse.org/reference/if_else.html),
+  `lubridate::as_date()`, `lubridate::parse_date_time()`,
+  [`stringi::stri_length()`](https://rdrr.io/pkg/stringi/man/stri_length.html),
+  [`stringi::stri_replace_all_regex()`](https://rdrr.io/pkg/stringi/man/stri_replace.html),
+  [`stringi::stri_trans_toupper()`](https://rdrr.io/pkg/stringi/man/stri_trans_casemap.html),
+  [`terra::extract()`](https://rspatial.github.io/terra/reference/extract.html),
+  [`terra::merge()`](https://rspatial.github.io/terra/reference/merge.html),
+  [`terra::vect()`](https://rspatial.github.io/terra/reference/vect.html),
+  and [`utils::head()`](https://rdrr.io/r/utils/head.html). The date
+  parsing and string-length scoring they supported belonged to the
+  removed voucher pipeline; the remaining `stringi` and `terra` calls
+  are covered by `@import stringi` and by explicit `terra::`
+  qualification.
+
+### Documentation
+
+- **Package-level documentation rewritten.** `VasGBIF-package.R` now
+  documents the four-stage, eight-function workflow and leads with the
+  two new systems, the native-status detector and the custom filter.
+- **README rewritten** in its Workflow, Minimal Complete Example, and
+  Performance sections, with a new **Key Points** section describing the
+  native-status detection and custom filter systems.
+- **`Example.Rmd` completely rewritten** against the current pipeline,
+  reporting per-stage record counts from a real 228,494-record download:
+  205,527 after TNRS resolution, 145,366 after
+  [`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md),
+  then 65,081 coordinate-clean, 8,554 coordinate-problematic, and 71,731
+  coordinateless records, ending at 110,706 native, 354 introduced, 81
+  extinct, 2 location_doubtful, and 25,669 unknown. The description of
+  the bundled example dataset has also been corrected.
+- **`_pkgdown.yml` reference index reorganised** into the four pipeline
+  stages, with new sections for the print methods and for the
+  `Level3maping` dataset.
+- DESCRIPTION `Title` and `Description` now quote ‘GBIF’, ‘VasGBIF’, and
+  ‘R’ and give the GBIF URL, as CRAN requires.
+
+### Testing
+
+- Test suites for the removed functions (`set_vouchers()`,
+  `get_collections()`, `restore_duplicates()`, `refine_records()`) have
+  been deleted, along with the stale
+  [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md)
+  snapshots.
+- New and rewritten suites cover
+  [`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md),
+  [`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md),
+  [`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md),
+  [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md),
+  [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md),
+  [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md),
+  [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md),
+  and
+  [`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md),
+  testing the new object classes, the per-rule filter summary, the
+  two-pass status priority, buffered matching, and input validation for
+  every exported function.
+
 ## VasGBIF 3.5.2
 
 ### Website
@@ -9,17 +304,13 @@
   “Functions”, “Articles” → “Manuals”.
 - Reorganized reference index:
   [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
-  and
-  [`restore_duplicates()`](https://wyx619.github.io/VasGBIF/reference/restore_duplicates.md)
-  moved under Utilities.
+  and `restore_duplicates()` moved under Utilities.
 - Workflow diagram converted from JPG to PNG.
 
 ### Documentation
 
-- **Fixed Unicode characters in
-  [`set_vouchers()`](https://wyx619.github.io/VasGBIF/reference/set_vouchers.md)
-  documentation** (`✓`, `✗`, `−`) that caused the PDF manual to fail
-  building under LaTeX.
+- **Fixed Unicode characters in `set_vouchers()` documentation** (`✓`,
+  `✗`, `−`) that caused the PDF manual to fail building under LaTeX.
 - Updated `Distributions` data source URL from `http` to `https`.
 - Added `@seealso` reference in `WorldLandMap` documentation.
 - README: updated codecov and R-CMD-check badge links, added GBIF DOI
@@ -41,37 +332,34 @@
   error messages.
 - **Added comprehensive test suite across five core functions** (81 new
   tests, 177 total):
-  - [`set_vouchers()`](https://wyx619.github.io/VasGBIF/reference/set_vouchers.md)
-    (54 tests): return structure, `verbatim_quality` scoring (0–9),
-    `geospatial_quality` scoring (0 to -9), `moreInformativeRecord`
-    calculation, non-groupable record handling, voucher selection,
-    tie-breaking, coordinate propagation, taxonomic consensus
-    (identified / divergent / unidentified), and final classification
-    (usable / duplicate / unusable).
-  - [`get_collections()`](https://wyx619.github.io/VasGBIF/reference/get_collections.md)
-    (26 tests): return structure, key format `taxon|date|lat|lon`,
-    precision-controlled coordinate rounding, complete vs. incomplete
-    key counting, precision parameter validation, and eventDate parsing
-    (full dates, dates with time, year-month only).
-  - [`restore_duplicates()`](https://wyx619.github.io/VasGBIF/reference/restore_duplicates.md)
-    (26 tests): return structure, restoration of all eight metadata
-    fields (`eventDate`, `year`, `month`, `day`, `identifiedBy`,
-    `countryCode`, `stateProvince`, `locality`), integer coercion for
-    `year`/`month`/`day`, `"NA"` string treated as missing, skipping of
-    values \>10,000 characters, special character stripping, and
-    first-available-duplicate selection.
+  - `set_vouchers()` (54 tests): return structure, `verbatim_quality`
+    scoring (0–9), `geospatial_quality` scoring (0 to -9),
+    `moreInformativeRecord` calculation, non-groupable record handling,
+    voucher selection, tie-breaking, coordinate propagation, taxonomic
+    consensus (identified / divergent / unidentified), and final
+    classification (usable / duplicate / unusable).
+  - `get_collections()` (26 tests): return structure, key format
+    `taxon|date|lat|lon`, precision-controlled coordinate rounding,
+    complete vs. incomplete key counting, precision parameter
+    validation, and eventDate parsing (full dates, dates with time,
+    year-month only).
+  - `restore_duplicates()` (26 tests): return structure, restoration of
+    all eight metadata fields (`eventDate`, `year`, `month`, `day`,
+    `identifiedBy`, `countryCode`, `stateProvince`, `locality`), integer
+    coercion for `year`/`month`/`day`, `"NA"` string treated as missing,
+    skipping of values \>10,000 characters, special character stripping,
+    and first-available-duplicate selection.
   - [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
     (14 tests): return structure, unknown status for taxa absent from
     `Distributions`, known-native classification (e.g. *Rosa canina* in
     Denmark), independent multi-taxon processing, and verification of
     the `fcase` priority logic (location_doubtful \> introduced \>
     extinct \> native \> unknown).
-  - [`refine_records()`](https://wyx619.github.io/VasGBIF/reference/refine_records.md)
-    (15 tests): return structure, `native_status` column integration,
-    valid coordinate pass-through, zero-coordinate flagging by the
-    `"zeros"` test, equal lat/lon flagging by `"equal"`, empty `tests`
-    parameter behaviour, and exclusion of `"unusable"` records by
-    [`restore_duplicates()`](https://wyx619.github.io/VasGBIF/reference/restore_duplicates.md).
+  - `refine_records()` (15 tests): return structure, `native_status`
+    column integration, valid coordinate pass-through, zero-coordinate
+    flagging by the `"zeros"` test, equal lat/lon flagging by `"equal"`,
+    empty `tests` parameter behaviour, and exclusion of `"unusable"`
+    records by `restore_duplicates()`.
 
 ## VasGBIF 3.5.1
 
@@ -85,10 +373,8 @@
   comma-stripped key column (`wcvp_searchedName2`) is now created for
   the merge, while the original `wcvp_searchedName` is preserved
   unchanged.
-- **[`refine_records()`](https://wyx619.github.io/VasGBIF/reference/refine_records.md):
-  removed erroneous pre-filter before
-  [`restore_duplicates()`](https://wyx619.github.io/VasGBIF/reference/restore_duplicates.md).**
-  The call
+- **`refine_records()`: removed erroneous pre-filter before
+  `restore_duplicates()`.** The call
   `restore_duplicates(voucher$occ_digital_voucher[VasGBIF_dataset_result != "unusable"])`
   stripped all `unusable` records from the input.
 
@@ -111,13 +397,11 @@ substantially simplified pipeline.*
 - `check_collectors()` and `get_collectors_name()` have been removed.
   The collector-based duplicate detection stage has been replaced by a
   coordinate- and date-based collection-event key system in
-  [`get_collections()`](https://wyx619.github.io/VasGBIF/reference/get_collections.md).
+  `get_collections()`.
 - `check_occ_taxon()` replaced by
   [`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md).
-- `set_collection_mark()` replaced by
-  [`get_collections()`](https://wyx619.github.io/VasGBIF/reference/get_collections.md).
-- `set_digital_voucher()` replaced by
-  [`set_vouchers()`](https://wyx619.github.io/VasGBIF/reference/set_vouchers.md).
+- `set_collection_mark()` replaced by `get_collections()`.
+- `set_digital_voucher()` replaced by `set_vouchers()`.
 
 #### Removed Data
 
@@ -131,8 +415,7 @@ substantially simplified pipeline.*
 - [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md):
   parameter `GBIF_file` renamed to `path`; `only_PRESERVED_SPECIMEN`
   removed; new `remove_tempfile` parameter.
-- [`refine_records()`](https://wyx619.github.io/VasGBIF/reference/refine_records.md):
-  parameter `export_path` removed (use
+- `refine_records()`: parameter `export_path` removed (use
   [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)
   instead); `save_path` removed; return value is now a `refined` object
   with elements `all_records`, `CoordinateProblematic`, and `runtime`.
@@ -151,11 +434,10 @@ substantially simplified pipeline.*
   writes refined records to disk as three gzip-compressed CSV files: all
   usable records, the native subset, and records that failed coordinate
   validation.
-- [`restore_duplicates()`](https://wyx619.github.io/VasGBIF/reference/restore_duplicates.md)
-  is a new internal helper that fills missing metadata fields
-  (`eventDate`, `year`, `month`, `day`, `identifiedBy`, `countryCode`,
-  `stateProvince`, `locality`) in usable voucher records using data from
-  duplicate records sharing the same collection key.
+- `restore_duplicates()` is a new internal helper that fills missing
+  metadata fields (`eventDate`, `year`, `month`, `day`, `identifiedBy`,
+  `countryCode`, `stateProvince`, `locality`) in usable voucher records
+  using data from duplicate records sharing the same collection key.
 
 ### Improvements
 
@@ -163,22 +445,17 @@ substantially simplified pipeline.*
   (with collector checking) to 7 core functions across 4 stages. The
   collector name standardization stage has been removed entirely;
   duplicate detection now uses composite keys of
-  `taxon_name|eventDate|latitude|longitude` via
-  [`get_collections()`](https://wyx619.github.io/VasGBIF/reference/get_collections.md).
-- [`refine_records()`](https://wyx619.github.io/VasGBIF/reference/refine_records.md)
-  has been modularised into a three-step internal pipeline:
-  [`restore_duplicates()`](https://wyx619.github.io/VasGBIF/reference/restore_duplicates.md)
-  → CoordinateCleaner →
+  `taxon_name|eventDate|latitude|longitude` via `get_collections()`.
+- `refine_records()` has been modularised into a three-step internal
+  pipeline: `restore_duplicates()` → CoordinateCleaner →
   [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md).
-- [`get_collections()`](https://wyx619.github.io/VasGBIF/reference/get_collections.md)
-  builds collection-event keys from resolved taxon names, event dates,
-  and rounded coordinates, with user-controlled spatial precision.
-- [`set_vouchers()`](https://wyx619.github.io/VasGBIF/reference/set_vouchers.md)
-  implements a refined quality scoring system (metadata completeness +
-  geospatial penalty) and returns a `vouchers` object.
-- [`restore_duplicates()`](https://wyx619.github.io/VasGBIF/reference/restore_duplicates.md)
-  now restores `month` and `day` in addition to the previously restored
-  fields.
+- `get_collections()` builds collection-event keys from resolved taxon
+  names, event dates, and rounded coordinates, with user-controlled
+  spatial precision.
+- `set_vouchers()` implements a refined quality scoring system (metadata
+  completeness + geospatial penalty) and returns a `vouchers` object.
+- `restore_duplicates()` now restores `month` and `day` in addition to
+  the previously restored fields.
 - [`set_threads()`](https://wyx619.github.io/VasGBIF/reference/set_threads.md)
   is now exported for normalising thread counts.
 
@@ -356,9 +633,7 @@ substantially simplified pipeline.*
   - `VasGBIF_taxa_checked` class for `check_occ_taxon()` output
   - `VasGBIF_collection_key` class for `set_collection_mark()` output
   - `VasGBIF_voucher` class for `set_digital_voucher()` output
-  - `VasGBIF_refined` class for
-    [`refine_records()`](https://wyx619.github.io/VasGBIF/reference/refine_records.md)
-    output
+  - `VasGBIF_refined` class for `refine_records()` output
 
 - **Deleted deprecated ref_dictionary data**: Removed the built-in
   collector name reference dictionary (`ref_dictionary`) and related

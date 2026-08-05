@@ -7,17 +7,18 @@ standardizes tracheophyte occurrence records from GBIF into
 analysis-ready datasets. This basic example demonstrates the complete
 workflow using the built-in example dataset.
 
-The VasGBIF pipeline consists of **4 stages** with **7 core functions**:
+The VasGBIF pipeline consists of **4 stages** with **8 core functions**:
 
 | Stage | Functions |
 |----|----|
-| **Stage 1:** Import and taxonomic standardisation | [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md), [`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md) |
-| **Stage 2:** Duplicate detection via collection-event keys | [`get_collections()`](https://wyx619.github.io/VasGBIF/reference/get_collections.md), [`set_vouchers()`](https://wyx619.github.io/VasGBIF/reference/set_vouchers.md) |
-| **Stage 3:** Coordinate validation and native-status annotation | [`refine_records()`](https://wyx619.github.io/VasGBIF/reference/refine_records.md) |
+| **Stage 1:** Import and issue parsing | [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md), [`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md) |
+| **Stage 2:** Taxonomic resolution and record filtering | [`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md), [`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md) |
+| **Stage 3:** Coordinate validation and native-status annotation | [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md), [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md) |
 | **Stage 4:** Export and visualisation | [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md), [`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md) |
 
-After all, approximately 30% of the initial records are retained as
-high-quality, non-redundant data.
+Each stage progressively filters records through taxonomic, quality, and
+coordinate checks, so the dataset shrinks from the raw download to a
+high-quality, analysis-ready set.
 
 ``` r
 
@@ -26,13 +27,16 @@ library(data.table)
 VasGBIF_summary <- list()
 ```
 
-## Stage 1: Import and Taxonomic Standardisation
+## Stage 1: Import and Issue Parsing
 
 ### Import Records
 
 [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md)
-reads a GBIF occurrence download ZIP, extracts the occurrence table, and
-parses GBIF issue flags into record-level logical indicators.
+reads a GBIF occurrence download ZIP (‘SIMPLE_CSV’ or Darwin Core
+Archive), extracts the occurrence table, and returns an `"import"`
+data.table of the fields required by the workflow. No records are
+filtered at this stage — the raw `issue` column is preserved for the
+next step.
 
 The built-in example dataset is a GBIF download of *Medicago sativa*
 (preserved specimens with coordinates, obtained 23 July 2026):
@@ -45,159 +49,181 @@ gbif_file <- system.file(
   package = "VasGBIF"
 )
 occ_import <- import_records(path = gbif_file)
-VasGBIF_summary$initial_records <- nrow(occ_import$occ)
-VasGBIF_summary$initial_taxa <- occ_import$occ[, uniqueN(scientificName)]
+VasGBIF_summary$initial_records <- nrow(occ_import)
+VasGBIF_summary$initial_taxa <- uniqueN(occ_import$scientificName)
+print(occ_import)
 ```
 
-The `import` object contains:
+The returned `"import"` object is a `data.table` with the GBIF fields
+used by the workflow (`gbifID` coerced to character, plus the raw
+`issue` column).
 
-- `occ`: the occurrence records with core GBIF fields
-- `occ_issue`: a binary matrix of GBIF issue flags per record
-- `summary`: frequency table of detected issues
-- `runtime`: execution time
+### Extract GBIF Issues
+
+[`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md)
+expands the raw pipe-separated `issue` column into one logical indicator
+column per GBIF issue code, and returns a companion summary ranking
+issues by how many records they flag.
+
+``` r
+
+gbif_issue <- extract_gbif_issues(occ_import)
+print(gbif_issue)
+```
+
+The `issue` object contains:
+
+- `occ_issue`: one logical column per issue code, plus `gbifID` and
+  `issue_count`
+- `summary`: `issue_keys` and `N`, ranked by decreasing flag count
+
+## Stage 2: Taxonomic Resolution and Record Filtering
 
 ### Check Taxon Name
 
 [`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md)
-resolves species- and infraspecific-rank names against the World
-Checklist of Vascular Plants (WCVP) via the Taxonomic Name Resolution
-Service (TNRS).
+submits species- and infraspecific-rank names to the Taxonomic Name
+Resolution Service (TNRS; Boyle et al. 2013) for resolution against the
+World Checklist of Vascular Plants (WCVP) or World Flora Online (WFO).
+Synonyms are resolved to accepted names; records that fail the
+match-score threshold or lack an accepted/synonym status are excluded
+from the downstream table and reported in the `summary` for manual
+review.
 
 ``` r
 
-taxa_checked <- check_taxon(occ_import = occ_import, accuracy = 0.9)
+taxa_checked <- check_taxon(occ_import = occ_import, accuracy = 0.85)
+VasGBIF_summary$after_taxon_resolved <- nrow(taxa_checked$occ_taxa_checked)
+VasGBIF_summary$final_taxa <- uniqueN(taxa_checked$occ_taxa_checked$Accepted_name)
+print(taxa_checked)
 ```
 
 The `occ_taxa` object contains:
 
-- `occ_taxa_checked`: records with resolved WCVP taxonomy
-- `summary`: resolution statistics by taxon rank
+- `occ_taxa_checked`: records with resolved taxonomy
+- `summary`: one row per submitted name, for reviewing match quality
 - `runtime`: execution time
 
-## Stage 2: Duplicate Detection via Collection-Event Keys
+### Custom Filter
 
-### Generate Collection-Event Keys
-
-[`get_collections()`](https://wyx619.github.io/VasGBIF/reference/get_collections.md)
-builds a composite key from the accepted taxon name, event date, and
-rounded coordinates (format:
-`wcvp_taxon_name|eventDate|latitude|longitude`). Records sharing the
-same key are treated as potential duplicates from a single gathering
-event.
+[`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md)
+joins the imported records with the resolved taxonomy and the parsed
+issue flags, then applies the enabled filter rules to retain only
+high-quality records. By default the `countryCode`,
+`coordinateUncertainty` (≤ 10,000 m), and `gbif_issues_max` (≤ 5) rules
+are enabled; `date`, `identifiedBy`, and `recordedBy` are opt-in. Every
+step is recorded in the per-rule `summary` table.
 
 ``` r
 
-collection_keys <- get_collections(
+filtered <- custom_filter(
   occ_import = occ_import,
   taxa_checked = taxa_checked,
-  precision = 2L
+  gbif_issue = gbif_issue
 )
-VasGBIF_summary$complete_keys <- collection_keys$complete_keys
-VasGBIF_summary$incomplete_keys <- collection_keys$incomplete_keys
+VasGBIF_summary$after_custom_filter <- nrow(filtered$occ_filtered)
+print(filtered)
 ```
 
-The `collections` object contains:
+The `customFiltered` object contains:
 
-- `occ_key`: the occurrence table with collection-event keys
-- `complete_keys`: count of records with complete keys
-- `incomplete_keys`: count of records with incomplete keys
-- `runtime`: execution time
-
-### Select Digital Vouchers
-
-[`set_vouchers()`](https://wyx619.github.io/VasGBIF/reference/set_vouchers.md)
-scores each record on metadata completeness (9 fields) and geospatial
-quality (GBIF issue flags). The highest-scoring record in each duplicate
-group is designated the master digital voucher.
-
-``` r
-
-voucher <- set_vouchers(
-  occ_import = occ_import,
-  taxa_checked = taxa_checked,
-  collection_keys = collection_keys
-)
-VasGBIF_summary$usable <- voucher$occ_digital_voucher[
-  VasGBIF_dataset_result == "usable", .N
-]
-VasGBIF_summary$duplicate <- voucher$occ_digital_voucher[
-  VasGBIF_dataset_result == "duplicate", .N
-]
-```
-
-The `vouchers` object contains:
-
-- `occ_digital_voucher`: records with quality scores, grouping
-  information, and `VasGBIF_dataset_result` (usable / duplicate)
-- `occ_results`: quality assessment fields
-- `runtime`: execution time
+- `occ_filtered`: the filtered occurrence table
+- `summary`: per-rule `rule`, `dropped`, and `remaining` counts
 
 ## Stage 3: Coordinate Validation and Native-Status Annotation
 
-[`refine_records()`](https://wyx619.github.io/VasGBIF/reference/refine_records.md)
-performs three internal steps: restores missing metadata from
-duplicates, validates coordinates with CoordinateCleaner, and assigns
-native status by matching validated coordinates to WGSRPD Level 3 areas
-and WCVP distribution data.
+### Refine Coordinates
+
+[`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
+validates coordinates with CoordinateCleaner (Zizka et al. 2019) to flag
+spatial errors such as centroids, capitals, marine coordinates, and zero
+coordinates, splitting records into cleaned, problematic, and
+coordinate-less tables. Validation is parallelized across user-specified
+threads.
 
 ``` r
 
-refined_records <- refine_records(voucher = voucher, threads = 4)
-VasGBIF_summary$all_refined <- nrow(refined_records$all_records)
-VasGBIF_summary$native <- refined_records$all_records[
-  native_status == "native", .N
-]
-VasGBIF_summary$introduced <- refined_records$all_records[
-  native_status == "introduced", .N
-]
-VasGBIF_summary$coordinate_problematic <- nrow(
-  refined_records$CoordinateProblematic
-)
-VasGBIF_summary$final_taxa <- refined_records$all_records[
-  , uniqueN(VasGBIF_wcvp_taxon_name)
-]
+refined_coordinates <- refine_coordinates(
+  custom_filtered = filtered,
+  threads = 4,tests = c("capitals", "centroids", "equal", "gbif", "institutions", "outliers", "seas", "zeros"))
+VasGBIF_summary$cleaned <- nrow(refined_coordinates$CoordinateCleaned)
+VasGBIF_summary$problematic <- nrow(refined_coordinates$CoordinateProblematic)
+VasGBIF_summary$coordinateless <- nrow(refined_coordinates$Coordinateless)
+print(refined_coordinates)
 ```
 
-The `refined` object contains:
+The `CoordinateRefined` object contains:
 
-- `all_records`: records with validated coordinates, restored metadata,
-  and native status
-- `CoordinateProblematic`: records that failed one or more
-  CoordinateCleaner tests
+- `CoordinateCleaned`: records with valid coordinates
+- `CoordinateProblematic`: records failing one or more CoordinateCleaner
+  tests
+- `Coordinateless`: records without complete coordinates
 - `runtime`: execution time
+
+### Detect Native Status
+
+[`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
+matches each record against WCVP distribution data (the internal
+`Distributions` dataset) via WGSRPD Level 3 areas to classify it as
+native, introduced, extinct, location_doubtful, or unknown. Records with
+validated coordinates are matched spatially; records without coordinates
+(and spatial misses) are retried through their country code. Every
+classification records how it was obtained in `native_status_source`.
+
+``` r
+
+native_detected <- detect_native_status(
+  refined_coordinates = refined_coordinates,species_fallback = F,buffer_km = 10,buffer_chunk_size = 2000)
+VasGBIF_summary$native <- native_detected[native_status == "native", .N]
+VasGBIF_summary$introduced <- native_detected[native_status == "introduced", .N]
+VasGBIF_summary$extinct <- native_detected[native_status == "extinct", .N]
+VasGBIF_summary$location_doubtful <- native_detected[
+  native_status == "location_doubtful", .N
+]
+VasGBIF_summary$unknown <- native_detected[native_status == "unknown", .N]
+print(native_detected)
+```
+
+The `nativeDetected` object is a `data.table` keyed by `gbifID` with
+columns `LEVEL3_COD`, `native_status`, `native_status_source`, and
+`buffered`.
 
 ## Stage 4: Export and Visualisation
 
 ### Export Records
 
 [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)
-writes the refined records to disk as gzip-compressed CSV files.
+writes the refined records to disk as three gzip-compressed CSV files:
+
+- `all_records.csv.gz`: all usable records (cleaned + coordinateless)
+  joined with native status
+- `native_records.csv.gz`: the subset classified as native
+- `CoordinateProblematic_records.csv.gz`: records failing coordinate
+  validation
 
 ``` r
 
 export_records(
-  refined_records = refined_records,
+  refined_coordinates = refined_coordinates,
+  native_detected = native_detected,
   export_path = getwd()
 )
 ```
 
-Three files are written:
-
-- `usable_refined_records.csv.gz`: all records with validated
-  coordinates
-- `native_refined_records.csv.gz`: native subset
-- `CoordinateProblematic_records.csv.gz`: records failing coordinate
-  validation
-
 ### Map Records
 
 [`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)
-renders an interactive map via `mapview`, with geohash-based
-decluttering and colour-coding by native status.
+renders the records on an interactive map via `mapview`, with
+geohash-based decluttering and colour-coding by native status.
 
 ``` r
 
-map_records(refined_records = refined_records, precision = 3, cex = 3)
+map_records(
+  native_detected = native_detected,
+  refined_coordinates = refined_coordinates,
+  precision = 3,
+  cex = 3
+)
 ```
 
 ## Summary
@@ -214,42 +240,45 @@ VasGBIF_summary |>
 
 ``` r
 
-##                         [,1]
-## initial_records        12362
-## initial_taxa              15
-## taxa_submitted         12362
-## taxa_resolved          12362
-## complete_keys           9445
-## incomplete_keys          722
-## usable                 10443
-## duplicate               1849
-## all_refined             9055
-## native                   431
-## introduced              8224
-## coordinate_problematic  1388
-## final_taxa                 5
+##                        [,1]
+## initial_records      12362
+## initial_taxa            15
+## after_taxon_resolved 12281
+## final_taxa               4
+## after_custom_filter  11443
+## cleaned              10030
+## problematic           1413
+## coordinateless           0
+## native                 470
+## introduced            9535
+## extinct                  0
+## location_doubtful        0
+## unknown                 25
 ```
 
 | Statistic | Description |
 |----|----|
 | `initial_records` | Total GBIF occurrence records imported |
 | `initial_taxa` | Unique scientific names before resolution |
-| `complete_keys` | Records with complete collection-event keys |
-| `incomplete_keys` | Records with incomplete keys |
-| `usable` | Records classified as usable after voucher selection |
-| `duplicate` | Records classified as duplicates |
-| `all_refined` | Records retained after coordinate validation |
+| `after_taxon_resolved` | Records retained after TNRS resolution (score and status thresholds) |
+| `after_custom_filter` | Records retained after the quality filter rules |
+| `cleaned` | Records with valid coordinates after CoordinateCleaner |
+| `problematic` | Records failing one or more coordinate tests |
+| `coordinateless` | Records without complete coordinates |
 | `native` | Records classified as native |
 | `introduced` | Records classified as introduced |
-| `coordinate_problematic` | Records failing coordinate validation |
-| `final_taxa` | Unique accepted taxon names in final dataset |
+| `extinct` | Records classified as extinct |
+| `location_doubtful` | Records classified as location_doubtful |
+| `unknown` | Records with no usable distribution evidence |
+| `final_taxa` | Unique accepted taxon names in the final dataset |
 
-The workflow progressively filters the dataset through taxonomy
-resolution, duplicate grouping, quality scoring, and coordinate
-validation. The drop from `initial_records` to `all_refined` reflects
-the removal of duplicates and records with spatial issues. The
-transition from `initial_taxa` to `final_taxa` reflects synonym
-resolution and the removal of unresolvable names.
+The workflow progressively filters the dataset through taxonomic
+resolution, quality rules, and coordinate validation. The drop from
+`initial_records` to `after_custom_filter` reflects unresolved names and
+records failing the quality rules; the drop from `after_custom_filter`
+to `cleaned` + `coordinateless` reflects the removal of problematic
+coordinates; and the transition from `initial_taxa` to `final_taxa`
+reflects synonym resolution.
 
 ## Performance
 
@@ -257,14 +286,17 @@ VasGBIF achieves its speed through:
 
 - **C/C++ backends**: core operations delegated to `data.table`,
   `stringi`, and `terra`
-- **Vectorisation**: entire columns processed in single compiled calls
-  via [`fcase()`](https://rdrr.io/pkg/data.table/man/fcase.html),
-  [`stri_detect_fixed()`](https://rdrr.io/pkg/stringi/man/stri_detect.html)
+- **Vectorisation**: issue-flag detection in
+  [`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md)
+  and native-status lookups in
+  [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
+  process entire columns in compiled calls
 - **Memory-efficient design**: in-place modification (`:=`,
   [`set()`](https://rdrr.io/pkg/data.table/man/assign.html)) avoids
   unnecessary copies
-- **Selective parallelisation**: CoordinateCleaner validation
-  distributed across threads
+- **Selective parallelisation**:
+  [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
+  distributes CoordinateCleaner validation across threads
 
 On a standard laptop, VasGBIF compiles one million occurrence records
 within 15 minutes.

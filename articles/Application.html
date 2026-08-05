@@ -31,7 +31,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.5.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -85,7 +85,7 @@ Wang</h4>
 University<br><a class="author_email" href="mailto:#"></a><a href="mailto:wyx1743@gmail.com" class="email">wyx1743@gmail.com</a>
       </address>
                   
-            <h4 data-toc-skip class="date">2026-07-28</h4>
+            <h4 data-toc-skip class="date">2026-08-05</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/wyx619/VasGBIF/blob/master/vignettes/Application.Rmd" class="external-link"><code>vignettes/Application.Rmd</code></a></small>
       <div class="d-none name"><code>Application.Rmd</code></div>
@@ -135,33 +135,32 @@ Substitute your own GBIF ZIP for real analyses (see the
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/wyx619/VasGBIF" class="external-link">VasGBIF</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com" class="external-link">data.table</a></span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># Step 1: Import </span></span>
 <span><span class="va">occ_import</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/import_records.html">import_records</a></span><span class="op">(</span>path <span class="op">=</span> <span class="va">gbif_file</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">taxa_checked</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/check_taxon.html">check_taxon</a></span><span class="op">(</span>occ_import <span class="op">=</span> <span class="va">occ_import</span>, accuracy <span class="op">=</span> <span class="fl">0.9</span><span class="op">)</span></span>
+<span><span class="co"># Step 2: Parse GBIF issue flags</span></span>
+<span><span class="va">gbif_issue</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/extract_gbif_issues.html">extract_gbif_issues</a></span><span class="op">(</span><span class="va">occ_import</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">collection_keys</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_collections.html">get_collections</a></span><span class="op">(</span></span>
+<span><span class="co"># Step 3: Resolve taxon names against WCVP</span></span>
+<span><span class="va">taxa_checked</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/check_taxon.html">check_taxon</a></span><span class="op">(</span>occ_import <span class="op">=</span> <span class="va">occ_import</span>, accuracy <span class="op">=</span> <span class="fl">0.85</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Step 4: Filter records by quality rules</span></span>
+<span><span class="va">filtered</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/custom_filter.html">custom_filter</a></span><span class="op">(</span></span>
 <span>  occ_import <span class="op">=</span> <span class="va">occ_import</span>,</span>
 <span>  taxa_checked <span class="op">=</span> <span class="va">taxa_checked</span>,</span>
-<span>  precision <span class="op">=</span> <span class="fl">2L</span></span>
+<span>  gbif_issue <span class="op">=</span> <span class="va">gbif_issue</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">voucher</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_vouchers.html">set_vouchers</a></span><span class="op">(</span></span>
-<span>  occ_import <span class="op">=</span> <span class="va">occ_import</span>,</span>
-<span>  taxa_checked <span class="op">=</span> <span class="va">taxa_checked</span>,</span>
-<span>  collection_keys <span class="op">=</span> <span class="va">collection_keys</span></span>
+<span><span class="co"># Step 5: Validate coordinates and annotate native status</span></span>
+<span><span class="va">refined_coordinates</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/refine_coordinates.html">refine_coordinates</a></span><span class="op">(</span></span>
+<span>  custom_filtered <span class="op">=</span> <span class="va">filtered</span>,</span>
+<span>  threads <span class="op">=</span> <span class="fl">4</span></span>
 <span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">refined_records</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/refine_records.html">refine_records</a></span><span class="op">(</span>voucher <span class="op">=</span> <span class="va">voucher</span>, threads <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span></code></pre></div>
-<p>The <code>refined_records</code> object contains two key
-components:</p>
-<ul>
-<li>
-<code>all_records</code> — validated records with
-<code>native_status</code> classification</li>
-<li>
-<code>CoordinateProblematic</code> — records that failed coordinate
-validation</li>
-</ul>
+<span><span class="va">native_detected</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_native_status.html">detect_native_status</a></span><span class="op">(</span></span>
+<span>  refined_coordinates <span class="op">=</span> <span class="va">refined_coordinates</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>Later we will use <code>refined_coordinates</code> and
+<code>native_detected</code>.</p>
 </div>
 <div class="section level3">
 <h3 id="introducing-letsr-and-presence-absence-matrices">Introducing <em>letsR</em> and Presence-Absence Matrices<a class="anchor" aria-label="anchor" href="#introducing-letsr-and-presence-absence-matrices"></a>
@@ -249,13 +248,13 @@ needed by <em>letsR</em>, and construct the matrix:</p>
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.12401" class="external-link">letsR</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://stringi.gagolewski.com/" class="external-link">stringi</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Subset native records &amp; prepare input for letsR</span></span>
-<span><span class="va">PAM_pre</span> <span class="op">&lt;-</span> <span class="va">refined_records</span><span class="op">$</span><span class="va">all_records</span><span class="op">[</span><span class="va">native_status</span> <span class="op">==</span> <span class="st">"native"</span>, <span class="fu">.</span><span class="op">(</span></span>
-<span>  <span class="va">VasGBIF_wcvp_taxon_name</span>,</span>
-<span>  genus            <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/stringi/man/stri_extract.html" class="external-link">stri_extract_first_regex</a></span><span class="op">(</span><span class="va">VasGBIF_wcvp_taxon_name</span>, <span class="st">"^[^ ]+"</span><span class="op">)</span>,</span>
-<span>  <span class="va">VasGBIF_wcvp_family</span>,</span>
-<span>  <span class="va">VasGBIF_decimalLongitude</span>,</span>
-<span>  <span class="va">VasGBIF_decimalLatitude</span></span>
+<span><span class="co"># prepare input for letsR</span></span>
+<span><span class="va">PAM_pre</span> <span class="op">&lt;-</span> <span class="va">refined_coordinates</span><span class="op">$</span><span class="va">CoordinateCleaned</span><span class="op">[</span><span class="va">gbifID</span> <span class="op"><a href="https://rdrr.io/pkg/data.table/man/chmatch.html" class="external-link">%chin%</a></span> <span class="va">native_detected</span><span class="op">[</span><span class="va">native_status</span><span class="op">==</span><span class="st">'native'</span>,<span class="va">gbifID</span><span class="op">]</span>,<span class="fu">.</span><span class="op">(</span></span>
+<span>  <span class="va">Accepted_name</span>,</span>
+<span>  genus  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/stringi/man/stri_extract.html" class="external-link">stri_extract_first_regex</a></span><span class="op">(</span><span class="va">Accepted_name</span>, <span class="st">"^[^ ]+"</span><span class="op">)</span>,</span>
+<span>  <span class="va">family</span>,</span>
+<span>  <span class="va">decimalLongitude</span>,</span>
+<span>  <span class="va">decimalLatitude</span></span>
 <span><span class="op">)</span><span class="op">]</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rspatial.github.io/terra/reference/headtail.html" class="external-link">head</a></span><span class="op">(</span><span class="va">PAM_pre</span>, <span class="fl">5</span><span class="op">)</span></span>
@@ -265,8 +264,8 @@ needed by <em>letsR</em>, and construct the matrix:</p>
 <p>Construct the Presence-Absence Matrix at 1° resolution:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">PAM</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://brunovilela.github.io/letsR/reference/lets.presab.points.html" class="external-link">lets.presab.points</a></span><span class="op">(</span></span>
-<span>  xy      <span class="op">=</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/coerce.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">PAM_pre</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">VasGBIF_decimalLongitude</span>, <span class="va">VasGBIF_decimalLatitude</span><span class="op">)</span><span class="op">]</span><span class="op">)</span>,</span>
-<span>  species <span class="op">=</span> <span class="va">PAM_pre</span><span class="op">$</span><span class="va">VasGBIF_wcvp_taxon_name</span>,</span>
+<span>  xy      <span class="op">=</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/coerce.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">PAM_pre</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">decimalLongitude</span>, <span class="va">decimalLatitude</span><span class="op">)</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>  species <span class="op">=</span> <span class="va">PAM_pre</span><span class="op">$</span><span class="va">Accepted_name</span>,</span>
 <span>  resol   <span class="op">=</span> <span class="fl">1</span>,     <span class="co"># 1-degree grid cells</span></span>
 <span>  count   <span class="op">=</span> <span class="cn">FALSE</span>  <span class="co"># set TRUE for progress bar on large datasets</span></span>
 <span><span class="op">)</span></span></code></pre></div>

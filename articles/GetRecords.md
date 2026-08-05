@@ -293,12 +293,9 @@ Continue with:
 
 - [`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md)
   to resolve names against WCVP via TNRS
-- [`get_collections()`](https://wyx619.github.io/VasGBIF/reference/get_collections.md)
-  and
-  [`set_vouchers()`](https://wyx619.github.io/VasGBIF/reference/set_vouchers.md)
-  for duplicate detection
-- [`refine_records()`](https://wyx619.github.io/VasGBIF/reference/refine_records.md)
-  for coordinate validation and native-status annotation
+- `get_collections()` and `set_vouchers()` for duplicate detection
+- `refine_records()` for coordinate validation and native-status
+  annotation
 
 See the **Example** vignette
 ([`vignette("Example", package = "VasGBIF")`](https://wyx619.github.io/VasGBIF/articles/Example.md))

@@ -41,29 +41,33 @@ gbif_file <- occ_download_doi(DOI)$key %>% occ_download_get(path = tempdir()) %>
 library(VasGBIF)
 library(data.table)
 
+# Step 1: Import 
 occ_import <- import_records(path = gbif_file)
 
-taxa_checked <- check_taxon(occ_import = occ_import, accuracy = 0.9)
+# Step 2: Parse GBIF issue flags
+gbif_issue <- extract_gbif_issues(occ_import)
 
-collection_keys <- get_collections(
+# Step 3: Resolve taxon names against WCVP
+taxa_checked <- check_taxon(occ_import = occ_import, accuracy = 0.85)
+
+# Step 4: Filter records by quality rules
+filtered <- custom_filter(
   occ_import = occ_import,
   taxa_checked = taxa_checked,
-  precision = 2L
+  gbif_issue = gbif_issue
 )
 
-voucher <- set_vouchers(
-  occ_import = occ_import,
-  taxa_checked = taxa_checked,
-  collection_keys = collection_keys
+# Step 5: Validate coordinates and annotate native status
+refined_coordinates <- refine_coordinates(
+  custom_filtered = filtered,
+  threads = 4
 )
-
-refined_records <- refine_records(voucher = voucher, threads = 4)
+native_detected <- detect_native_status(
+  refined_coordinates = refined_coordinates
+)
 ```
 
-The `refined_records` object contains two key components:
-
-- `all_records` — validated records with `native_status` classification
-- `CoordinateProblematic` — records that failed coordinate validation
+Later we will use `refined_coordinates` and `native_detected`.
 
 ### Introducing *letsR* and Presence-Absence Matrices
 
@@ -158,13 +162,13 @@ needed by *letsR*, and construct the matrix:
 library(letsR)
 library(stringi)
 
-# Subset native records & prepare input for letsR
-PAM_pre <- refined_records$all_records[native_status == "native", .(
-  VasGBIF_wcvp_taxon_name,
-  genus            = stri_extract_first_regex(VasGBIF_wcvp_taxon_name, "^[^ ]+"),
-  VasGBIF_wcvp_family,
-  VasGBIF_decimalLongitude,
-  VasGBIF_decimalLatitude
+# prepare input for letsR
+PAM_pre <- refined_coordinates$CoordinateCleaned[gbifID %chin% native_detected[native_status=='native',gbifID],.(
+  Accepted_name,
+  genus  = stri_extract_first_regex(Accepted_name, "^[^ ]+"),
+  family,
+  decimalLongitude,
+  decimalLatitude
 )]
 
 head(PAM_pre, 5)
@@ -178,8 +182,8 @@ Construct the Presence-Absence Matrix at 1° resolution:
 ``` r
 
 PAM <- lets.presab.points(
-  xy      = as.matrix(PAM_pre[, .(VasGBIF_decimalLongitude, VasGBIF_decimalLatitude)]),
-  species = PAM_pre$VasGBIF_wcvp_taxon_name,
+  xy      = as.matrix(PAM_pre[, .(decimalLongitude, decimalLatitude)]),
+  species = PAM_pre$Accepted_name,
   resol   = 1,     # 1-degree grid cells
   count   = FALSE  # set TRUE for progress bar on large datasets
 )

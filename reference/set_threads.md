@@ -34,13 +34,13 @@ are silently capped to that limit with a message. Values less than or
 equal to zero and non-numeric inputs produce an error.
 
 This function is also used by
-[`refine_records()`](https://wyx619.github.io/VasGBIF/reference/refine_records.md)
+[`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
 to normalize its `threads` argument.
 
 ## See also
 
 [`parallel::detectCores()`](https://rdrr.io/r/parallel/detectCores.html),
-[`refine_records()`](https://wyx619.github.io/VasGBIF/reference/refine_records.md)
+[`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
 
 ## Examples
 

@@ -17,7 +17,7 @@ and color-coded by their native status."><meta property="og:image" content="http
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.5.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -63,15 +63,26 @@ and color-coded by their native status.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">map_records</span><span class="op">(</span>refined_records <span class="op">=</span> <span class="cn">NA</span>, precision <span class="op">=</span> <span class="fl">3</span>, cex <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">map_records</span><span class="op">(</span></span>
+<span>  native_detected <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  refined_coordinates <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  precision <span class="op">=</span> <span class="fl">3</span>,</span>
+<span>  cex <span class="op">=</span> <span class="fl">3</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
 
 
-<dl><dt id="arg-refined-records">refined_records<a class="anchor" aria-label="anchor" href="#arg-refined-records"></a></dt>
-<dd><p>A <code>refined</code> object returned by <code><a href="refine_records.html">refine_records()</a></code>.</p></dd>
+<dl><dt id="arg-native-detected">native_detected<a class="anchor" aria-label="anchor" href="#arg-native-detected"></a></dt>
+<dd><p>A <code>nativeDetected</code> object returned by
+<code><a href="detect_native_status.html">detect_native_status()</a></code>.</p></dd>
+
+
+<dt id="arg-refined-coordinates">refined_coordinates<a class="anchor" aria-label="anchor" href="#arg-refined-coordinates"></a></dt>
+<dd><p>A <code>CoordinateRefined</code> object returned by
+<code><a href="refine_coordinates.html">refine_coordinates()</a></code>.</p></dd>
 
 
 <dt id="arg-precision">precision<a class="anchor" aria-label="anchor" href="#arg-precision"></a></dt>
@@ -94,8 +105,9 @@ three switchable basemap layers, and clickable popups with record metadata.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>The workflow has four stages:</p><ul><li><p><strong>Record aggregation:</strong> Combines native and non-native refined records that
-passed spatial validation (<code>VasGBIF_useful_for_spatial_analysis = TRUE</code>).</p></li>
+    <p>The workflow has four stages:</p><ul><li><p><strong>Record aggregation:</strong> Joins the classification output of
+<code><a href="detect_native_status.html">detect_native_status()</a></code> with the coordinate data of <code><a href="refine_coordinates.html">refine_coordinates()</a></code>
+by <code>gbifID</code>, keeping records whose <code>native_status</code> is not <code>"unknown"</code>.</p></li>
 <li><p><strong>Geohash deduplication:</strong> Encodes coordinates at the requested precision
 and retains one representative record per species, geohash cell, and native
 status.</p></li>
@@ -104,15 +116,24 @@ color-coded by <code>native_status</code>.</p></li>
 <li><p><strong>Basemap selection:</strong> Provides OpenStreetMap, Esri World Imagery, and
 Stadia Stamen Watercolor basemaps.</p></li>
 </ul><div class="section">
+<h3 id="record-selection">Record selection<a class="anchor" aria-label="anchor" href="#record-selection"></a></h3>
+
+
+<p>The map combines the native-status classification from <code><a href="detect_native_status.html">detect_native_status()</a></code>
+with the coordinate data from <code><a href="refine_coordinates.html">refine_coordinates()</a></code> by <code>gbifID</code>. Records
+with <code>native_status = "unknown"</code> are excluded, as are records with missing
+longitude or latitude before geohash deduplication.</p>
+</div>
+
+<div class="section">
 <h3 id="geohash-deduplication">Geohash deduplication<a class="anchor" aria-label="anchor" href="#geohash-deduplication"></a></h3>
 
 
 <p>Geohash encoding converts latitude-longitude pairs into alphanumeric strings
 representing grid cells of varying sizes. The function groups records by
 species name, geohash cell, and native status, then retains the first record
-from each group. This reduces visual overplotting while preserving the
-broad spatial distribution pattern, which is useful for densely sampled
-regions.</p>
+from each group. This reduces visual overplotting while preserving the broad
+spatial distribution pattern, which is useful for densely sampled regions.</p>
 </div>
 
 <div class="section">
@@ -120,34 +141,31 @@ regions.</p>
 
 
 <p>The generated map includes:</p><ul><li><p>A color-coded legend based on <code>native_status</code> categories.</p></li>
-<li><p>Popups displaying record attributes such as GBIF ID, collection key, and
+<li><p>Popups displaying record attributes such as GBIF ID, GBIF issues, and
 taxon name.</p></li>
 <li><p>Toggleable basemap layers for different visualization contexts.</p></li>
 <li><p>Point transparency set to <code>alpha.regions = 0.6</code> to improve density
 perception.</p></li>
 </ul></div>
 
-<div class="section">
-<h3 id="record-selection">Record selection<a class="anchor" aria-label="anchor" href="#record-selection"></a></h3>
-
-
-<p>Records are included only when <code>VasGBIF_useful_for_spatial_analysis = TRUE</code>.
-For non-native records, <code>native_status</code> must also differ from <code>"unknown"</code>.
-Records with missing longitude or latitude are removed before geohash
-deduplication.</p>
-</div>
-
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="https://rdrr.io/pkg/geohashTools/man/gh_encode.html" class="external-link">gh_encode()</a></code> for geohash encoding and
-<code><a href="https://r-spatial.github.io/mapview/reference/mapView.html" class="external-link">mapView()</a></code> for interactive map construction.</p></div>
+    <div class="dont-index"><p><code><a href="detect_native_status.html">detect_native_status()</a></code> and <code><a href="refine_coordinates.html">refine_coordinates()</a></code> for the objects consumed
+by this function; <code><a href="https://rdrr.io/pkg/geohashTools/man/gh_encode.html" class="external-link">gh_encode()</a></code> for geohash
+encoding and <code><a href="https://r-spatial.github.io/mapview/reference/mapView.html" class="external-link">mapView()</a></code> for interactive map
+construction.</p></div>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># interactive() &amp;&amp; exists("refined_records")</span></span></span>
-<span class="r-in"><span><span class="fu">map_records</span><span class="op">(</span>refined_records <span class="op">=</span> <span class="va">refined_records</span>, precision <span class="op">=</span> <span class="fl">3</span>, cex <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># interactive() &amp;&amp; exists("native_detected") &amp;&amp; exists("refined_coordinates")</span></span></span>
+<span class="r-in"><span><span class="fu">map_records</span><span class="op">(</span></span></span>
+<span class="r-in"><span>  native_detected <span class="op">=</span> <span class="va">native_detected</span>,</span></span>
+<span class="r-in"><span>  refined_coordinates <span class="op">=</span> <span class="va">refined_coordinates</span>,</span></span>
+<span class="r-in"><span>  precision <span class="op">=</span> <span class="fl">3</span>,</span></span>
+<span class="r-in"><span>  cex <span class="op">=</span> <span class="fl">3</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 </code></pre></div>
     </div>

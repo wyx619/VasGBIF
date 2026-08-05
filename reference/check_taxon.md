@@ -1,133 +1,179 @@
 # Resolve taxon names via the Taxonomic Name Resolution Service
 
-Submits plant scientific names to the Taxonomic Name Resolution Service
-(TNRS) and resolves them against the World Checklist of Vascular Plants
-(WCVP). The TNRS corrects spelling errors, standardises variant
-spellings, and converts synonyms to their currently accepted names.
-
-The function works in three phases:
-
-1.  Extracts unique names at species-level ranks (species, subspecies,
-    variety, form) and submits them to the TNRS in chunks of up to 4,000
-    names.
-
-2.  Post-processes the TNRS response into a structured `data.table` with
-    WCVP identifiers, accepted names, taxonomic status, and a resolution
-    outcome label.
-
-3.  Merges the results back into the full occurrence table. Records
-    above species rank are not submitted and retain `NA` in all WCVP
-    fields.
+Submits plant scientific names from a GBIF occurrence table to the
+Taxonomic Name Resolution Service ('TNRS') and resolves them against the
+World Checklist of Vascular Plants ('WCVP') or World Flora Online
+('WFO'), depending on `sources` (default `"wcvp"`). Spelling errors are
+corrected, variant spellings are standardised, and synonyms are
+converted to their currently accepted names. Only records that meet the
+`accuracy` threshold, have an accepted or synonym `Taxonomic_status`,
+and resolve to an accepted name at species rank or below are returned in
+`occ_taxa_checked`.
 
 ## Usage
 
 ``` r
-check_taxon(occ_import = NA, accuracy = 0.9, sources = c("wcvp", "wfo"))
+check_taxon(
+  occ_import = NA,
+  accuracy = 0.85,
+  sources = "wcvp",
+  timeout_minutes = 5
+)
 ```
 
 ## Arguments
 
 - occ_import:
 
-  An `import` object returned by
-  [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md).
+  An `"import"` `data.table` returned by
+  [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md),
+  containing at least the columns `gbifID`, `scientificName`, and
+  `taxonRank`.
 
 - accuracy:
 
-  Numeric threshold between `0` and `1` controlling the minimum match
-  score for a name to be considered resolved. The default is `0.9`.
-  Passed to [`TNRS::TNRS()`](https://rdrr.io/pkg/TNRS/man/TNRS.html).
+  Numeric scalar between `0` and `1`. Minimum 'TNRS' match score for a
+  resolution to be accepted. Defaults to `0.85`. Records whose
+  `Overall_score` falls below this threshold are excluded from
+  `occ_taxa_checked`. Passed directly to
+  [`TNRS::TNRS()`](https://rdrr.io/pkg/TNRS/man/TNRS.html).
 
 - sources:
 
-  Character vector of taxonomic sources. The effective default is
-  `"wcvp"`. `"wfo"` is also accepted.
+  Character vector naming the taxonomic sources to resolve against.
+  Defaults to `"wcvp"` (World Checklist of Vascular Plants). `"wfo"`
+  (World Flora Online) is also accepted. Multiple sources can be
+  combined, e.g. `c("wcvp", "wfo")`; the 'TNRS' API then returns the
+  best match across all selected sources and the `Source` column records
+  which source provided it. Passed directly to
+  [`TNRS::TNRS()`](https://rdrr.io/pkg/TNRS/man/TNRS.html).
+
+- timeout_minutes:
+
+  Numeric scalar. Timeout per 'TNRS' chunk attempt in minutes. Defaults
+  to `5`. If an attempt exceeds the timeout it is abandoned and retried.
 
 ## Value
 
-A list of class `"occ_taxa"` with three elements:
+An object of class `"occ_taxa"`, implemented as a named list with three
+elements:
 
-- `occ_taxa_checked`: a `data.table` of all occurrence records (one row
-  per `gbifID`) with WCVP taxonomic columns appended. Key columns
-  include `wcvp_searchedName` (the original submitted name),
-  `wcvp_taxon_name` (the accepted name), `wcvp_plant_name_id`,
-  `wcvp_family`, `wcvp_taxon_rank`, `wcvp_searchNotes`, and
-  `wcvp_reviewed`.
+- `occ_taxa_checked`: a `data.table` of occurrence records that passed
+  the `accuracy` threshold and have an `"Accepted"` or `"Synonym"`
+  `Taxonomic_status`. Columns from `occ_import` (`gbifID`,
+  `scientificName`) are joined with the following 'TNRS' result columns:
+  `Overall_score`, `Taxonomic_status`, `Accepted_name`,
+  `Accepted_species`, `Accepted_name_id`, `Accepted_name_rank`,
+  `Accepted_family`, `Source`.
 
-- `summary`: a `data.table` of unique resolution outcomes (one row per
-  submitted name), suitable for reviewing results and identifying names
-  that require manual attention.
+- `summary`: a `data.table` of unique 'TNRS' resolution results (one row
+  per submitted name), useful for reviewing match quality and
+  identifying names that require manual attention. `scientificName`
+  holds the string as submitted, while `Name_submitted` holds the
+  possibly rewritten form echoed by 'TNRS'; comparing the two exposes
+  names the API altered.
 
-- `runtime`: the elapsed execution time.
+- `runtime`: a `difftime` object recording the total elapsed time.
 
 ## Details
 
 ### Taxon rank filtering
 
 Only records whose `taxonRank` is one of `"SPECIES"`, `"VARIETY"`,
-`"SUBSPECIES"`, or `"FORM"` are submitted to the TNRS. Records at genus
-rank or above are retained in the output but receive `NA` for all WCVP
-fields and are not part of the resolution process.
+`"SUBSPECIES"`, or `"FORM"` are submitted to 'TNRS'. Records at genus
+rank or above are excluded from the query and are absent from both
+`summary` and `occ_taxa_checked`.
 
-### Handling of unresolved and uncertain names
+This check filters on the `taxonRank` reported by GBIF for the submitted
+record. It is distinct from the output-side check on
+`Accepted_name_rank` described under "Output filtering", which filters
+on the rank of the *resolved* accepted name returned by 'TNRS'.
 
-All records are **retained** in the output — none are removed. Names
-that cannot be resolved are identifiable through the `wcvp_searchNotes`
-column:
+### Chunked submission
 
-- `"Accepted"`: the submitted name is already an accepted name in WCVP.
+Unique names are submitted in chunks of up to 4,000 to respect 'TNRS'
+API limits. Each name is assigned a row identifier before chunking, so
+the identifiers stay unique across the whole query. Results from all
+chunks are combined with
+[`data.table::rbindlist()`](https://rdrr.io/pkg/data.table/man/rbindlist.html)
+and then de-duplicated by `ID`, guarding against occasional duplicate
+rows returned by the API.
 
-- `"Updated"`: the submitted name is a synonym and has been resolved to
-  its accepted name. The accepted name appears in `wcvp_taxon_name` and
-  its WCVP identifier in `wcvp_plant_name_id`.
+### Joining results back to occurrences
 
-- `"Not found"`: the TNRS could not match the name to any WCVP entry, or
-  the match has no accepted name. All WCVP fields (`wcvp_taxon_name`,
-  `wcvp_plant_name_id`, `wcvp_family`, etc.) are `NA` for these records.
+'TNRS' does not echo submitted names verbatim: commas are replaced by
+spaces and diacritics are normalised, so `Name_submitted` in the
+response may differ from the string that was sent. Results are therefore
+joined back to the occurrence table through the row identifier echoed in
+the `ID` column, which maps each result to the exact `scientificName`
+submitted.
 
-Names with uncertain taxonomic status in WCVP — including *unplaced*,
-*unresolved*, *illegitimate*, and *invalid* names — typically receive no
-accepted name from the TNRS and are therefore classified as
-`"Not found"`. They remain in the dataset with `NA` WCVP fields so that
-users can inspect and manually curate them.
+### Output filtering
 
-Names that the TNRS resolves only to genus level are also reclassified
-as `"Not found"`, since a genus-level identification is too coarse to be
-useful for the duplicate-detection and native-status workflows that
-consume this output.
+After merging 'TNRS' results back into the occurrence table, only
+records satisfying **all** of the following conditions are kept in
+`occ_taxa_checked`:
 
-### Review flag
+- `Overall_score >= accuracy`
 
-The `wcvp_reviewed` column is `"N"` for every name that received an
-accepted WCVP match (i.e. `wcvp_searchNotes` is `"Accepted"` or
-`"Updated"`). It is `NA` for names classified as `"Not found"`. Users
-can manually set it to `"Y"` after verifying a resolution, or fill it
-for unresolved names after manual curation.
+- `Taxonomic_status` is `"Accepted"` or `"Synonym"`
+
+- `Accepted_name_rank` is neither empty nor `"genus"`
+
+The rank condition excludes records whose best match only reached a
+genus-level or unranked accepted name, even when the score and status
+would pass. Records that fail any condition (unresolved names,
+low-confidence matches, names with uncertain status, or genus-level
+resolutions) are present in `summary` for manual review but absent from
+`occ_taxa_checked`.
 
 ### Retry logic
 
-Each TNRS chunk query is attempted up to 3 times with a 5-second wait
-between attempts and a 20-minute timeout per attempt. This guards
-against transient network failures and API timeouts.
+- `occ_taxa_checked`: a `data.table` of occurrence records that passed
+  the `accuracy` threshold, have an `"Accepted"` or `"Synonym"`
+  `Taxonomic_status`, and whose `Accepted_name_rank` is neither empty
+  nor `"genus"`. Columns from `occ_import` (`gbifID`,t, guarding against
+  transient network failures. If all attempts fail for a chunk, the
+  function stops with an informative error.
 
 ## References
 
-- Boyle, B. et al. (2013). The taxonomic name resolution service: an
-  online tool for automated standardisation of plant names. *BMC
-  Bioinformatics*, 14, 16. doi:10.1186/1471-2105-14-16
+Boyle, B. et al. (2013). The taxonomic name resolution service: an
+online tool for automated standardisation of plant names. *BMC
+Bioinformatics*, 14, 16.
+[doi:10.1186/1471-2105-14-16](https://doi.org/10.1186/1471-2105-14-16)
 
-- Govaerts, R. et al. (2021). The World Checklist of Vascular Plants, a
-  continuously updated resource for exploring global plant diversity.
-  *Scientific Data*, 8, 215. doi:10.1038/s41597-021-00997-6
+Govaerts, R. et al. (2021). The World Checklist of Vascular Plants, a
+continuously updated resource for exploring global plant diversity.
+*Scientific Data*, 8, 215.
+[doi:10.1038/s41597-021-00997-6](https://doi.org/10.1038/s41597-021-00997-6)
 
 ## See also
 
-[`TNRS()`](https://rdrr.io/pkg/TNRS/man/TNRS.html)
+- [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md)
+  for the first step that produces the `occ_import` input.
+
+- [`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md)
+  for the parallel step that processes issue flags.
+
+- [`TNRS::TNRS()`](https://rdrr.io/pkg/TNRS/man/TNRS.html) for the
+  underlying name resolution function.
+
+- [`print.occ_taxa()`](https://wyx619.github.io/VasGBIF/reference/print.occ_taxa.md)
+  for a compact summary of the result.
 
 ## Examples
 
 ``` r
 if (FALSE) { # interactive()
-taxa_checked <- check_taxon(occ_import = occ_import, accuracy = 0.9)
+gbif_file <- system.file(
+  "extdata",
+  "0003386-260721160103020.zip",
+  package = "VasGBIF"
+)
+occ <- import_records(path = gbif_file)
+taxa_checked <- check_taxon(occ_import = occ, accuracy = 0.85)
+head(taxa_checked$summary, 10)
+nrow(taxa_checked$occ_taxa_checked)
 }
 ```

@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.5.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -66,7 +66,7 @@
         </dt>
         <dd>Fast and Easy Compilation of Vascular Plants Occurrence Records from GBIF</dd>
       </dl></div><div class="section level2">
-      <h2 id="stage-import-and-taxonomic-standardisation">Stage 1 — Import and taxonomic standardisation<a class="anchor" aria-label="anchor" href="#stage-import-and-taxonomic-standardisation"></a></h2>
+      <h2 id="stage-import-and-issue-parsing">Stage 1 — Import and issue parsing<a class="anchor" aria-label="anchor" href="#stage-import-and-issue-parsing"></a></h2>
 
 
 
@@ -84,12 +84,12 @@
 
         <dt>
 
-          <code><a href="check_taxon.html">check_taxon()</a></code>
+          <code><a href="extract_gbif_issues.html">extract_gbif_issues()</a></code>
 
         </dt>
-        <dd>Resolve taxon names via the Taxonomic Name Resolution Service</dd>
+        <dd>Extract GBIF issue flags into logical columns</dd>
       </dl></div><div class="section level2">
-      <h2 id="stage-duplicate-detection-via-collection-event-keys">Stage 2 — Duplicate detection via collection-event keys<a class="anchor" aria-label="anchor" href="#stage-duplicate-detection-via-collection-event-keys"></a></h2>
+      <h2 id="stage-taxonomic-resolution-and-record-filtering">Stage 2 — Taxonomic resolution and record filtering<a class="anchor" aria-label="anchor" href="#stage-taxonomic-resolution-and-record-filtering"></a></h2>
 
 
 
@@ -100,17 +100,17 @@
 
       <dl><dt>
 
-          <code><a href="get_collections.html">get_collections()</a></code>
+          <code><a href="check_taxon.html">check_taxon()</a></code>
 
         </dt>
-        <dd>Generate collection event keys from taxon name, date, and coordinates</dd>
+        <dd>Resolve taxon names via the Taxonomic Name Resolution Service</dd>
 
         <dt>
 
-          <code><a href="set_vouchers.html">set_vouchers()</a></code>
+          <code><a href="custom_filter.html">custom_filter()</a></code>
 
         </dt>
-        <dd>Select master digital vouchers from duplicate groups via quality scoring</dd>
+        <dd>Apply custom quality filters to occurrence records</dd>
       </dl></div><div class="section level2">
       <h2 id="stage-coordinate-validation-and-native-status-annotation">Stage 3 — Coordinate validation and native-status annotation<a class="anchor" aria-label="anchor" href="#stage-coordinate-validation-and-native-status-annotation"></a></h2>
 
@@ -123,10 +123,17 @@
 
       <dl><dt>
 
-          <code><a href="refine_records.html">refine_records()</a></code>
+          <code><a href="refine_coordinates.html">refine_coordinates()</a></code>
 
         </dt>
-        <dd>Validate coordinates, restore metadata, and detect native status</dd>
+        <dd>Validate coordinates of filtered occurrence records</dd>
+
+        <dt>
+
+          <code><a href="detect_native_status.html">detect_native_status()</a></code>
+
+        </dt>
+        <dd>Detect native status from WGSRPD distributions</dd>
       </dl></div><div class="section level2">
       <h2 id="stage-export-and-visualisation">Stage 4 — Export and visualisation<a class="anchor" aria-label="anchor" href="#stage-export-and-visualisation"></a></h2>
 
@@ -151,6 +158,57 @@
         </dt>
         <dd>Visualize refined records on interactive maps</dd>
       </dl></div><div class="section level2">
+      <h2 id="print-methods">Print methods<a class="anchor" aria-label="anchor" href="#print-methods"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="print.import.html">print(<i>&lt;import&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Print an <code>import</code> object</dd>
+
+        <dt>
+
+          <code><a href="print.issue.html">print(<i>&lt;issue&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Print an <code>issue</code> object</dd>
+
+        <dt>
+
+          <code><a href="print.occ_taxa.html">print(<i>&lt;occ_taxa&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Print an <code>occ_taxa</code> object</dd>
+
+        <dt>
+
+          <code><a href="print.CoordinateRefined.html">print(<i>&lt;CoordinateRefined&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Print a <code>CoordinateRefined</code> object</dd>
+
+        <dt>
+
+          <code><a href="print.customFiltered.html">print(<i>&lt;customFiltered&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Print a <code>customFiltered</code> object</dd>
+
+        <dt>
+
+          <code><a href="print.nativeDetected.html">print(<i>&lt;nativeDetected&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Print a <code>nativeDetected</code> object</dd>
+      </dl></div><div class="section level2">
       <h2 id="utilities">Utilities<a class="anchor" aria-label="anchor" href="#utilities"></a></h2>
 
 
@@ -166,20 +224,6 @@
 
         </dt>
         <dd>Normalize the number of worker threads</dd>
-
-        <dt>
-
-          <code><a href="detect_native_status.html">detect_native_status()</a></code>
-
-        </dt>
-        <dd>Detect native status from WGSRPD distributions</dd>
-
-        <dt>
-
-          <code><a href="restore_duplicates.html">restore_duplicates()</a></code>
-
-        </dt>
-        <dd>Restore missing metadata from duplicate records</dd>
       </dl></div><div class="section level2">
       <h2 id="internal-datasets">Internal datasets<a class="anchor" aria-label="anchor" href="#internal-datasets"></a></h2>
 
@@ -203,6 +247,13 @@
 
         </dt>
         <dd>Enumeration GBIF issue</dd>
+
+        <dt>
+
+          <code><a href="Level3maping.html">Level3maping</a></code>
+
+        </dt>
+        <dd>WGSRPD Level 3 area codes, names and country concordance</dd>
 
         <dt>
 

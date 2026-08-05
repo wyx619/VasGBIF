@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.5.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -51,6 +51,124 @@
     </div>
 
     <div class="section level2">
+<h2 class="pkg-version" data-toc-text="3.6.0" id="vasgbif-360">VasGBIF 3.6.0<a class="anchor" aria-label="anchor" href="#vasgbif-360"></a></h2>
+<p><em>Major release: the package has been completely redesigned. The duplicate-detection and voucher-selection pipeline that VasGBIF inherited from UltraGBIF has been removed and replaced by a new eight-function, four-stage workflow built around two new systems: a precise two-pass native-status detector and a fluent, fully auditable record filter.</em></p>
+<div class="section level3">
+<h3 id="breaking-changes-3-6-0">Breaking Changes<a class="anchor" aria-label="anchor" href="#breaking-changes-3-6-0"></a></h3>
+<div class="section level4">
+<h4 id="the-new-pipeline-3-6-0">The new pipeline<a class="anchor" aria-label="anchor" href="#the-new-pipeline-3-6-0"></a></h4>
+<p>The workflow is now:</p>
+<p><code><a href="../reference/import_records.html">import_records()</a></code> → <code><a href="../reference/extract_gbif_issues.html">extract_gbif_issues()</a></code> → <code><a href="../reference/check_taxon.html">check_taxon()</a></code> → <code><a href="../reference/custom_filter.html">custom_filter()</a></code> → <code><a href="../reference/refine_coordinates.html">refine_coordinates()</a></code> → <code><a href="../reference/detect_native_status.html">detect_native_status()</a></code> → <code><a href="../reference/export_records.html">export_records()</a></code> / <code><a href="../reference/map_records.html">map_records()</a></code></p>
+</div>
+<div class="section level4">
+<h4 id="removed-functions-3-6-0">Removed functions<a class="anchor" aria-label="anchor" href="#removed-functions-3-6-0"></a></h4>
+<ul><li>
+<strong><code>get_collections()</code>, <code>set_vouchers()</code>, and <code>restore_duplicates()</code> have been removed</strong>, together with the entire collection-event key / digital-voucher / metadata-restoration stage. Deduplication by composite <code>taxon|date|latitude|longitude</code> keys, the metadata-completeness and geospatial-penalty scoring system, <code>moreInformativeRecord</code>, the <code>usable</code> / <code>duplicate</code> / <code>unusable</code> classification, and the <code>VasGBIF_dataset_result</code> column no longer exist. Records are now selected by explicit, individually auditable quality rules in <code><a href="../reference/custom_filter.html">custom_filter()</a></code> instead of by an implicit voucher-quality ranking.</li>
+<li>
+<strong><code>refine_records()</code> has been replaced by <code><a href="../reference/refine_coordinates.html">refine_coordinates()</a></code>.</strong> The old function bundled three unrelated jobs — metadata restoration, coordinate validation, and native-status detection — behind one call. Coordinate validation and native-status detection are now separate, independently callable steps.</li>
+</ul></div>
+<div class="section level4">
+<h4 id="function-signature-and-return-value-changes-3-6-0">Function signature and return-value changes<a class="anchor" aria-label="anchor" href="#function-signature-and-return-value-changes-3-6-0"></a></h4>
+<ul><li>
+<code>refine_coordinates(custom_filtered, threads = 4, tests = ...)</code> takes a <code>customFiltered</code> object and returns a <code>CoordinateRefined</code> object with <strong>four</strong> elements: <code>CoordinateCleaned</code>, <code>CoordinateProblematic</code>, <code>Coordinateless</code>, and <code>runtime</code>. The new <code>Coordinateless</code> table means records missing longitude or latitude are no longer silently lost — they are carried forward and still receive a native status.</li>
+<li>
+<code>detect_native_status(refined_coordinates, species_fallback = FALSE, buffer_km = 10, buffer_chunk_size = 2000)</code> is now exported as a pipeline stage in its own right and returns a <code>nativeDetected</code> object.</li>
+<li>
+<code>export_records(refined_coordinates, native_detected, export_path)</code> and <code>map_records(native_detected, refined_coordinates, precision = 3, cex = 3)</code> now take the coordinate and native-status objects explicitly rather than deriving them from a single bundled result, and both validate their inputs by class.</li>
+<li>
+<code>extract_gbif_issue()</code> has been <strong>renamed to <code><a href="../reference/extract_gbif_issues.html">extract_gbif_issues()</a></code></strong>.</li>
+<li>All object classes have been renamed: <code>import</code>, <code>issue</code>, <code>occ_taxa</code>, <code>customFiltered</code>, <code>CoordinateRefined</code>, and <code>nativeDetected</code>.</li>
+</ul></div>
+</div>
+<div class="section level3">
+<h3 id="new-and-rewritten-functions-3-6-0">New and Rewritten Functions<a class="anchor" aria-label="anchor" href="#new-and-rewritten-functions-3-6-0"></a></h3>
+<div class="section level4">
+<h4 id="detect_native_status-precise-native-status-detection-3-6-0">
+<code>detect_native_status()</code>: precise native-status detection<a class="anchor" aria-label="anchor" href="#detect_native_status-precise-native-status-detection-3-6-0"></a></h4>
+<p>Newly exported as a pipeline stage and rewritten from scratch, this is the analytical core of VasGBIF. It assigns <code>native</code>, <code>introduced</code>, <code>extinct</code>, <code>location_doubtful</code>, or <code>unknown</code> to <strong>every</strong> record by matching identification and position against WCVP distribution data organised by WGSRPD Level 3 areas. Classification runs in two passes so the most precise available evidence always wins:</p>
+<ul><li>
+<strong>Spatial pass.</strong> Records with validated coordinates are overlaid on the WGSRPD Level 3 polygon map with a single vectorised <code><a href="https://rspatial.github.io/terra/reference/extract.html" class="external-link">terra::extract()</a></code> call. Each area code is looked up in a distribution table classified from the WCVP flags with a fixed priority: <code>location_doubtful</code> &gt; <code>introduced</code> &gt; <code>extinct</code> &gt; <code>native</code> &gt; <code>unknown</code>. Records falling in several areas receive the most preferred status, never an arbitrary one.</li>
+<li>
+<strong>Country-code pass.</strong> Records without coordinates, and records the spatial pass left unresolved, are retried through <code>countryCode</code> mapped to Level 3 areas by the new <code>Level3maping</code> table. No geometry is used, so this pass is nearly free.</li>
+</ul><p>Precision improvements over the previous implementation:</p>
+<ul><li>
+<strong>Geodesic buffering.</strong> Coastal points just outside a polygon are matched through <code><a href="https://rspatial.github.io/terra/reference/buffer.html" class="external-link">terra::buffer()</a></code> in metres, so <code>buffer_km</code> has the same meaning at every latitude. Buffered hits are always ranked below exact ones and flagged in the returned <code>buffered</code> column. Buffering is chunked (<code>buffer_chunk_size</code>) to keep the relate matrix small.</li>
+<li>
+<strong>Hybrid-name normalisation.</strong> Taxon keys are canonicalised so <code>Alnus x pubescens</code> matches <code>Alnus × pubescens</code> in <code>Distributions</code>.</li>
+<li>
+<strong>Opt-in species fallback.</strong> With <code>species_fallback = TRUE</code>, infraspecific taxa absent from <code>Distributions</code> inherit their parent species’ status. This is off by default because it is a deliberate loss of precision — a subspecies may be introduced where the species is native.</li>
+<li>
+<strong>Full auditability.</strong> The new <code>native_status_source</code> column records <em>how</em> each status was obtained (<code>accepted_name</code>, <code>accepted_species</code>, <code>country_code</code>, <code>country_code_after_spatial_miss</code>, <code>country_code_miss</code>, <code>unmatched</code>, with a <code>_species</code> suffix where the fallback was used), so no classification is a black box.</li>
+<li>
+<strong>CRS assertion.</strong> The function verifies that the <code>WGSRPD3</code> polygons are in a longitude/latitude CRS, so a future data change cannot silently break the overlay.</li>
+</ul></div>
+<div class="section level4">
+<h4 id="custom_filter-flexible-and-fluent-filtering-3-6-0">
+<code>custom_filter()</code>: flexible and fluent filtering<a class="anchor" aria-label="anchor" href="#custom_filter-flexible-and-fluent-filtering-3-6-0"></a></h4>
+<p>Replaces the implicit voucher-quality ranking with an explicit, user-controlled filter pipeline. It joins the three preceding outputs by <code>gbifID</code> and then applies a selected set of quality rules, one vectorised <code>data.table</code> pass per rule:</p>
+<ul><li>
+<strong>Fluent rule control.</strong> Each rule is an independently toggleable argument. Three are on by default (<code>filter_countryCode</code>, <code>filter_coordinateUncertainty = 10000</code>, <code>filter_gbif_issues_max = 5</code>); <code>filter_date</code>, <code>filter_identifiedBy</code>, and <code>filter_recordedBy</code> are opt-in, so no information is discarded without an explicit choice. Numeric thresholds share one uniform “off” convention — <code>NULL</code>, <code>NA</code>, or <code>''</code> — so any rule can be disabled without restructuring the call.</li>
+<li>
+<strong>Auditable pipeline.</strong> Every step, including the <code>taxon_resolved</code> join, is logged in the returned <code>summary</code> table (<code>rule</code>, <code>dropped</code>, <code>remaining</code>).</li>
+<li>
+<strong>Strict joins.</strong> The taxonomic join is an inner join, so unresolved records are dropped at a single visible point instead of carrying <code>NA</code> taxonomy through the rest of the workflow. The issue join is verified to be one-to-one and the function stops if any record lacks an issue count.</li>
+<li>
+<strong>Careful collector and identifier detection.</strong> The <code>identifiedBy</code> and <code>recordedBy</code> rules remove only values containing no named person, using a curated multilingual keyword list (English, Spanish, Portuguese, French, German, Chinese) plus whole-value patterns such as <code>s.n.</code>, <code>n/a</code>, and <code>no collector</code>. Name separators protect values that mix a keyword with a real name (<code>"Unknown; Jongmans WJ"</code> is kept), and word-boundary matching keeps CJK keywords from splitting genuine names.</li>
+</ul></div>
+<div class="section level4">
+<h4 id="refine_coordinates-3-6-0"><code>refine_coordinates()</code><a class="anchor" aria-label="anchor" href="#refine_coordinates-3-6-0"></a></h4>
+<p>Coordinate validation, now a standalone step. It splits filtered records into those with complete coordinates and those without, then runs <code><a href="https://ropensci.github.io/CoordinateCleaner/reference/clean_coordinates.html" class="external-link">CoordinateCleaner::clean_coordinates()</a></code> checks in parallel over chunked records, with the worker count capped to the number of records. <code>CoordinateProblematic</code> retains the CoordinateCleaner flag columns so the failing tests can be inspected. If no record has complete coordinates, validation is skipped rather than failing.</p>
+</div>
+<div class="section level4">
+<h4 id="print-methods-3-6-0">Print methods<a class="anchor" aria-label="anchor" href="#print-methods-3-6-0"></a></h4>
+<p>Six S3 <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> methods have been added so every pipeline object gives an informative summary at the console instead of dumping a list: <code><a href="../reference/print.import.html">print.import()</a></code>, <code><a href="../reference/print.issue.html">print.issue()</a></code>, <code><a href="../reference/print.occ_taxa.html">print.occ_taxa()</a></code>, <code><a href="../reference/print.customFiltered.html">print.customFiltered()</a></code>, <code><a href="../reference/print.CoordinateRefined.html">print.CoordinateRefined()</a></code>, and <code><a href="../reference/print.nativeDetected.html">print.nativeDetected()</a></code>.</p>
+</div>
+</div>
+<div class="section level3">
+<h3 id="improvements-3-6-0">Improvements<a class="anchor" aria-label="anchor" href="#improvements-3-6-0"></a></h3>
+<ul><li>
+<strong><code><a href="../reference/import_records.html">import_records()</a></code> now supports Darwin Core Archive downloads</strong> in addition to <code>SIMPLE_CSV</code>. Archives with more than one member are treated as a DWCA and their <code>occurrence.txt</code> core file is read. The archive is extracted into a dedicated directory rather than next to the ZIP, so a ZIP stored in <code>inst/extdata</code> is never modified. <code>tempdir</code> and <code>remove_tempfile</code> now have coordinated defaults: an auto-created directory is cleaned up on exit, a user-supplied one is kept, and either default can be overridden. The return value is a single <code>"import"</code> <code>data.table</code> rather than a list.</li>
+<li>
+<strong><code><a href="../reference/check_taxon.html">check_taxon()</a></code></strong> now returns <code>Accepted_species</code> and <code>Accepted_name_rank</code> alongside the existing TNRS columns, and <code>occ_taxa_checked</code> is filtered on three conditions rather than two: <code>Overall_score &gt;= accuracy</code>, <code>Taxonomic_status</code> in <code>Accepted</code>/<code>Synonym</code>, and an <code>Accepted_name_rank</code> that is neither empty nor <code>genus</code>. Genus-level and unranked matches therefore no longer reach the distribution lookup, where they cannot be resolved.</li>
+<li>
+<strong><code><a href="../reference/export_records.html">export_records()</a></code></strong> writes <code>all_records.csv.gz</code>, <code>native_records.csv.gz</code>, and <code>CoordinateProblematic_records.csv.gz</code>, with <code>all_records.csv.gz</code> now covering records both with and without coordinates, each joined to its native status. <code>export_path</code> is validated before any file is written.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="bug-fixes-3-6-0">Bug Fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-3-6-0"></a></h3>
+<ul><li>
+<strong><code><a href="../reference/extract_gbif_issues.html">extract_gbif_issues()</a></code>: fixed the single-record case.</strong> Building the issue matrix with <code><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply()</a></code>/<code><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply()</a></code> dropped dimensions when the input held one record, producing a malformed result. The matrix is now built with <code><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply()</a></code> + <code>do.call(cbind, ...)</code>, which preserves the expected dimensions for any number of records.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="new-data-3-6-0">New Data<a class="anchor" aria-label="anchor" href="#new-data-3-6-0"></a></h3>
+<ul><li>
+<strong><code>Level3maping</code></strong>: the tabular component of the WGSRPD standard — 369 Level 3 units with code, name, parent Level 2 region, and ISO 3166-1 alpha-2 concordance — used by the country-code pass of <code><a href="../reference/detect_native_status.html">detect_native_status()</a></code>. Its documentation states plainly that the published <code>L3 ISOcode</code> column is neither complete nor one-to-one: one ISO code usually maps to several areas (<code>US</code> to 51, <code>RU</code> to 21), 42 areas carry no ISO code at all (including mainland France, Italy, Spain, Austria, Belgium, Ireland, Ukraine, and Korea, so a naive lookup silently returns only their offshore units), and Belarus is listed under <code>RU</code>, reflecting the standard’s 2001 vintage.</li>
+<li>
+<strong><code>Distributions</code></strong> has been rebuilt and now holds 1,647,045 rows (previously reported as 1,983,653), reducing the installed data size.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="dependency-changes-3-6-0">Dependency Changes<a class="anchor" aria-label="anchor" href="#dependency-changes-3-6-0"></a></h3>
+<ul><li>Added <code><a href="https://rdrr.io/r/tools/fileutils.html" class="external-link">tools::file_ext()</a></code> and <code><a href="https://rdrr.io/r/utils/unzip.html" class="external-link">utils::unzip()</a></code> to NAMESPACE for the new ZIP handling in <code><a href="../reference/import_records.html">import_records()</a></code>.</li>
+<li>Removed the now-unused NAMESPACE imports <code><a href="https://dplyr.tidyverse.org/reference/case-and-replace-when.html" class="external-link">dplyr::case_when()</a></code>, <code><a href="https://dplyr.tidyverse.org/reference/if_else.html" class="external-link">dplyr::if_else()</a></code>, <code>lubridate::as_date()</code>, <code>lubridate::parse_date_time()</code>, <code><a href="https://rdrr.io/pkg/stringi/man/stri_length.html" class="external-link">stringi::stri_length()</a></code>, <code><a href="https://rdrr.io/pkg/stringi/man/stri_replace.html" class="external-link">stringi::stri_replace_all_regex()</a></code>, <code><a href="https://rdrr.io/pkg/stringi/man/stri_trans_casemap.html" class="external-link">stringi::stri_trans_toupper()</a></code>, <code><a href="https://rspatial.github.io/terra/reference/extract.html" class="external-link">terra::extract()</a></code>, <code><a href="https://rspatial.github.io/terra/reference/merge.html" class="external-link">terra::merge()</a></code>, <code><a href="https://rspatial.github.io/terra/reference/vect.html" class="external-link">terra::vect()</a></code>, and <code><a href="https://rdrr.io/r/utils/head.html" class="external-link">utils::head()</a></code>. The date parsing and string-length scoring they supported belonged to the removed voucher pipeline; the remaining <code>stringi</code> and <code>terra</code> calls are covered by <code>@import stringi</code> and by explicit <code>terra::</code> qualification.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="documentation-3-6-0">Documentation<a class="anchor" aria-label="anchor" href="#documentation-3-6-0"></a></h3>
+<ul><li>
+<strong>Package-level documentation rewritten.</strong> <code>VasGBIF-package.R</code> now documents the four-stage, eight-function workflow and leads with the two new systems, the native-status detector and the custom filter.</li>
+<li>
+<strong>README rewritten</strong> in its Workflow, Minimal Complete Example, and Performance sections, with a new <strong>Key Points</strong> section describing the native-status detection and custom filter systems.</li>
+<li>
+<strong><code>Example.Rmd</code> completely rewritten</strong> against the current pipeline, reporting per-stage record counts from a real 228,494-record download: 205,527 after TNRS resolution, 145,366 after <code><a href="../reference/custom_filter.html">custom_filter()</a></code>, then 65,081 coordinate-clean, 8,554 coordinate-problematic, and 71,731 coordinateless records, ending at 110,706 native, 354 introduced, 81 extinct, 2 location_doubtful, and 25,669 unknown. The description of the bundled example dataset has also been corrected.</li>
+<li>
+<strong><code>_pkgdown.yml</code> reference index reorganised</strong> into the four pipeline stages, with new sections for the print methods and for the <code>Level3maping</code> dataset.</li>
+<li>DESCRIPTION <code>Title</code> and <code>Description</code> now quote ‘GBIF’, ‘VasGBIF’, and ‘R’ and give the GBIF URL, as CRAN requires.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="testing-3-6-0">Testing<a class="anchor" aria-label="anchor" href="#testing-3-6-0"></a></h3>
+<ul><li>Test suites for the removed functions (<code>set_vouchers()</code>, <code>get_collections()</code>, <code>restore_duplicates()</code>, <code>refine_records()</code>) have been deleted, along with the stale <code><a href="../reference/import_records.html">import_records()</a></code> snapshots.</li>
+<li>New and rewritten suites cover <code><a href="../reference/custom_filter.html">custom_filter()</a></code>, <code><a href="../reference/check_taxon.html">check_taxon()</a></code>, <code><a href="../reference/extract_gbif_issues.html">extract_gbif_issues()</a></code>, <code><a href="../reference/refine_coordinates.html">refine_coordinates()</a></code>, <code><a href="../reference/import_records.html">import_records()</a></code>, <code><a href="../reference/export_records.html">export_records()</a></code>, <code><a href="../reference/detect_native_status.html">detect_native_status()</a></code>, and <code><a href="../reference/map_records.html">map_records()</a></code>, testing the new object classes, the per-rule filter summary, the two-pass status priority, buffered matching, and input validation for every exported function.</li>
+</ul></div>
+</div>
+    <div class="section level2">
 <h2 class="pkg-version" data-toc-text="3.5.2" id="vasgbif-352">VasGBIF 3.5.2<a class="anchor" aria-label="anchor" href="#vasgbif-352"></a></h2>
 <div class="section level3">
 <h3 id="website-3-5-2">Website<a class="anchor" aria-label="anchor" href="#website-3-5-2"></a></h3>
@@ -58,13 +176,13 @@
 <strong>Added search and dark/light mode toggle</strong> to the pkgdown navbar.</li>
 <li>
 <strong>Simplified navbar labels</strong>: “Get started” → “Start”, “Reference” → “Functions”, “Articles” → “Manuals”.</li>
-<li>Reorganized reference index: <code><a href="../reference/detect_native_status.html">detect_native_status()</a></code> and <code><a href="../reference/restore_duplicates.html">restore_duplicates()</a></code> moved under Utilities.</li>
+<li>Reorganized reference index: <code><a href="../reference/detect_native_status.html">detect_native_status()</a></code> and <code>restore_duplicates()</code> moved under Utilities.</li>
 <li>Workflow diagram converted from JPG to PNG.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="documentation-3-5-2">Documentation<a class="anchor" aria-label="anchor" href="#documentation-3-5-2"></a></h3>
 <ul><li>
-<strong>Fixed Unicode characters in <code><a href="../reference/set_vouchers.html">set_vouchers()</a></code> documentation</strong> (<code>✓</code>, <code>✗</code>, <code>−</code>) that caused the PDF manual to fail building under LaTeX.</li>
+<strong>Fixed Unicode characters in <code>set_vouchers()</code> documentation</strong> (<code>✓</code>, <code>✗</code>, <code>−</code>) that caused the PDF manual to fail building under LaTeX.</li>
 <li>Updated <code>Distributions</code> data source URL from <code>http</code> to <code>https</code>.</li>
 <li>Added <code>@seealso</code> reference in <code>WorldLandMap</code> documentation.</li>
 <li>README: updated codecov and R-CMD-check badge links, added GBIF DOI citation, rephrased performance statement.</li>
@@ -79,15 +197,15 @@
 <li>
 <strong>Added comprehensive test suite across five core functions</strong> (81 new tests, 177 total):
 <ul><li>
-<code><a href="../reference/set_vouchers.html">set_vouchers()</a></code> (54 tests): return structure, <code>verbatim_quality</code> scoring (0–9), <code>geospatial_quality</code> scoring (0 to -9), <code>moreInformativeRecord</code> calculation, non-groupable record handling, voucher selection, tie-breaking, coordinate propagation, taxonomic consensus (identified / divergent / unidentified), and final classification (usable / duplicate / unusable).</li>
+<code>set_vouchers()</code> (54 tests): return structure, <code>verbatim_quality</code> scoring (0–9), <code>geospatial_quality</code> scoring (0 to -9), <code>moreInformativeRecord</code> calculation, non-groupable record handling, voucher selection, tie-breaking, coordinate propagation, taxonomic consensus (identified / divergent / unidentified), and final classification (usable / duplicate / unusable).</li>
 <li>
-<code><a href="../reference/get_collections.html">get_collections()</a></code> (26 tests): return structure, key format <code>taxon|date|lat|lon</code>, precision-controlled coordinate rounding, complete vs. incomplete key counting, precision parameter validation, and eventDate parsing (full dates, dates with time, year-month only).</li>
+<code>get_collections()</code> (26 tests): return structure, key format <code>taxon|date|lat|lon</code>, precision-controlled coordinate rounding, complete vs. incomplete key counting, precision parameter validation, and eventDate parsing (full dates, dates with time, year-month only).</li>
 <li>
-<code><a href="../reference/restore_duplicates.html">restore_duplicates()</a></code> (26 tests): return structure, restoration of all eight metadata fields (<code>eventDate</code>, <code>year</code>, <code>month</code>, <code>day</code>, <code>identifiedBy</code>, <code>countryCode</code>, <code>stateProvince</code>, <code>locality</code>), integer coercion for <code>year</code>/<code>month</code>/<code>day</code>, <code>"NA"</code> string treated as missing, skipping of values &gt;10,000 characters, special character stripping, and first-available-duplicate selection.</li>
+<code>restore_duplicates()</code> (26 tests): return structure, restoration of all eight metadata fields (<code>eventDate</code>, <code>year</code>, <code>month</code>, <code>day</code>, <code>identifiedBy</code>, <code>countryCode</code>, <code>stateProvince</code>, <code>locality</code>), integer coercion for <code>year</code>/<code>month</code>/<code>day</code>, <code>"NA"</code> string treated as missing, skipping of values &gt;10,000 characters, special character stripping, and first-available-duplicate selection.</li>
 <li>
 <code><a href="../reference/detect_native_status.html">detect_native_status()</a></code> (14 tests): return structure, unknown status for taxa absent from <code>Distributions</code>, known-native classification (e.g. <em>Rosa canina</em> in Denmark), independent multi-taxon processing, and verification of the <code>fcase</code> priority logic (location_doubtful &gt; introduced &gt; extinct &gt; native &gt; unknown).</li>
 <li>
-<code><a href="../reference/refine_records.html">refine_records()</a></code> (15 tests): return structure, <code>native_status</code> column integration, valid coordinate pass-through, zero-coordinate flagging by the <code>"zeros"</code> test, equal lat/lon flagging by <code>"equal"</code>, empty <code>tests</code> parameter behaviour, and exclusion of <code>"unusable"</code> records by <code><a href="../reference/restore_duplicates.html">restore_duplicates()</a></code>.</li>
+<code>refine_records()</code> (15 tests): return structure, <code>native_status</code> column integration, valid coordinate pass-through, zero-coordinate flagging by the <code>"zeros"</code> test, equal lat/lon flagging by <code>"equal"</code>, empty <code>tests</code> parameter behaviour, and exclusion of <code>"unusable"</code> records by <code>restore_duplicates()</code>.</li>
 </ul></li>
 </ul></div>
 </div>
@@ -98,7 +216,7 @@
 <ul><li>
 <strong><code><a href="../reference/check_taxon.html">check_taxon()</a></code>: fixed merge failure for names containing commas.</strong> The TNRS internally converts commas to spaces in submitted scientific names, but the merge key on the package side used the original comma-containing name, causing records to fail to match their TNRS resolution results. A comma-stripped key column (<code>wcvp_searchedName2</code>) is now created for the merge, while the original <code>wcvp_searchedName</code> is preserved unchanged.</li>
 <li>
-<strong><code><a href="../reference/refine_records.html">refine_records()</a></code>: removed erroneous pre-filter before <code><a href="../reference/restore_duplicates.html">restore_duplicates()</a></code>.</strong> The call <code>restore_duplicates(voucher$occ_digital_voucher[VasGBIF_dataset_result != "unusable"])</code> stripped all <code>unusable</code> records from the input.</li>
+<strong><code>refine_records()</code>: removed erroneous pre-filter before <code>restore_duplicates()</code>.</strong> The call <code>restore_duplicates(voucher$occ_digital_voucher[VasGBIF_dataset_result != "unusable"])</code> stripped all <code>unusable</code> records from the input.</li>
 </ul></div>
 </div>
     <div class="section level2">
@@ -113,13 +231,13 @@
 <div class="section level4">
 <h4 id="removed-functions-3-5-0">Removed Functions<a class="anchor" aria-label="anchor" href="#removed-functions-3-5-0"></a></h4>
 <ul><li>
-<code>check_collectors()</code> and <code>get_collectors_name()</code> have been removed. The collector-based duplicate detection stage has been replaced by a coordinate- and date-based collection-event key system in <code><a href="../reference/get_collections.html">get_collections()</a></code>.</li>
+<code>check_collectors()</code> and <code>get_collectors_name()</code> have been removed. The collector-based duplicate detection stage has been replaced by a coordinate- and date-based collection-event key system in <code>get_collections()</code>.</li>
 <li>
 <code>check_occ_taxon()</code> replaced by <code><a href="../reference/check_taxon.html">check_taxon()</a></code>.</li>
 <li>
-<code>set_collection_mark()</code> replaced by <code><a href="../reference/get_collections.html">get_collections()</a></code>.</li>
+<code>set_collection_mark()</code> replaced by <code>get_collections()</code>.</li>
 <li>
-<code>set_digital_voucher()</code> replaced by <code><a href="../reference/set_vouchers.html">set_vouchers()</a></code>.</li>
+<code>set_digital_voucher()</code> replaced by <code>set_vouchers()</code>.</li>
 </ul></div>
 <div class="section level4">
 <h4 id="removed-data-3-5-0">Removed Data<a class="anchor" aria-label="anchor" href="#removed-data-3-5-0"></a></h4>
@@ -131,7 +249,7 @@
 <ul><li>
 <code><a href="../reference/import_records.html">import_records()</a></code>: parameter <code>GBIF_file</code> renamed to <code>path</code>; <code>only_PRESERVED_SPECIMEN</code> removed; new <code>remove_tempfile</code> parameter.</li>
 <li>
-<code><a href="../reference/refine_records.html">refine_records()</a></code>: parameter <code>export_path</code> removed (use <code><a href="../reference/export_records.html">export_records()</a></code> instead); <code>save_path</code> removed; return value is now a <code>refined</code> object with elements <code>all_records</code>, <code>CoordinateProblematic</code>, and <code>runtime</code>.</li>
+<code>refine_records()</code>: parameter <code>export_path</code> removed (use <code><a href="../reference/export_records.html">export_records()</a></code> instead); <code>save_path</code> removed; return value is now a <code>refined</code> object with elements <code>all_records</code>, <code>CoordinateProblematic</code>, and <code>runtime</code>.</li>
 <li>
 <code><a href="../reference/check_taxon.html">check_taxon()</a></code> replaces <code>check_occ_taxon()</code>: default <code>sources</code> changed from <code>c("wcvp", "wfo")</code> to <code>"wcvp"</code> only.</li>
 </ul></div>
@@ -143,20 +261,20 @@
 <li>
 <code><a href="../reference/export_records.html">export_records()</a></code> writes refined records to disk as three gzip-compressed CSV files: all usable records, the native subset, and records that failed coordinate validation.</li>
 <li>
-<code><a href="../reference/restore_duplicates.html">restore_duplicates()</a></code> is a new internal helper that fills missing metadata fields (<code>eventDate</code>, <code>year</code>, <code>month</code>, <code>day</code>, <code>identifiedBy</code>, <code>countryCode</code>, <code>stateProvince</code>, <code>locality</code>) in usable voucher records using data from duplicate records sharing the same collection key.</li>
+<code>restore_duplicates()</code> is a new internal helper that fills missing metadata fields (<code>eventDate</code>, <code>year</code>, <code>month</code>, <code>day</code>, <code>identifiedBy</code>, <code>countryCode</code>, <code>stateProvince</code>, <code>locality</code>) in usable voucher records using data from duplicate records sharing the same collection key.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="improvements-3-5-0">Improvements<a class="anchor" aria-label="anchor" href="#improvements-3-5-0"></a></h3>
 <ul><li>
-<strong>Simplified pipeline</strong>: The workflow has been reduced from 8 modules (with collector checking) to 7 core functions across 4 stages. The collector name standardization stage has been removed entirely; duplicate detection now uses composite keys of <code>taxon_name|eventDate|latitude|longitude</code> via <code><a href="../reference/get_collections.html">get_collections()</a></code>.</li>
+<strong>Simplified pipeline</strong>: The workflow has been reduced from 8 modules (with collector checking) to 7 core functions across 4 stages. The collector name standardization stage has been removed entirely; duplicate detection now uses composite keys of <code>taxon_name|eventDate|latitude|longitude</code> via <code>get_collections()</code>.</li>
 <li>
-<code><a href="../reference/refine_records.html">refine_records()</a></code> has been modularised into a three-step internal pipeline: <code><a href="../reference/restore_duplicates.html">restore_duplicates()</a></code> → CoordinateCleaner → <code><a href="../reference/detect_native_status.html">detect_native_status()</a></code>.</li>
+<code>refine_records()</code> has been modularised into a three-step internal pipeline: <code>restore_duplicates()</code> → CoordinateCleaner → <code><a href="../reference/detect_native_status.html">detect_native_status()</a></code>.</li>
 <li>
-<code><a href="../reference/get_collections.html">get_collections()</a></code> builds collection-event keys from resolved taxon names, event dates, and rounded coordinates, with user-controlled spatial precision.</li>
+<code>get_collections()</code> builds collection-event keys from resolved taxon names, event dates, and rounded coordinates, with user-controlled spatial precision.</li>
 <li>
-<code><a href="../reference/set_vouchers.html">set_vouchers()</a></code> implements a refined quality scoring system (metadata completeness + geospatial penalty) and returns a <code>vouchers</code> object.</li>
+<code>set_vouchers()</code> implements a refined quality scoring system (metadata completeness + geospatial penalty) and returns a <code>vouchers</code> object.</li>
 <li>
-<code><a href="../reference/restore_duplicates.html">restore_duplicates()</a></code> now restores <code>month</code> and <code>day</code> in addition to the previously restored fields.</li>
+<code>restore_duplicates()</code> now restores <code>month</code> and <code>day</code> in addition to the previously restored fields.</li>
 <li>
 <code><a href="../reference/set_threads.html">set_threads()</a></code> is now exported for normalising thread counts.</li>
 </ul></div>
@@ -297,7 +415,7 @@
 <li>
 <code>VasGBIF_voucher</code> class for <code>set_digital_voucher()</code> output</li>
 <li>
-<code>VasGBIF_refined</code> class for <code><a href="../reference/refine_records.html">refine_records()</a></code> output</li>
+<code>VasGBIF_refined</code> class for <code>refine_records()</code> output</li>
 </ul></li>
 <li><p><strong>Deleted deprecated ref_dictionary data</strong>: Removed the built-in collector name reference dictionary (<code>ref_dictionary</code>) and related functions, reducing package size and simplifying dependencies.</p></li>
 </ul></div>

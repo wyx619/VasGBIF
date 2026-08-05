@@ -5,35 +5,21 @@
       fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
     }
   };
-</script><script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Resolve taxon names via the Taxonomic Name Resolution Service — check_taxon"><meta name="description" content="Submits plant scientific names to the Taxonomic Name Resolution
-Service (TNRS) and resolves them against the World Checklist of Vascular
-Plants (WCVP). The TNRS corrects spelling errors, standardises variant
-spellings, and converts synonyms to their currently accepted names.
-The function works in three phases:
-Extracts unique names at species-level ranks (species, subspecies,
-variety, form) and submits them to the TNRS in chunks of up to 4,000
-names.
-Post-processes the TNRS response into a structured data.table with
-WCVP identifiers, accepted names, taxonomic status, and a resolution
-outcome label.
-Merges the results back into the full occurrence table. Records above
-species rank are not submitted and retain NA in all WCVP fields.
-
-"><meta property="og:description" content="Submits plant scientific names to the Taxonomic Name Resolution
-Service (TNRS) and resolves them against the World Checklist of Vascular
-Plants (WCVP). The TNRS corrects spelling errors, standardises variant
-spellings, and converts synonyms to their currently accepted names.
-The function works in three phases:
-Extracts unique names at species-level ranks (species, subspecies,
-variety, form) and submits them to the TNRS in chunks of up to 4,000
-names.
-Post-processes the TNRS response into a structured data.table with
-WCVP identifiers, accepted names, taxonomic status, and a resolution
-outcome label.
-Merges the results back into the full occurrence table. Records above
-species rank are not submitted and retain NA in all WCVP fields.
-
-"><meta property="og:image" content="https://wyx619.github.io/VasGBIF/logo.png"></head><body>
+</script><script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Resolve taxon names via the Taxonomic Name Resolution Service — check_taxon"><meta name="description" content="Submits plant scientific names from a GBIF occurrence table to the
+Taxonomic Name Resolution Service ('TNRS') and resolves them against the
+World Checklist of Vascular Plants ('WCVP') or World Flora Online ('WFO'),
+depending on sources (default &quot;wcvp&quot;). Spelling errors are corrected,
+variant spellings are standardised, and synonyms are converted to their
+currently accepted names. Only records that meet the accuracy threshold,
+have an accepted or synonym Taxonomic_status, and resolve to an accepted
+name at species rank or below are returned in occ_taxa_checked."><meta property="og:description" content="Submits plant scientific names from a GBIF occurrence table to the
+Taxonomic Name Resolution Service ('TNRS') and resolves them against the
+World Checklist of Vascular Plants ('WCVP') or World Flora Online ('WFO'),
+depending on sources (default &quot;wcvp&quot;). Spelling errors are corrected,
+variant spellings are standardised, and synonyms are converted to their
+currently accepted names. Only records that meet the accuracy threshold,
+have an accepted or synonym Taxonomic_status, and resolve to an accepted
+name at species rank or below are returned in occ_taxa_checked."><meta property="og:image" content="https://wyx619.github.io/VasGBIF/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -41,7 +27,7 @@ species rank are not submitted and retain NA in all WCVP fields.
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.5.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -80,23 +66,24 @@ species rank are not submitted and retain NA in all WCVP fields.
     </div>
 
     <div class="ref-description section level2">
-    <p>Submits plant scientific names to the Taxonomic Name Resolution
-Service (TNRS) and resolves them against the World Checklist of Vascular
-Plants (WCVP). The TNRS corrects spelling errors, standardises variant
-spellings, and converts synonyms to their currently accepted names.</p>
-<p>The function works in three phases:</p><ol><li><p>Extracts unique names at species-level ranks (species, subspecies,
-variety, form) and submits them to the TNRS in chunks of up to 4,000
-names.</p></li>
-<li><p>Post-processes the TNRS response into a structured <code>data.table</code> with
-WCVP identifiers, accepted names, taxonomic status, and a resolution
-outcome label.</p></li>
-<li><p>Merges the results back into the full occurrence table. Records above
-species rank are not submitted and retain <code>NA</code> in all WCVP fields.</p></li>
-</ol></div>
+    <p>Submits plant scientific names from a GBIF occurrence table to the
+Taxonomic Name Resolution Service ('TNRS') and resolves them against the
+World Checklist of Vascular Plants ('WCVP') or World Flora Online ('WFO'),
+depending on <code>sources</code> (default <code>"wcvp"</code>). Spelling errors are corrected,
+variant spellings are standardised, and synonyms are converted to their
+currently accepted names. Only records that meet the <code>accuracy</code> threshold,
+have an accepted or synonym <code>Taxonomic_status</code>, and resolve to an accepted
+name at species rank or below are returned in <code>occ_taxa_checked</code>.</p>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">check_taxon</span><span class="op">(</span>occ_import <span class="op">=</span> <span class="cn">NA</span>, accuracy <span class="op">=</span> <span class="fl">0.9</span>, sources <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"wcvp"</span>, <span class="st">"wfo"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">check_taxon</span><span class="op">(</span></span>
+<span>  occ_import <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  accuracy <span class="op">=</span> <span class="fl">0.85</span>,</span>
+<span>  sources <span class="op">=</span> <span class="st">"wcvp"</span>,</span>
+<span>  timeout_minutes <span class="op">=</span> <span class="fl">5</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -104,31 +91,48 @@ species rank are not submitted and retain <code>NA</code> in all WCVP fields.</p
 
 
 <dl><dt id="arg-occ-import">occ_import<a class="anchor" aria-label="anchor" href="#arg-occ-import"></a></dt>
-<dd><p>An <code>import</code> object returned by <code><a href="import_records.html">import_records()</a></code>.</p></dd>
+<dd><p>An <code>"import"</code> <code>data.table</code> returned by <code><a href="import_records.html">import_records()</a></code>,
+containing at least the columns <code>gbifID</code>, <code>scientificName</code>, and
+<code>taxonRank</code>.</p></dd>
 
 
 <dt id="arg-accuracy">accuracy<a class="anchor" aria-label="anchor" href="#arg-accuracy"></a></dt>
-<dd><p>Numeric threshold between <code>0</code> and <code>1</code> controlling the
-minimum match score for a name to be considered resolved. The default is
-<code>0.9</code>. Passed to <code><a href="https://rdrr.io/pkg/TNRS/man/TNRS.html" class="external-link">TNRS::TNRS()</a></code>.</p></dd>
+<dd><p>Numeric scalar between <code>0</code> and <code>1</code>. Minimum 'TNRS' match
+score for a resolution to be accepted. Defaults to <code>0.85</code>. Records whose
+<code>Overall_score</code> falls below this threshold are excluded from
+<code>occ_taxa_checked</code>. Passed directly to <code><a href="https://rdrr.io/pkg/TNRS/man/TNRS.html" class="external-link">TNRS::TNRS()</a></code>.</p></dd>
 
 
 <dt id="arg-sources">sources<a class="anchor" aria-label="anchor" href="#arg-sources"></a></dt>
-<dd><p>Character vector of taxonomic sources. The effective
-default is <code>"wcvp"</code>. <code>"wfo"</code> is also accepted.</p></dd>
+<dd><p>Character vector naming the taxonomic sources to resolve
+against. Defaults to <code>"wcvp"</code> (World Checklist of Vascular Plants).
+<code>"wfo"</code> (World Flora Online) is also accepted. Multiple
+sources can be combined, e.g. <code>c("wcvp", "wfo")</code>; the 'TNRS' API then
+returns the best match across all selected sources and the <code>Source</code>
+column records which source provided it. Passed directly to <code><a href="https://rdrr.io/pkg/TNRS/man/TNRS.html" class="external-link">TNRS::TNRS()</a></code>.</p></dd>
+
+
+<dt id="arg-timeout-minutes">timeout_minutes<a class="anchor" aria-label="anchor" href="#arg-timeout-minutes"></a></dt>
+<dd><p>Numeric scalar. Timeout per 'TNRS' chunk attempt in
+minutes. Defaults to <code>5</code>. If an attempt exceeds the timeout it is
+abandoned and retried.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A list of class <code>"occ_taxa"</code> with three elements:</p><ul><li><p><code>occ_taxa_checked</code>: a <code>data.table</code> of all occurrence records (one row
-per <code>gbifID</code>) with WCVP taxonomic columns appended. Key columns include
-<code>wcvp_searchedName</code> (the original submitted name), <code>wcvp_taxon_name</code>
-(the accepted name), <code>wcvp_plant_name_id</code>, <code>wcvp_family</code>,
-<code>wcvp_taxon_rank</code>, <code>wcvp_searchNotes</code>, and <code>wcvp_reviewed</code>.</p></li>
-<li><p><code>summary</code>: a <code>data.table</code> of unique resolution outcomes (one row per
-submitted name), suitable for reviewing results and identifying names
-that require manual attention.</p></li>
-<li><p><code>runtime</code>: the elapsed execution time.</p></li>
+    <p>An object of class <code>"occ_taxa"</code>, implemented as a named list with
+three elements:</p><ul><li><p><code>occ_taxa_checked</code>: a <code>data.table</code> of occurrence records that passed the
+<code>accuracy</code> threshold and have an <code>"Accepted"</code> or <code>"Synonym"</code>
+<code>Taxonomic_status</code>. Columns from <code>occ_import</code> (<code>gbifID</code>,
+<code>scientificName</code>) are joined with the following 'TNRS' result columns:
+<code>Overall_score</code>, <code>Taxonomic_status</code>, <code>Accepted_name</code>, <code>Accepted_species</code>,
+<code>Accepted_name_id</code>, <code>Accepted_name_rank</code>, <code>Accepted_family</code>, <code>Source</code>.</p></li>
+<li><p><code>summary</code>: a <code>data.table</code> of unique 'TNRS' resolution results (one row
+per submitted name), useful for reviewing match quality and identifying
+names that require manual attention. <code>scientificName</code> holds the string as
+submitted, while <code>Name_submitted</code> holds the possibly rewritten form
+echoed by 'TNRS'; comparing the two exposes names the API altered.</p></li>
+<li><p><code>runtime</code>: a <code>difftime</code> object recording the total elapsed time.</p></li>
 </ul></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -138,74 +142,98 @@ that require manual attention.</p></li>
 
 
 <p>Only records whose <code>taxonRank</code> is one of <code>"SPECIES"</code>, <code>"VARIETY"</code>,
-<code>"SUBSPECIES"</code>, or <code>"FORM"</code> are submitted to the TNRS. Records at genus
-rank or above are retained in the output but receive <code>NA</code> for all WCVP
-fields and are not part of the resolution process.</p>
+<code>"SUBSPECIES"</code>, or <code>"FORM"</code> are submitted to 'TNRS'. Records at genus rank
+or above are excluded from the query and are absent from both <code>summary</code>
+and <code>occ_taxa_checked</code>.</p>
+<p>This check filters on the <code>taxonRank</code> reported by GBIF for the submitted
+record. It is distinct from the output-side check on <code>Accepted_name_rank</code>
+described under "Output filtering", which filters on the rank of the
+<em>resolved</em> accepted name returned by 'TNRS'.</p>
 </div>
 
 <div class="section">
-<h3 id="handling-of-unresolved-and-uncertain-names">Handling of unresolved and uncertain names<a class="anchor" aria-label="anchor" href="#handling-of-unresolved-and-uncertain-names"></a></h3>
+<h3 id="chunked-submission">Chunked submission<a class="anchor" aria-label="anchor" href="#chunked-submission"></a></h3>
 
 
-<p>All records are <strong>retained</strong> in the output — none are removed. Names that
-cannot be resolved are identifiable through the <code>wcvp_searchNotes</code> column:</p><ul><li><p><code>"Accepted"</code>: the submitted name is already an accepted name in WCVP.</p></li>
-<li><p><code>"Updated"</code>: the submitted name is a synonym and has been resolved to
-its accepted name. The accepted name appears in <code>wcvp_taxon_name</code> and
-its WCVP identifier in <code>wcvp_plant_name_id</code>.</p></li>
-<li><p><code>"Not found"</code>: the TNRS could not match the name to any WCVP entry, or
-the match has no accepted name. All WCVP fields (<code>wcvp_taxon_name</code>,
-<code>wcvp_plant_name_id</code>, <code>wcvp_family</code>, etc.) are <code>NA</code> for these records.</p></li>
-</ul><p>Names with uncertain taxonomic status in WCVP — including <em>unplaced</em>,
-<em>unresolved</em>, <em>illegitimate</em>, and <em>invalid</em> names — typically receive no
-accepted name from the TNRS and are therefore classified as
-<code>"Not found"</code>. They remain in the dataset with <code>NA</code> WCVP fields so that
-users can inspect and manually curate them.</p>
-<p>Names that the TNRS resolves only to genus level are also reclassified as
-<code>"Not found"</code>, since a genus-level identification is too coarse to be
-useful for the duplicate-detection and native-status workflows that
-consume this output.</p>
+<p>Unique names are submitted in chunks of up to 4,000 to respect 'TNRS' API
+limits. Each name is assigned a row identifier before chunking, so the
+identifiers stay unique across the whole query. Results from all chunks are
+combined with <code><a href="https://rdrr.io/pkg/data.table/man/rbindlist.html" class="external-link">data.table::rbindlist()</a></code> and then de-duplicated by <code>ID</code>,
+guarding against occasional duplicate rows returned by the API.</p>
 </div>
 
 <div class="section">
-<h3 id="review-flag">Review flag<a class="anchor" aria-label="anchor" href="#review-flag"></a></h3>
+<h3 id="joining-results-back-to-occurrences">Joining results back to occurrences<a class="anchor" aria-label="anchor" href="#joining-results-back-to-occurrences"></a></h3>
 
 
-<p>The <code>wcvp_reviewed</code> column is <code>"N"</code> for every name that received an
-accepted WCVP match (i.e. <code>wcvp_searchNotes</code> is <code>"Accepted"</code> or
-<code>"Updated"</code>). It is <code>NA</code> for names classified as <code>"Not found"</code>. Users can
-manually set it to <code>"Y"</code> after verifying a resolution, or fill it for
-unresolved names after manual curation.</p>
+<p>'TNRS' does not echo submitted names verbatim: commas are replaced by
+spaces and diacritics are normalised, so <code>Name_submitted</code> in the response
+may differ from the string that was sent. Results are therefore joined back
+to the occurrence table through the row identifier echoed in the <code>ID</code>
+column, which maps each result to the exact <code>scientificName</code> submitted.</p>
+</div>
+
+<div class="section">
+<h3 id="output-filtering">Output filtering<a class="anchor" aria-label="anchor" href="#output-filtering"></a></h3>
+
+
+<p>After merging 'TNRS' results back into the occurrence table, only records
+satisfying <strong>all</strong> of the following conditions are kept in
+<code>occ_taxa_checked</code>:</p><ul><li><p><code>Overall_score &gt;= accuracy</code></p></li>
+<li><p><code>Taxonomic_status</code> is <code>"Accepted"</code> or <code>"Synonym"</code></p></li>
+<li><p><code>Accepted_name_rank</code> is neither empty nor <code>"genus"</code></p></li>
+</ul><p>The rank condition excludes records whose best match only reached a
+genus-level or unranked accepted name, even when the score and status
+would pass. Records that fail any condition (unresolved names,
+low-confidence matches, names with uncertain status, or genus-level
+resolutions) are present in <code>summary</code> for manual review but absent from
+<code>occ_taxa_checked</code>.</p>
 </div>
 
 <div class="section">
 <h3 id="retry-logic">Retry logic<a class="anchor" aria-label="anchor" href="#retry-logic"></a></h3>
 
-
-<p>Each TNRS chunk query is attempted up to 3 times with a 5-second wait
-between attempts and a 20-minute timeout per attempt. This guards against
-transient network failures and API timeouts.</p>
-</div>
+<ul><li><p><code>occ_taxa_checked</code>: a <code>data.table</code> of occurrence records that passed the
+<code>accuracy</code> threshold, have an <code>"Accepted"</code> or <code>"Synonym"</code>
+<code>Taxonomic_status</code>, and whose <code>Accepted_name_rank</code> is neither empty nor
+<code>"genus"</code>. Columns from <code>occ_import</code> (<code>gbifID</code>,t, guarding
+against transient network failures. If all attempts fail for a chunk, the
+function stops with an informative error.</p></li>
+</ul></div>
 
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
-
-<ul><li><p>Boyle, B. et al. (2013). The taxonomic name resolution service: an
-online tool for automated standardisation of plant names. <em>BMC
-Bioinformatics</em>, 14, 16. doi:10.1186/1471-2105-14-16</p></li>
-<li><p>Govaerts, R. et al. (2021). The World Checklist of Vascular Plants, a
+    <p>Boyle, B. et al. (2013). The taxonomic name resolution service: an online
+tool for automated standardisation of plant names. <em>BMC Bioinformatics</em>,
+14, 16. <a href="https://doi.org/10.1186/1471-2105-14-16" class="external-link">doi:10.1186/1471-2105-14-16</a></p>
+<p>Govaerts, R. et al. (2021). The World Checklist of Vascular Plants, a
 continuously updated resource for exploring global plant diversity.
-<em>Scientific Data</em>, 8, 215. doi:10.1038/s41597-021-00997-6</p></li>
-</ul></div>
+<em>Scientific Data</em>, 8, 215. <a href="https://doi.org/10.1038/s41597-021-00997-6" class="external-link">doi:10.1038/s41597-021-00997-6</a></p>
+    </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="https://rdrr.io/pkg/TNRS/man/TNRS.html" class="external-link">TNRS()</a></code></p></div>
+    <div class="dont-index">
+<ul><li><p><code><a href="import_records.html">import_records()</a></code> for the first step that produces the <code>occ_import</code>
+input.</p></li>
+<li><p><code><a href="extract_gbif_issues.html">extract_gbif_issues()</a></code> for the parallel step that processes issue flags.</p></li>
+<li><p><code><a href="https://rdrr.io/pkg/TNRS/man/TNRS.html" class="external-link">TNRS::TNRS()</a></code> for the underlying name resolution function.</p></li>
+<li><p><code><a href="print.occ_taxa.html">print.occ_taxa()</a></code> for a compact summary of the result.</p></li>
+</ul></div>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># interactive()</span></span></span>
-<span class="r-in"><span><span class="va">taxa_checked</span> <span class="op">&lt;-</span> <span class="fu">check_taxon</span><span class="op">(</span>occ_import <span class="op">=</span> <span class="va">occ_import</span>, accuracy <span class="op">=</span> <span class="fl">0.9</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">gbif_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="st">"extdata"</span>,</span></span>
+<span class="r-in"><span>  <span class="st">"0003386-260721160103020.zip"</span>,</span></span>
+<span class="r-in"><span>  package <span class="op">=</span> <span class="st">"VasGBIF"</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">occ</span> <span class="op">&lt;-</span> <span class="fu"><a href="import_records.html">import_records</a></span><span class="op">(</span>path <span class="op">=</span> <span class="va">gbif_file</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">taxa_checked</span> <span class="op">&lt;-</span> <span class="fu">check_taxon</span><span class="op">(</span>occ_import <span class="op">=</span> <span class="va">occ</span>, accuracy <span class="op">=</span> <span class="fl">0.85</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">taxa_checked</span><span class="op">$</span><span class="va">summary</span>, <span class="fl">10</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">taxa_checked</span><span class="op">$</span><span class="va">occ_taxa_checked</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 </code></pre></div>
     </div>

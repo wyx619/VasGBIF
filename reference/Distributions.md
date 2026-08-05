@@ -12,7 +12,7 @@ Distributions
 
 ## Format
 
-A data.table with 1,983653 rows and 6 variables:
+A data.table with 1,647,045 rows and 6 variables:
 
 - plant_name_id:
 

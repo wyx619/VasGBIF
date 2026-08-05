@@ -5,14 +5,15 @@
       fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
     }
   };
-</script><script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Detect native status from WGSRPD distributions — detect_native_status"><meta name="description" content='Assigns a native status classification to each occurrence record
-by matching validated coordinates to WCVP distribution data via WGSRPD
-Level 3 polygons.
-Native status is determined in two stages, working one taxon at a time.
-Stage 1 — classify WGSRPD areas. The internal Distributions dataset
-links each WGSRPD Level 3 area code to WCVP flags (introduced, extinct,
-location_doubtful). These flags are resolved into a single status label
-with the following priority:
+</script><script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Detect native status from WGSRPD distributions — detect_native_status"><meta name="description" content='Assigns a native status classification to each occurrence
+record by matching it against WCVP distribution data (the internal
+Distributions dataset) via WGSRPD Level 3 areas. Classification proceeds
+in two stages.
+Spatial stage. Records with validated coordinates are overlaid on the
+WGSRPD Level 3 polygon map (via terra::extract()) to assign an area code
+to each record. That area code is looked up in a distribution table
+classified from the WCVP flags (introduced, extinct,
+location_doubtful) with the following priority:
 If location_doubtful == 1, the area is classified as
 "location_doubtful" regardless of other flags.
 Otherwise, if introduced == 1, the area is "introduced".
@@ -21,19 +22,23 @@ If all three flags are 0, the area is "native".
 Any remaining case defaults to "unknown".
 
 
-Stage 2 — spatial intersection. For each taxon, the validated
-occurrence points are overlaid on the WGSRPD Level 3 polygon map (via
-terra::extract()) to assign an area code to each record. That area code
-is then looked up in the classified distribution table. Records falling
-outside any documented area, or whose taxon has no entry in
-Distributions, are labelled "unknown".'><meta property="og:description" content='Assigns a native status classification to each occurrence record
-by matching validated coordinates to WCVP distribution data via WGSRPD
-Level 3 polygons.
-Native status is determined in two stages, working one taxon at a time.
-Stage 1 — classify WGSRPD areas. The internal Distributions dataset
-links each WGSRPD Level 3 area code to WCVP flags (introduced, extinct,
-location_doubtful). These flags are resolved into a single status label
-with the following priority:
+A record that falls in several areas at once is assigned the most preferred
+status ("native" first). Unresolved records may be buffered (buffer_km)
+so coastal points just outside a polygon can still be matched; buffered
+hits are ranked below exact ones. Records that the spatial stage still
+leaves unresolved are retried by country code (see below).
+Country-code stage. Records without coordinates, plus records the
+spatial stage left unresolved, are matched through countryCode mapped to
+WGSRPD Level 3 areas by the Level3maping table; no geometry is used. The
+same status priority applies.'><meta property="og:description" content='Assigns a native status classification to each occurrence
+record by matching it against WCVP distribution data (the internal
+Distributions dataset) via WGSRPD Level 3 areas. Classification proceeds
+in two stages.
+Spatial stage. Records with validated coordinates are overlaid on the
+WGSRPD Level 3 polygon map (via terra::extract()) to assign an area code
+to each record. That area code is looked up in a distribution table
+classified from the WCVP flags (introduced, extinct,
+location_doubtful) with the following priority:
 If location_doubtful == 1, the area is classified as
 "location_doubtful" regardless of other flags.
 Otherwise, if introduced == 1, the area is "introduced".
@@ -42,12 +47,15 @@ If all three flags are 0, the area is "native".
 Any remaining case defaults to "unknown".
 
 
-Stage 2 — spatial intersection. For each taxon, the validated
-occurrence points are overlaid on the WGSRPD Level 3 polygon map (via
-terra::extract()) to assign an area code to each record. That area code
-is then looked up in the classified distribution table. Records falling
-outside any documented area, or whose taxon has no entry in
-Distributions, are labelled "unknown".'><meta property="og:image" content="https://wyx619.github.io/VasGBIF/logo.png"></head><body>
+A record that falls in several areas at once is assigned the most preferred
+status ("native" first). Unresolved records may be buffered (buffer_km)
+so coastal points just outside a polygon can still be matched; buffered
+hits are ranked below exact ones. Records that the spatial stage still
+leaves unresolved are retried by country code (see below).
+Country-code stage. Records without coordinates, plus records the
+spatial stage left unresolved, are matched through countryCode mapped to
+WGSRPD Level 3 areas by the Level3maping table; no geometry is used. The
+same status priority applies.'><meta property="og:image" content="https://wyx619.github.io/VasGBIF/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -55,7 +63,7 @@ Distributions, are labelled "unknown".'><meta property="og:image" content="https
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.5.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -94,51 +102,103 @@ Distributions, are labelled "unknown".'><meta property="og:image" content="https
     </div>
 
     <div class="ref-description section level2">
-    <p>Assigns a native status classification to each occurrence record
-by matching validated coordinates to WCVP distribution data via WGSRPD
-Level 3 polygons.</p>
-<p>Native status is determined in two stages, working one taxon at a time.</p>
-<p><strong>Stage 1 — classify WGSRPD areas.</strong> The internal <code>Distributions</code> dataset
-links each WGSRPD Level 3 area code to WCVP flags (<code>introduced</code>, <code>extinct</code>,
-<code>location_doubtful</code>). These flags are resolved into a single status label
-with the following priority:</p><ol><li><p>If <code>location_doubtful == 1</code>, the area is classified as
+    <p>Assigns a native status classification to each occurrence
+record by matching it against WCVP distribution data (the internal
+<code>Distributions</code> dataset) via WGSRPD Level 3 areas. Classification proceeds
+in two stages.</p>
+<p><strong>Spatial stage.</strong> Records with validated coordinates are overlaid on the
+WGSRPD Level 3 polygon map (via <code><a href="https://rspatial.github.io/terra/reference/extract.html" class="external-link">terra::extract()</a></code>) to assign an area code
+to each record. That area code is looked up in a distribution table
+classified from the WCVP flags (<code>introduced</code>, <code>extinct</code>,
+<code>location_doubtful</code>) with the following priority:</p><ol><li><p>If <code>location_doubtful == 1</code>, the area is classified as
 <code>"location_doubtful"</code> regardless of other flags.</p></li>
 <li><p>Otherwise, if <code>introduced == 1</code>, the area is <code>"introduced"</code>.</p></li>
 <li><p>Otherwise, if <code>extinct == 1</code>, the area is <code>"extinct"</code>.</p></li>
 <li><p>If all three flags are <code>0</code>, the area is <code>"native"</code>.</p></li>
 <li><p>Any remaining case defaults to <code>"unknown"</code>.</p></li>
-</ol><p><strong>Stage 2 — spatial intersection.</strong> For each taxon, the validated
-occurrence points are overlaid on the WGSRPD Level 3 polygon map (via
-<code><a href="https://rspatial.github.io/terra/reference/extract.html" class="external-link">terra::extract()</a></code>) to assign an area code to each record. That area code
-is then looked up in the classified distribution table. Records falling
-outside any documented area, or whose taxon has no entry in
-<code>Distributions</code>, are labelled <code>"unknown"</code>.</p>
+</ol><p>A record that falls in several areas at once is assigned the most preferred
+status (<code>"native"</code> first). Unresolved records may be buffered (<code>buffer_km</code>)
+so coastal points just outside a polygon can still be matched; buffered
+hits are ranked below exact ones. Records that the spatial stage still
+leaves unresolved are retried by country code (see below).</p>
+<p><strong>Country-code stage.</strong> Records without coordinates, plus records the
+spatial stage left unresolved, are matched through <code>countryCode</code> mapped to
+WGSRPD Level 3 areas by the <code>Level3maping</code> table; no geometry is used. The
+same status priority applies.</p>
     </div>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">detect_native_status</span><span class="op">(</span><span class="va">CoordinateCleaned</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">detect_native_status</span><span class="op">(</span></span>
+<span>  refined_coordinates <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  species_fallback <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  buffer_km <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>  buffer_chunk_size <span class="op">=</span> <span class="fl">2000</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
 
 
-<dl><dt id="arg-coordinatecleaned">CoordinateCleaned<a class="anchor" aria-label="anchor" href="#arg-coordinatecleaned"></a></dt>
-<dd><p>A <code>data.table</code> of records that passed coordinate
-validation, containing at minimum <code>gbifID</code>,
-<code>VasGBIF_decimalLongitude</code>, <code>VasGBIF_decimalLatitude</code>, and
-<code>VasGBIF_wcvp_taxon_name</code>.</p></dd>
+<dl><dt id="arg-refined-coordinates">refined_coordinates<a class="anchor" aria-label="anchor" href="#arg-refined-coordinates"></a></dt>
+<dd><p>A <code>CoordinateRefined</code> object (or a list with the
+same structure) containing <code>CoordinateCleaned</code> — records with validated
+coordinates — and <code>Coordinateless</code> — records without usable coordinates.</p></dd>
+
+
+<dt id="arg-species-fallback">species_fallback<a class="anchor" aria-label="anchor" href="#arg-species-fallback"></a></dt>
+<dd><p>Logical scalar. When <code>TRUE</code>, records that could not
+be matched on <code>Accepted_name</code> are retried against <code>Accepted_species</code>, so
+that infraspecific taxa absent from <code>Distributions</code> inherit the status
+recorded for their parent species. This is a deliberate loss of precision:
+a subspecies may be introduced in an area where the species is native.
+Rows resolved this way are marked <code>"accepted_species"</code> (spatial stage) or
+with a <code>"_species"</code> suffix (country-code stage) in
+<code>native_status_source</code>. Defaults to <code>FALSE</code>.</p></dd>
+
+
+<dt id="arg-buffer-km">buffer_km<a class="anchor" aria-label="anchor" href="#arg-buffer-km"></a></dt>
+<dd><p>Numeric scalar. Width of the spatial buffer in km applied
+to records the exact spatial match left unresolved. <code>0</code> disables the
+buffer. Defaults to <code>10</code>.</p></dd>
+
+
+<dt id="arg-buffer-chunk-size">buffer_chunk_size<a class="anchor" aria-label="anchor" href="#arg-buffer-chunk-size"></a></dt>
+<dd><p>Numeric scalar. Maximum number of records buffered
+in one chunk, keeping the relate matrix small. Defaults to <code>2000</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A <code>data.table</code> with columns:</p><ul><li><p><code>gbifID</code>: the record identifier</p></li>
+    <p>A <code>nativeDetected</code> object — a <code>data.table</code> subclass with one row
+per input record (all records from <code>CoordinateCleaned</code> and all from
+<code>Coordinateless</code>) and columns:</p><ul><li><p><code>gbifID</code>: the record identifier</p></li>
 <li><p><code>LEVEL3_COD</code>: the assigned WGSRPD Level 3 area code, or <code>NA</code> if the
-taxon has no distribution data</p></li>
+record could not be matched</p></li>
 <li><p><code>native_status</code>: one of <code>"native"</code>, <code>"introduced"</code>, <code>"extinct"</code>,
 <code>"location_doubtful"</code>, or <code>"unknown"</code></p></li>
+<li><p><code>native_status_source</code>: how the status was inferred. <code>"accepted_name"</code> /
+<code>"accepted_species"</code> are spatial matches; <code>"country_code"</code> /
+<code>"country_code_after_spatial_miss"</code> are country-code matches (with a
+<code>"_species"</code> suffix when <code>species_fallback</code> was used);
+<code>"country_code_miss"</code> means the country mapped to WGSRPD areas but the
+taxon had no distribution entry there; <code>"unmatched"</code> means the record had
+no usable key at all.</p></li>
+<li><p><code>buffered</code>: <code>TRUE</code> when the status came from a buffered spatial hit</p></li>
 </ul></div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p><strong>Coordinate reference system.</strong> Both the occurrence points and the
+internal <code>WGSRPD3</code> polygons are assumed to be in longitude/latitude
+(EPSG:4326); the function asserts this on the polygon side. <code>buffer_km</code> is
+applied as metres via <code><a href="https://rspatial.github.io/terra/reference/buffer.html" class="external-link">terra::buffer()</a></code>'s geodesic buffer, so it keeps the
+same meaning at every latitude.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="print.nativeDetected.html">print.nativeDetected()</a></code> for a compact summary of the result.</p></div>
+    </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
