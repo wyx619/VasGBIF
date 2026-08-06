@@ -35,9 +35,9 @@ in one chunk, keeping the relate matrix small. Defaults to \code{2000}.}
 \value{
 A \code{nativeDetected} object — a \code{data.table} subclass with one row
 per input record (all records from \code{CoordinateCleaned} and all from
-\code{Coordinateless}) and columns:
+\code{Coordinateless}), keyed by \code{gbifID}. Every column of the input records is
+retained unchanged, with four classification columns appended:
 \itemize{
-\item \code{gbifID}: the record identifier
 \item \code{LEVEL3_COD}: the assigned WGSRPD Level 3 area code, or \code{NA} if the
 record could not be matched
 \item \code{native_status}: one of \code{"native"}, \code{"introduced"}, \code{"extinct"},
@@ -51,6 +51,13 @@ taxon had no distribution entry there; \code{"unmatched"} means the record had
 no usable key at all.
 \item \code{buffered}: \code{TRUE} when the status came from a buffered spatial hit
 }
+
+The intermediate matching columns used internally (taxon keys, candidate
+areas, match ranks) are not returned. Because the record columns are
+carried through, the result holds a second copy of the input data: for large
+inputs, \code{refined_coordinates} can be dropped once the classification is in
+hand. \code{CoordinateProblematic} records are not classified and do not appear
+in the result.
 }
 \description{
 Assigns a native status classification to each occurrence

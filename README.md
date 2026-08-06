@@ -2,7 +2,7 @@
 
 ## Fast and Easy Compilation of Vascular Plants Occurrence Records from GBIF
 
-[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active) [![codecov.io](https://codecov.io/github/wyx619/VasGBIF/coverage.svg?branch=master)](https://app.codecov.io/github/wyx619/VasGBIF?branch=master) [![R-CMD-check](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml) ![](https://img.shields.io/github/issues/wyx619/VasGBIF?color=F48D73) ![](https://img.shields.io/github/release/wyx619/VasGBIF) ![](https://img.shields.io/github/license/wyx619/VasGBIF.svg?logo=github) ![GitHub stars](https://img.shields.io/github/stars/wyx619/VasGBIF.svg?style=social&label=Star&maxAge=2592000)
+[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active) [![codecov.io](https://codecov.io/github/wyx619/VasGBIF/coverage.svg?branch=master)](https://app.codecov.io/github/wyx619/VasGBIF?branch=master) [![R-CMD-check](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml) ![](https://img.shields.io/github/issues/wyx619/VasGBIF?color=F48D73) ![](https://img.shields.io/github/license/wyx619/VasGBIF.svg?logo=github) ![GitHub stars](https://img.shields.io/github/stars/wyx619/VasGBIF.svg?style=social&label=Star&maxAge=2592000) ![](https://img.shields.io/badge/version-3.6.1-blue?logo=R)
 
 ## Introduction
 
@@ -39,50 +39,38 @@ pak::pak('wyx619/VasGBIF@master')
 
 Online wikis and manuals are available on <https://wyx619.github.io/VasGBIF/>.
 
-## Workflow
+## Typical Workflow
 
-***4 stages and 8 core functions of VasGBIF.**\
-Each stage progressively filters records through taxonomic, quality, and coordinate checks. After all, more than half of the initial records are retained as high-quality and non-redundant data.*![Workflow](man/figures/workflow.png "VasGBIF workflow")
+***Architecture*** ***of VasGBIF.**\
+Each step progressively filters records through taxonomic, quality, and coordinate checks. After all, more than half of the initial records are retained as high-quality and non-redundant data.*![Workflow](man/figures/workflow.png "VasGBIF workflow")
 
-VasGBIF provides a reproducible, tracheophyte-optimized, and computationally efficient framework for transforming GBIF records into analysis-ready datasets. The package functions are organized into 4 stages built around 8 core functions.
-
-**Stage 1: Import and Issue Parsing**
-
-This stage loads the raw GBIF data and expands the GBIF issue flags so that every downstream step can rely on clean, well-typed inputs.
+VasGBIF provides a reproducible, tracheophyte-optimized, and computationally efficient framework for transforming GBIF records into analysis-ready datasets. The package functions are organized into 8 steps.
 
 1.  **Import Records** (`import_records`): Reads a GBIF occurrence download ZIP ('SIMPLE_CSV' or Darwin Core Archive), extracts the occurrence table, and returns an `"import"` data.table of the fields required by the workflow. No records are filtered at this stage — all diagnostic flags are preserved for later quality scoring.
 
 2.  **Extract GBIF Issues** (`extract_gbif_issues`): Expands the raw pipe-separated `issue` column into one logical indicator column per GBIF issue code, plus a companion summary ranking issues by how many records they flag.
 
-**Stage 2: Taxonomic Resolution and Record Filtering**
-
-This stage resolves scientific names against authoritative taxonomic sources and removes records that fail the user-selected quality rules.
-
 3.  **Check Taxon Name** (`check_taxon`): Submits species- and infraspecific-rank names to the [Taxonomic Name Resolution Service](https://doi.org/10.32614/CRAN.package.TNRS) (TNRS; Boyle et al. 2013) for resolution against the World Checklist of Vascular Plants (WCVP) or World Flora Online (WFO). Synonyms are resolved to accepted names; records that fail the match-score threshold or lack an accepted/synonym status are excluded from the downstream table and reported in the `summary` for manual review.
 
 4.  **Custom Filter** (`custom_filter`): Joins the imported records with the resolved taxonomy and the parsed issue flags, then applies the enabled filter rules (country code, coordinate uncertainty, GBIF issue count, event date, collector and identifier fields) to retain only high-quality records. Every rule is independently toggleable, and each step is recorded in a per-rule audit table.
-
-**Stage 3: Coordinate Validation and Native-Status Annotation**
-
-This stage validates the coordinates of the filtered records and annotates each record with its native-range status.
 
 5.  **Refine Coordinates** (`refine_coordinates`): Validates coordinates with [CoordinateCleaner](https://doi.org/10.32614/CRAN.package.CoordinateCleaner) (Zizka et al. 2019) to flag spatial errors such as centroids, capitals, marine coordinates, and zero coordinates, splitting records into cleaned, problematic, and coordinate-less tables. Validation is parallelized across user-specified threads.
 
 6.  **Detect Native Status** (`detect_native_status`): Matches each record against WCVP distribution data (the internal `Distributions` dataset) via WGSRPD Level 3 areas to classify it as native, introduced, extinct, location_doubtful, or unknown.
 
-**Stage 4: Export and Visualization**
-
-7.  **Export Records** (`export_records`): Writes the refined records to disk as three gzip-compressed CSV files: all usable records, the native subset, and records that failed coordinate validation.
+7.  **Export Records** (`export_records`): Writes the classified records to disk as two gzip-compressed CSV files: all usable records and the native subset.
 
 8.  **Map Records** (`map_records`): Renders the refined records on an interactive map via [mapview](https://CRAN.R-project.org/package=mapview), with geohash-based decluttering to reduce visual overlap. Records are colour-coded by native status, and multiple basemap layers are supported (OpenStreetMap, Esri World Imagery, and others).
 
 Focused exclusively on GBIF plant occurrence records, VasGBIF can compile one million records within 15 minutes on a laptop without high memory usage.
 
-Anyway, VasGBIF integrates these components into a unified, automated workflow that enhances data standardization, accuracy, and usability, which enables robust, reproducible, and scalable compiling of GBIF tracheophyte records for advanced biodiversity research.
+Overall, VasGBIF integrates these components into a unified, automated workflow that enhances data standardization, accuracy, and usability, which enables robust, reproducible, and scalable compiling of GBIF tracheophyte records for advanced biodiversity research.
 
 ## Key Points
 
 ### Precise native-status detection system
+
+![](man/figures/native.svg)
 
 `detect_native_status()` is the analytical core of VasGBIF. It assigns a native, introduced, extinct, location_doubtful, or unknown classification to every occurrence by matching the record's identification and position against authoritative WCVP distribution data (the internal `Distributions` dataset) organised by WGSRPD Level 3 areas. Classification runs in two passes so that the most precise available evidence always wins:
 
@@ -93,57 +81,61 @@ The system stays precise without sacrificing speed: coastal points just outside 
 
 ### Flexible and fluent custom filter system
 
+![](man/figures/custom_filter_system.svg)
+
 `custom_filter()` turns the raw download into an analysis-ready occurrence table. It joins the three preceding outputs (`occ_import`, `taxa_checked`, `gbif_issue`) into one table, then walks a user-selected set of quality rules — one vectorised `data.table` pass per rule — with every step audited:
 
 - **Fluent rule control.** Each rule is an independently toggleable argument. Three rules are on by default (`countryCode`, `coordinateUncertainty` ≤ 10,000 m, `gbif_issues_max` ≤ 5); `date`, `identifiedBy`, and `recordedBy` are opt-in, so no information is discarded without an explicit choice. Numeric thresholds share one uniform "off" convention — `NULL`, `NA`, or `''` — so any rule can be disabled without restructuring the call.
 - **Auditable pipeline.** Every step, including the `taxon_resolved` join, is logged in the returned `summary` table (`rule`, `dropped`, `remaining`), making the effect of each decision visible and reproducible.
 - **Careful collector and identifier detection.** The `identifiedBy` and `recordedBy` rules remove only values that contain no named person, using a curated multilingual keyword list and whole-value patterns; name separators protect values that mix a keyword with a real name, and word-boundary matching keeps CJK keywords from splitting genuine names — deliberately conservative so that real records are never dropped.
 
+![](man/figures/collector_identifier_criteria.svg)
+
 ## Minimal Complete Example
 
 The following code demonstrates the complete VasGBIF workflow from data import to records mapping:
 
 ``` r
-# Step 1: Import (built-in example, or use your own ZIP)
+# Import (built-in example, or use your own ZIP)
 gbif_file <- system.file(
   "extdata", "0003386-260721160103020.zip",
   package = "VasGBIF"
 )
+
 occ_import <- import_records(path = gbif_file)
 
-# Step 2: Parse GBIF issue flags
+# Parse GBIF issue flags
 gbif_issue <- extract_gbif_issues(occ_import)
 
-# Step 3: Resolve taxon names against WCVP
+# Resolve taxon names by TNRS
 taxa_checked <- check_taxon(occ_import = occ_import, accuracy = 0.85)
 
-# Step 4: Filter records by quality rules
+# Filter records by quality rules
 filtered <- custom_filter(
   occ_import = occ_import,
   taxa_checked = taxa_checked,
   gbif_issue = gbif_issue
 )
 
-# Step 5: Validate coordinates and annotate native status
+# Validate coordinates and annotate native status
 refined_coordinates <- refine_coordinates(
   custom_filtered = filtered,
   threads = 4
 )
+
 native_detected <- detect_native_status(
   refined_coordinates = refined_coordinates
 )
 
-# Step 6: Export and visualise
+# Export 
 export_records(
-  refined_coordinates = refined_coordinates,
   native_detected = native_detected,
-  export_path = tempdir()
+  export_path = getwd()
 )
 
 # Optional: visualise on an interactive map
 map_records(
   native_detected = native_detected,
-  refined_coordinates = refined_coordinates,
   precision = 3,
   cex = 3
 )

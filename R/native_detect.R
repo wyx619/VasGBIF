@@ -55,9 +55,9 @@
 #'
 #' @returns A `nativeDetected` object — a `data.table` subclass with one row
 #'   per input record (all records from `CoordinateCleaned` and all from
-#'   `Coordinateless`) and columns:
+#'   `Coordinateless`), keyed by `gbifID`. Every column of the input records is
+#'   retained unchanged, with four classification columns appended:
 #'
-#' - `gbifID`: the record identifier
 #' - `LEVEL3_COD`: the assigned WGSRPD Level 3 area code, or `NA` if the
 #'   record could not be matched
 #' - `native_status`: one of `"native"`, `"introduced"`, `"extinct"`,
@@ -71,6 +71,13 @@
 #'   no usable key at all.
 #' - `buffered`: `TRUE` when the status came from a buffered spatial hit
 #'
+#' The intermediate matching columns used internally (taxon keys, candidate
+#' areas, match ranks) are not returned. Because the record columns are
+#' carried through, the result holds a second copy of the input data: for large
+#' inputs, `refined_coordinates` can be dropped once the classification is in
+#' hand. `CoordinateProblematic` records are not classified and do not appear
+#' in the result.
+#'
 #' @seealso [print.nativeDetected()] for a compact summary of the result.
 #'
 #' @import data.table
@@ -82,6 +89,7 @@ detect_native_status <- function(
   buffer_km = 10,
   buffer_chunk_size = 2000
 ) {
+  t1 <- Sys.time()
   if (!isTRUE(species_fallback) && !isFALSE(species_fallback)) {
     stop("`species_fallback` must be TRUE or FALSE.", call. = FALSE)
   }
@@ -106,6 +114,29 @@ detect_native_status <- function(
 
   CoordinateCleaned <- refined_coordinates$CoordinateCleaned
   Coordinateless <- refined_coordinates$Coordinateless
+
+  # The input columns are carried into the result, so a name that collides with
+  # a classification column would be silently renamed by the final join. This
+  # happens if an already-classified table is passed back in.
+  status_cols <- c(
+    "LEVEL3_COD",
+    "native_status",
+    "native_status_source",
+    "buffered"
+  )
+  clashing_cols <- intersect(
+    status_cols,
+    union(names(CoordinateCleaned), names(Coordinateless))
+  )
+  if (length(clashing_cols) > 0L) {
+    stop(
+      "`refined_coordinates` already contains the classification column(s): ",
+      paste(clashing_cols, collapse = ", "),
+      ". Pass the output of `refine_coordinates()`, not an already-classified ",
+      "table.",
+      call. = FALSE
+    )
+  }
 
   if (species_fallback && !"Accepted_species" %chin% names(CoordinateCleaned)) {
     stop(
@@ -474,7 +505,7 @@ detect_native_status <- function(
     )
   ]
 
-  result <- rbindlist(list(
+  status <- rbindlist(list(
     occurrences[
       native_status_source != "unmatched",
       .(gbifID, LEVEL3_COD, native_status, native_status_source, buffered)
@@ -488,12 +519,42 @@ detect_native_status <- function(
     )]
   ))
 
+  # Reattach the record columns. A status is only interpretable next to the
+  # record it describes, and every consumer otherwise has to join back to
+  # `refined_coordinates` to recover them. `CoordinateCleaned` and
+  # `Coordinateless` partition the input by `gbifID`, so this is one-to-one --
+  # asserted below, since a duplicated `gbifID` would inflate the result
+  # instead of failing.
+  result <- merge(
+    rbindlist(
+      list(CoordinateCleaned, Coordinateless),
+      use.names = TRUE,
+      fill = TRUE
+    ),
+    status,
+    by = "gbifID"
+  )
+
+  if (nrow(result) != nrow(status)) {
+    stop(
+      "Reattaching the record columns changed the row count (",
+      nrow(status),
+      " -> ",
+      nrow(result),
+      "); `gbifID` is not unique across `CoordinateCleaned` and ",
+      "`Coordinateless`.",
+      call. = FALSE
+    )
+  }
+
   # The pre-stage-2 output was keyed by `gbifID` (inherited from the keyed
   # `CoordinateCleaned` input); restore that contract so the returned table
   # stays sorted by `gbifID` with `sorted = "gbifID"`, as before.
   setkey(result, gbifID)
   class(result) <- c("nativeDetected", class(result))
-  message('Done')
+  used <- Sys.time() - t1
+  message(paste('used', used %>% round(1), attributes(used)$units))
+
   result
 }
 #' Normalise a taxon name for cross-source matching

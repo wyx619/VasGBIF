@@ -4,19 +4,11 @@
 \alias{map_records}
 \title{Visualize refined records on interactive maps}
 \usage{
-map_records(
-  native_detected = NA,
-  refined_coordinates = NA,
-  precision = 3,
-  cex = 3
-)
+map_records(native_detected = NA, precision = 3, cex = 3)
 }
 \arguments{
 \item{native_detected}{A \code{nativeDetected} object returned by
 \code{\link[=detect_native_status]{detect_native_status()}}.}
-
-\item{refined_coordinates}{A \code{CoordinateRefined} object returned by
-\code{\link[=refine_coordinates]{refine_coordinates()}}.}
 
 \item{precision}{Positive integer controlling the spatial resolution of
 geohash-based deduplication. Higher values produce finer-grained cells. For
@@ -37,11 +29,11 @@ exploration and quality assessment. Records are deduplicated with geohashes
 and color-coded by their native status.
 }
 \details{
-The workflow has four stages:
+The function works in four steps:
 \itemize{
-\item \strong{Record aggregation:} Joins the classification output of
-\code{\link[=detect_native_status]{detect_native_status()}} with the coordinate data of \code{\link[=refine_coordinates]{refine_coordinates()}}
-by \code{gbifID}, keeping records whose \code{native_status} is not \code{"unknown"}.
+\item \strong{Record selection:} Reads the classified records from
+\code{\link[=detect_native_status]{detect_native_status()}}, keeping those whose \code{native_status} is not
+\code{"unknown"}.
 \item \strong{Geohash deduplication:} Encodes coordinates at the requested precision
 and retains one representative record per species, geohash cell, and native
 status.
@@ -52,10 +44,11 @@ Stadia Stamen Watercolor basemaps.
 }
 \subsection{Record selection}{
 
-The map combines the native-status classification from \code{\link[=detect_native_status]{detect_native_status()}}
-with the coordinate data from \code{\link[=refine_coordinates]{refine_coordinates()}} by \code{gbifID}. Records
-with \code{native_status = "unknown"} are excluded, as are records with missing
-longitude or latitude before geohash deduplication.
+Both the classification and the coordinates are read from \code{native_detected},
+which carries every column of the input records. Records with
+\code{native_status = "unknown"} are excluded, as are records with missing
+longitude or latitude — which removes the coordinateless records that
+\code{\link[=detect_native_status]{detect_native_status()}} classified through their country code.
 }
 
 \subsection{Geohash deduplication}{
@@ -81,18 +74,16 @@ perception.
 }
 }
 \examples{
-\dontshow{if (interactive() && exists("native_detected") && exists("refined_coordinates")) withAutoprint(\{ # examplesIf}
+\dontshow{if (interactive() && exists("native_detected")) withAutoprint(\{ # examplesIf}
 map_records(
   native_detected = native_detected,
-  refined_coordinates = refined_coordinates,
   precision = 3,
   cex = 3
 )
 \dontshow{\}) # examplesIf}
 }
 \seealso{
-\code{\link[=detect_native_status]{detect_native_status()}} and \code{\link[=refine_coordinates]{refine_coordinates()}} for the objects consumed
-by this function; \code{\link[geohashTools:gh_encode]{gh_encode()}} for geohash
-encoding and \code{\link[mapview:mapView]{mapView()}} for interactive map
-construction.
+\code{\link[=detect_native_status]{detect_native_status()}} for the object consumed by this function;
+\code{\link[geohashTools:gh_encode]{gh_encode()}} for geohash encoding and
+\code{\link[mapview:mapView]{mapView()}} for interactive map construction.
 }

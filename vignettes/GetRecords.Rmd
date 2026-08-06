@@ -244,6 +244,6 @@ The `import` object is the entry point to the full VasGBIF pipeline. Continue wi
 - `get_collections()` and `set_vouchers()` for duplicate detection
 - `refine_records()` for coordinate validation and native-status annotation
 
-See the **Example** vignette (`vignette("Example", package = "VasGBIF")`) for a complete walk-through of all four stages.
+See the **Example** vignette (`vignette("Example", package = "VasGBIF")`) for a complete walk-through of all eight steps.
 
 # References

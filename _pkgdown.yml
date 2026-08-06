@@ -30,7 +30,7 @@ navbar:
         - text: Full application with letsR
           href: articles/Application.html
     news:
-      text: News
+      text: Changelogs
       href: news/index.html
     github:
       icon: fa-github
@@ -40,21 +40,29 @@ reference:
   - title: "Package overview"
     contents:
       - VasGBIF
-  - title: "Stage 1 — Import and issue parsing"
+  - title: "Step 1 — Import Records"
     contents:
       - import_records
+  - title: "Step 2 — Extract GBIF Issues"
+    contents:
       - extract_gbif_issues
-  - title: "Stage 2 — Taxonomic resolution and record filtering"
+  - title: "Step 3 — Check Taxon Name"
     contents:
       - check_taxon
+  - title: "Step 4 — Custom Filter"
+    contents:
       - custom_filter
-  - title: "Stage 3 — Coordinate validation and native-status annotation"
+  - title: "Step 5 — Refine Coordinates"
     contents:
       - refine_coordinates
+  - title: "Step 6 — Detect Native Status"
+    contents:
       - detect_native_status
-  - title: "Stage 4 — Export and visualisation"
+  - title: "Step 7 — Export Records"
     contents:
       - export_records
+  - title: "Step 8 — Map Records"
+    contents:
       - map_records
   - title: "Print methods"
     contents:

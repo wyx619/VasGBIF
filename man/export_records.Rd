@@ -2,18 +2,11 @@
 % Please edit documentation in R/export_records.R
 \name{export_records}
 \alias{export_records}
-\title{Export refined records to compressed CSV files}
+\title{Export classified records to compressed CSV files}
 \usage{
-export_records(
-  refined_coordinates = NA,
-  native_detected = NA,
-  export_path = NA
-)
+export_records(native_detected = NA, export_path = NA)
 }
 \arguments{
-\item{refined_coordinates}{A \code{CoordinateRefined} object returned by
-\code{\link[=refine_coordinates]{refine_coordinates()}}.}
-
 \item{native_detected}{A \code{nativeDetected} object returned by
 \code{\link[=detect_native_status]{detect_native_status()}}.}
 
@@ -24,31 +17,28 @@ Called for its side effect of writing files to \code{export_path}. Returns
 \code{NULL} invisibly.
 }
 \description{
-Writes the results of \code{\link[=refine_coordinates]{refine_coordinates()}} and
-\code{\link[=detect_native_status]{detect_native_status()}} to disk as gzip-compressed CSV files. Three files
-are exported: all refined records joined with their native status, the
-native subset, and records that failed coordinate validation.
+Writes the results of \code{\link[=detect_native_status]{detect_native_status()}} to disk as
+gzip-compressed CSV files. Two files are exported: all classified records
+and the native subset.
 }
 \details{
 The following files are written:
 \itemize{
-\item \code{all_records.csv.gz}: all refined records — those with validated
-coordinates and those without — joined with their native status by \code{gbifID}
+\item \code{all_records.csv.gz}: every classified record — those with validated
+coordinates and those without — with all its columns and its native status
 \item \code{native_records.csv.gz}: the subset classified as \code{"native"}
-\item \code{CoordinateProblematic_records.csv.gz}: records that failed one or more
-CoordinateCleaner tests
 }
+
+\code{native_detected} already carries every column of the input records, so no
+join is performed here: \code{all_records.csv.gz} is written straight from it.
+Records that failed coordinate validation are never classified and therefore
+do not appear in the output; use \code{\link[=refine_coordinates]{refine_coordinates()}} to inspect them.
 
 Files are written with \code{fwrite(encoding = "UTF-8")}. \code{export_path} is
 validated before writing: if it is not a single character path or exists as
 a file (not a directory), the function stops with an error; if it does not
 exist, a warning is emitted and the directory is created automatically.
-
-The data inputs are validated first: \code{refined_coordinates} must be a
-\code{CoordinateRefined} object whose \code{CoordinateCleaned} and \code{Coordinateless}
-tables share identical columns and contain \code{gbifID}; \code{native_detected} must
-be a \code{nativeDetected} object with \code{gbifID} and \code{native_status}.
 }
 \seealso{
-\code{\link[=refine_coordinates]{refine_coordinates()}}, \code{\link[=detect_native_status]{detect_native_status()}}
+\code{\link[=detect_native_status]{detect_native_status()}}, \code{\link[=refine_coordinates]{refine_coordinates()}}
 }

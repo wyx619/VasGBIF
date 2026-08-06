@@ -43,12 +43,56 @@ test_that("output is a nativeDetected data.table keyed by gbifID", {
   expect_s3_class(result, "nativeDetected")
   expect_s3_class(result, "data.table")
   expect_identical(key(result), "gbifID")
+  # The record columns are carried through, with the classification columns
+  # appended; `merge()` puts the join key first.
   expect_named(
     result,
-    c("gbifID", "LEVEL3_COD", "native_status", "native_status_source", "buffered")
+    c(
+      "gbifID",
+      "Accepted_name",
+      "Accepted_species",
+      "countryCode",
+      "decimalLongitude",
+      "decimalLatitude",
+      "LEVEL3_COD",
+      "native_status",
+      "native_status_source",
+      "buffered"
+    )
   )
   expect_type(result$buffered, "logical")
   expect_false(anyNA(result$buffered))
+})
+
+test_that("record columns are returned unchanged", {
+  clean <- mk_clean("1", "Alnus glutinosa", lon = 10, lat = 60, cc = "NO")
+  without <- mk_without("2", "Alnus glutinosa", cc = "NO")
+
+  result <- suppressMessages(detect_native_status(list(
+    CoordinateCleaned = clean,
+    Coordinateless = without
+  )))
+
+  input <- rbindlist(list(clean, without), use.names = TRUE, fill = TRUE)
+  setkey(input, gbifID)
+  expect_equal(
+    result[, names(input), with = FALSE],
+    input,
+    ignore_attr = "class"
+  )
+})
+
+test_that("an already-classified input is rejected", {
+  clean <- mk_clean("1", "Alnus glutinosa", lon = 10, lat = 60)
+  clean[, native_status := "native"]
+
+  expect_error(
+    detect_native_status(list(
+      CoordinateCleaned = clean,
+      Coordinateless = NULL
+    )),
+    "already contains the classification column"
+  )
 })
 
 test_that("one row per input record across both tables", {

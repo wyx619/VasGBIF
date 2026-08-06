@@ -4,11 +4,11 @@
 #' exploration and quality assessment. Records are deduplicated with geohashes
 #' and color-coded by their native status.
 #'
-#' The workflow has four stages:
+#' The function works in four steps:
 #'
-#' * **Record aggregation:** Joins the classification output of
-#'   [detect_native_status()] with the coordinate data of [refine_coordinates()]
-#'   by `gbifID`, keeping records whose `native_status` is not `"unknown"`.
+#' * **Record selection:** Reads the classified records from
+#'   [detect_native_status()], keeping those whose `native_status` is not
+#'   `"unknown"`.
 #' * **Geohash deduplication:** Encodes coordinates at the requested precision
 #'   and retains one representative record per species, geohash cell, and native
 #'   status.
@@ -19,8 +19,6 @@
 #'
 #' @param native_detected A `nativeDetected` object returned by
 #'   [detect_native_status()].
-#' @param refined_coordinates A `CoordinateRefined` object returned by
-#'   [refine_coordinates()].
 #' @param precision Positive integer controlling the spatial resolution of
 #'   geohash-based deduplication. Higher values produce finer-grained cells. For
 #'   reference, precision values of 4, 3, and 2 represent approximately 20 km,
@@ -31,10 +29,11 @@
 #' @details
 #' ## Record selection
 #'
-#' The map combines the native-status classification from [detect_native_status()]
-#' with the coordinate data from [refine_coordinates()] by `gbifID`. Records
-#' with `native_status = "unknown"` are excluded, as are records with missing
-#' longitude or latitude before geohash deduplication.
+#' Both the classification and the coordinates are read from `native_detected`,
+#' which carries every column of the input records. Records with
+#' `native_status = "unknown"` are excluded, as are records with missing
+#' longitude or latitude — which removes the coordinateless records that
+#' [detect_native_status()] classified through their country code.
 #'
 #' ## Geohash deduplication
 #'
@@ -61,20 +60,18 @@
 #' three switchable basemap layers, and clickable popups with record metadata.
 #'
 #' @seealso
-#' [detect_native_status()] and [refine_coordinates()] for the objects consumed
-#' by this function; [`gh_encode()`][geohashTools::gh_encode] for geohash
-#' encoding and [`mapView()`][mapview::mapView] for interactive map
-#' construction.
+#' [detect_native_status()] for the object consumed by this function;
+#' [`gh_encode()`][geohashTools::gh_encode] for geohash encoding and
+#' [`mapView()`][mapview::mapView] for interactive map construction.
 #'
 #' @import data.table
 #' @import geohashTools
 #' @import mapview
 #' @importFrom dplyr %>% filter mutate select slice ungroup group_by
 #'
-#' @examplesIf interactive() && exists("native_detected") && exists("refined_coordinates")
+#' @examplesIf interactive() && exists("native_detected")
 #' map_records(
 #'   native_detected = native_detected,
-#'   refined_coordinates = refined_coordinates,
 #'   precision = 3,
 #'   cex = 3
 #' )
@@ -82,7 +79,6 @@
 #' @export
 map_records <- function(
   native_detected = NA,
-  refined_coordinates = NA,
   precision = 3,
   cex = 3
 ) {
@@ -92,23 +88,11 @@ map_records <- function(
       '`native_detected` must be a "nativeDetected" object from detect_native_status().'
     )
   }
-  if (!inherits(refined_coordinates, "CoordinateRefined")) {
-    stop(
-      '`refined_coordinates` must be a "CoordinateRefined" object from refine_coordinates().'
-    )
-  }
 
-  required_status_cols <- c("gbifID", "native_status", "native_status_source")
-  missing_status_cols <- setdiff(required_status_cols, names(native_detected))
-  if (length(missing_status_cols) > 0L) {
-    stop(
-      "`native_detected` is missing required column(s): ",
-      paste(missing_status_cols, collapse = ", ")
-    )
-  }
-
-  coordinate_cols <- c(
+  required_cols <- c(
     "gbifID",
+    "native_status",
+    "native_status_source",
     "gbif_issues",
     "Accepted_name",
     "scientificName",
@@ -119,12 +103,11 @@ map_records <- function(
     "decimalLatitude",
     "decimalLongitude"
   )
-  cleaned <- refined_coordinates$CoordinateCleaned
-  missing_coordinate_cols <- setdiff(coordinate_cols, names(cleaned))
-  if (length(missing_coordinate_cols) > 0L) {
+  missing_cols <- setdiff(required_cols, names(native_detected))
+  if (length(missing_cols) > 0L) {
     stop(
-      "`refined_coordinates$CoordinateCleaned` is missing required column(s): ",
-      paste(missing_coordinate_cols, collapse = ", ")
+      "`native_detected` is missing required column(s): ",
+      paste(missing_cols, collapse = ", ")
     )
   }
 
@@ -141,25 +124,28 @@ map_records <- function(
     stop("`cex` must be a single positive number.")
   }
 
+  # `native_detected` carries every column of the input records, but a popup
+  # listing all of them is unreadable, so only the informative ones are kept.
   all_records <- native_detected[
     native_status != 'unknown',
-    .(gbifID, native_status, native_status_source)
-  ] %>%
-    merge(
-      by = 'gbifID',
-      cleaned[, .(
-        gbifID,
-        gbif_issues,
-        Accepted_name,
-        scientificName,
-        Taxonomic_status,
-        order,
-        family,
-        basisOfRecord,
-        decimalLatitude,
-        decimalLongitude
-      )],
+    .(
+      gbifID,
+      native_status,
+      native_status_source,
+      gbif_issues,
+      Accepted_name,
+      scientificName,
+      Taxonomic_status,
+      order,
+      family,
+      basisOfRecord,
+      decimalLatitude,
+      decimalLongitude
     )
+  ]
+  # Drop the `nativeDetected` class: what follows is a display subset, not a
+  # classification result, and the print method would misreport it.
+  setattr(all_records, "class", c("data.table", "data.frame"))
 
   dedup_by_geohash <- function(data, precision) {
     # 4 for 20 km, 3 for 156 km, 2 for 1250 km

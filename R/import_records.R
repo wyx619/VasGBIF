@@ -87,6 +87,7 @@
 #'
 #' @export
 import_records <- function(path = '', tempdir = NULL, remove_tempfile = NULL) {
+  t1 <- Sys.time()
   if (!is.character(path) || length(path) != 1L) {
     stop('`path` must be a single character string.')
   }
@@ -94,7 +95,9 @@ import_records <- function(path = '', tempdir = NULL, remove_tempfile = NULL) {
     stop('`path` is empty. Provide the path to a GBIF SIMPLE_CSV or DWCA zip.')
   }
   if (tolower(tools::file_ext(path)) != "zip") {
-    stop('`path` must point to a .zip file from a GBIF SIMPLE_CSV or DWCA download.')
+    stop(
+      '`path` must point to a .zip file from a GBIF SIMPLE_CSV or DWCA download.'
+    )
   }
 
   fields <- c(
@@ -188,7 +191,8 @@ import_records <- function(path = '', tempdir = NULL, remove_tempfile = NULL) {
   occ[, gbifID := as.character(gbifID)]
 
   class(occ) <- c('import', class(occ))
-
+  used <- Sys.time() - t1
+  message(paste('used', used %>% round(1), attributes(used)$units))
   occ
 }
 

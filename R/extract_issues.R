@@ -56,6 +56,7 @@
 #'
 #' @export
 extract_gbif_issues <- function(occ = NA) {
+  t1 <- Sys.time()
   if (!inherits(occ, "import")) {
     stop(
       "`occ` must be an \"import\" object returned by `import_records()`.",
@@ -107,7 +108,8 @@ extract_gbif_issues <- function(occ = NA) {
   )
 
   class(result) <- 'issue'
-
+  used <- Sys.time() - t1
+  message(paste('used', used %>% round(1), attributes(used)$units))
   return(result)
 }
 
@@ -138,7 +140,10 @@ print.issue <- function(x, ...) {
   cat("\n")
 
   summary_tbl <- x$summary
-  if (is.data.frame(summary_tbl) && all(c("issue_keys", "N") %chin% names(summary_tbl))) {
+  if (
+    is.data.frame(summary_tbl) &&
+      all(c("issue_keys", "N") %chin% names(summary_tbl))
+  ) {
     top <- as.data.table(summary_tbl)[N > 0][order(-N)][seq_len(min(10, .N))]
     if (nrow(top) > 0) {
       cat("\nTop issues by flagged records (full table in `$summary`):\n")

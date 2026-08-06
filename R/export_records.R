@@ -1,12 +1,9 @@
-#' @title Export refined records to compressed CSV files
+#' @title Export classified records to compressed CSV files
 #'
-#' @description Writes the results of [refine_coordinates()] and
-#'   [detect_native_status()] to disk as gzip-compressed CSV files. Three files
-#'   are exported: all refined records joined with their native status, the
-#'   native subset, and records that failed coordinate validation.
+#' @description Writes the results of [detect_native_status()] to disk as
+#'   gzip-compressed CSV files. Two files are exported: all classified records
+#'   and the native subset.
 #'
-#' @param refined_coordinates A `CoordinateRefined` object returned by
-#'   [refine_coordinates()].
 #' @param native_detected A `nativeDetected` object returned by
 #'   [detect_native_status()].
 #' @param export_path Directory where the compressed CSV files should be written.
@@ -17,73 +14,31 @@
 #' @details
 #' The following files are written:
 #'
-#' - `all_records.csv.gz`: all refined records — those with validated
-#'   coordinates and those without — joined with their native status by `gbifID`
+#' - `all_records.csv.gz`: every classified record — those with validated
+#'   coordinates and those without — with all its columns and its native status
 #' - `native_records.csv.gz`: the subset classified as `"native"`
-#' - `CoordinateProblematic_records.csv.gz`: records that failed one or more
-#'   CoordinateCleaner tests
+#'
+#' `native_detected` already carries every column of the input records, so no
+#' join is performed here: `all_records.csv.gz` is written straight from it.
+#' Records that failed coordinate validation are never classified and therefore
+#' do not appear in the output; use [refine_coordinates()] to inspect them.
 #'
 #' Files are written with `fwrite(encoding = "UTF-8")`. `export_path` is
 #' validated before writing: if it is not a single character path or exists as
 #' a file (not a directory), the function stops with an error; if it does not
 #' exist, a warning is emitted and the directory is created automatically.
 #'
-#' The data inputs are validated first: `refined_coordinates` must be a
-#' `CoordinateRefined` object whose `CoordinateCleaned` and `Coordinateless`
-#' tables share identical columns and contain `gbifID`; `native_detected` must
-#' be a `nativeDetected` object with `gbifID` and `native_status`.
-#'
 #' @import data.table
-#' @importFrom dplyr %>% filter
-#' @seealso [refine_coordinates()], [detect_native_status()]
+#' @seealso [detect_native_status()], [refine_coordinates()]
 #' @export
 export_records <- function(
-  refined_coordinates = NA,
   native_detected = NA,
   export_path = NA
 ) {
   # ---- validate inputs ----
-  if (!inherits(refined_coordinates, "CoordinateRefined")) {
-    stop(
-      '`refined_coordinates` must be a "CoordinateRefined" object from refine_coordinates().'
-    )
-  }
   if (!inherits(native_detected, "nativeDetected")) {
     stop(
       '`native_detected` must be a "nativeDetected" object from detect_native_status().'
-    )
-  }
-
-  cleaned <- refined_coordinates$CoordinateCleaned
-  coordinateless <- refined_coordinates$Coordinateless
-  problematic <- refined_coordinates$CoordinateProblematic
-
-  if (!is.data.frame(cleaned)) {
-    stop("`refined_coordinates$CoordinateCleaned` must be a data.frame.")
-  }
-  if (!is.data.frame(coordinateless)) {
-    stop("`refined_coordinates$Coordinateless` must be a data.frame.")
-  }
-  if (!is.data.frame(problematic)) {
-    stop("`refined_coordinates$CoordinateProblematic` must be a data.frame.")
-  }
-
-  for (nm in c("CoordinateCleaned", "Coordinateless")) {
-    missing_cols <- setdiff("gbifID", names(refined_coordinates[[nm]]))
-    if (length(missing_cols) > 0L) {
-      stop(
-        "`refined_coordinates$",
-        nm,
-        "` is missing required column(s): ",
-        paste(missing_cols, collapse = ", ")
-      )
-    }
-  }
-
-  # CoordinateCleaned and Coordinateless are rbind-ed, so columns must match
-  if (!identical(sort(names(cleaned)), sort(names(coordinateless)))) {
-    stop(
-      "`refined_coordinates$CoordinateCleaned` and `$Coordinateless` must have identical columns."
     )
   }
 
@@ -114,9 +69,9 @@ export_records <- function(
     dir.create(export_path, recursive = TRUE)
   }
 
-  all_records <- cleaned %>%
-    rbind(coordinateless) %>%
-    merge(native_detected, by = 'gbifID')
+  # `detect_native_status()` returns the record columns alongside the status,
+  # so this is the export table as-is -- no join, no column selection.
+  all_records <- native_detected
 
   message(paste(all_records[, .N], 'records finally left'))
 
@@ -135,11 +90,6 @@ export_records <- function(
       fwrite(
         native_records,
         file = file.path(export_path, 'native_records.csv.gz'),
-        encoding = "UTF-8"
-      )
-      fwrite(
-        problematic,
-        file = file.path(export_path, 'CoordinateProblematic_records.csv.gz'),
         encoding = "UTF-8"
       )
       message("Done")

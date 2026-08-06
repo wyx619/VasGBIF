@@ -160,6 +160,7 @@ custom_filter <- function(
   filter_recordedBy = FALSE,
   filter_gbif_issues_max = 5
 ) {
+  t1 <- Sys.time()
   # ---- validate inputs ----
   if (!inherits(occ_import, "import")) {
     stop('`occ_import` must be an "import" data.table from import_records().')
@@ -371,6 +372,8 @@ custom_filter <- function(
     summary = summary
   )
   class(result) <- "customFiltered"
+  used <- Sys.time() - t1
+  message(paste('used', used %>% round(1), attributes(used)$units))
   result
 }
 
