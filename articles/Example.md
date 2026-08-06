@@ -2,23 +2,15 @@
 
 ## Overview
 
-VasGBIF is a high-performance R package that compiles, validates, and
-standardizes tracheophyte occurrence records from GBIF into
-analysis-ready datasets. This basic example demonstrates the complete
-workflow using the built-in example dataset.
+VasGBIF provides a reproducible, tracheophyte-optimized, and
+computationally efficient framework for transforming GBIF records into
+analysis-ready datasets. The package functions are organized into 8
+steps. This basic example demonstrates the complete workflow using the
+built-in example dataset.
 
-The VasGBIF pipeline consists of **4 stages** with **8 core functions**:
-
-| Stage | Functions |
-|----|----|
-| **Stage 1:** Import and issue parsing | [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md), [`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md) |
-| **Stage 2:** Taxonomic resolution and record filtering | [`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md), [`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md) |
-| **Stage 3:** Coordinate validation and native-status annotation | [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md), [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md) |
-| **Stage 4:** Export and visualisation | [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md), [`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md) |
-
-Each stage progressively filters records through taxonomic, quality, and
-coordinate checks, so the dataset shrinks from the raw download to a
-high-quality, analysis-ready set.
+Each step below progressively filters records through taxonomic,
+quality, and coordinate checks, so the dataset shrinks from the raw
+download to a high-quality, analysis-ready set.
 
 ``` r
 
@@ -27,9 +19,7 @@ library(data.table)
 VasGBIF_summary <- list()
 ```
 
-## Stage 1: Import and Issue Parsing
-
-### Import Records
+## Import Records
 
 [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md)
 reads a GBIF occurrence download ZIP (‘SIMPLE_CSV’ or Darwin Core
@@ -58,7 +48,7 @@ The returned `"import"` object is a `data.table` with the GBIF fields
 used by the workflow (`gbifID` coerced to character, plus the raw
 `issue` column).
 
-### Extract GBIF Issues
+## Extract GBIF Issues
 
 [`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md)
 expands the raw pipe-separated `issue` column into one logical indicator
@@ -77,9 +67,7 @@ The `issue` object contains:
   `issue_count`
 - `summary`: `issue_keys` and `N`, ranked by decreasing flag count
 
-## Stage 2: Taxonomic Resolution and Record Filtering
-
-### Check Taxon Name
+## Check Taxon Name
 
 [`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md)
 submits species- and infraspecific-rank names to the Taxonomic Name
@@ -104,7 +92,7 @@ The `occ_taxa` object contains:
 - `summary`: one row per submitted name, for reviewing match quality
 - `runtime`: execution time
 
-### Custom Filter
+## Custom Filter
 
 [`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md)
 joins the imported records with the resolved taxonomy and the parsed
@@ -130,9 +118,7 @@ The `customFiltered` object contains:
 - `occ_filtered`: the filtered occurrence table
 - `summary`: per-rule `rule`, `dropped`, and `remaining` counts
 
-## Stage 3: Coordinate Validation and Native-Status Annotation
-
-### Refine Coordinates
+## Refine Coordinates
 
 [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
 validates coordinates with CoordinateCleaner (Zizka et al. 2019) to flag
@@ -160,7 +146,7 @@ The `CoordinateRefined` object contains:
 - `Coordinateless`: records without complete coordinates
 - `runtime`: execution time
 
-### Detect Native Status
+## Detect Native Status
 
 [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
 matches each record against WCVP distribution data (the internal
@@ -184,33 +170,33 @@ VasGBIF_summary$unknown <- native_detected[native_status == "unknown", .N]
 print(native_detected)
 ```
 
-The `nativeDetected` object is a `data.table` keyed by `gbifID` with
-columns `LEVEL3_COD`, `native_status`, `native_status_source`, and
-`buffered`.
+The `nativeDetected` object is a `data.table` keyed by `gbifID`. It
+retains every column of the input records and appends `LEVEL3_COD`,
+`native_status`, `native_status_source`, and `buffered`, so it can be
+passed straight to
+[`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)
+and
+[`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)
+without joining back to `refined_coordinates`.
 
-## Stage 4: Export and Visualisation
-
-### Export Records
+## Export Records
 
 [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)
-writes the refined records to disk as three gzip-compressed CSV files:
+writes the classified records to disk as two gzip-compressed CSV files:
 
-- `all_records.csv.gz`: all usable records (cleaned + coordinateless)
-  joined with native status
+- `all_records.csv.gz`: all classified records (cleaned +
+  coordinateless) with their native status
 - `native_records.csv.gz`: the subset classified as native
-- `CoordinateProblematic_records.csv.gz`: records failing coordinate
-  validation
 
 ``` r
 
 export_records(
-  refined_coordinates = refined_coordinates,
   native_detected = native_detected,
   export_path = getwd()
 )
 ```
 
-### Map Records
+## Map Records
 
 [`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)
 renders the records on an interactive map via `mapview`, with
@@ -220,7 +206,6 @@ geohash-based decluttering and colour-coding by native status.
 
 map_records(
   native_detected = native_detected,
-  refined_coordinates = refined_coordinates,
   precision = 3,
   cex = 3
 )

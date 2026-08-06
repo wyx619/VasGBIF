@@ -299,7 +299,7 @@ Continue with:
 
 See the **Example** vignette
 ([`vignette("Example", package = "VasGBIF")`](https://wyx619.github.io/VasGBIF/articles/Example.md))
-for a complete walk-through of all four stages.
+for a complete walk-through of all eight steps.
 
 ## References
 

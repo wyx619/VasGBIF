@@ -31,7 +31,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,7 +50,7 @@
     <li><a class="dropdown-item" href="../articles/Application.html">Full application with letsR</a></li>
   </ul>
 </li>
-<li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
+<li class="nav-item"><a class="nav-link" href="../news/index.html">Changelogs</a></li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><form class="form-inline" role="search">
@@ -85,9 +85,9 @@ Wang</h4>
 University<br><a class="author_email" href="mailto:#"></a><a href="mailto:wyx1743@gmail.com" class="email">wyx1743@gmail.com</a>
       </address>
                   
-            <h4 data-toc-skip class="date">2026-08-05</h4>
+            <h4 data-toc-skip class="date">2026-08-06</h4>
       
-      <small class="dont-index">Source: <a href="https://github.com/wyx619/VasGBIF/blob/3.6.0/vignettes/Application.Rmd" class="external-link"><code>vignettes/Application.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/wyx619/VasGBIF/blob/master/vignettes/Application.Rmd" class="external-link"><code>vignettes/Application.Rmd</code></a></small>
       <div class="d-none name"><code>Application.Rmd</code></div>
     </div>
 
@@ -106,44 +106,50 @@ integrating environmental variables.</p>
 <p>A presence-absence matrix is only as good as the records behind it,
 so downstream analysis needs occurrences whose names resolve to an
 accepted taxonomy, whose coordinates have been validated, and whose
-native status is known. The VasGBIF pipeline delivers that in four
-stages:</p>
-<p><em>Stage 1 — Import and issue parsing</em></p>
+native status is known. The VasGBIF pipeline delivers that in eight
+sequential steps:</p>
 <ol style="list-style-type: decimal">
 <li>
-<strong><code><a href="../reference/import_records.html">import_records()</a></code></strong> — read the GBIF
-occurrence download ZIP (<code>SIMPLE_CSV</code> or Darwin Core
-Archive), keeping the raw <code>issue</code> field intact</li>
+<strong>Import Records</strong> —
+<strong><code><a href="../reference/import_records.html">import_records()</a></code></strong> reads the GBIF occurrence
+download ZIP (<code>SIMPLE_CSV</code> or Darwin Core Archive), keeping
+the raw <code>issue</code> field intact</li>
 <li>
-<strong><code><a href="../reference/extract_gbif_issues.html">extract_gbif_issues()</a></code></strong> — expand
+<strong>Extract GBIF Issues</strong> —
+<strong><code><a href="../reference/extract_gbif_issues.html">extract_gbif_issues()</a></code></strong> expands
 <code>issue</code> into one logical column per GBIF issue code, plus a
 per-record issue count</li>
-</ol>
-<p><em>Stage 2 — Taxonomic resolution and record filtering</em></p>
-<ol start="3" style="list-style-type: decimal">
 <li>
-<strong><code><a href="../reference/check_taxon.html">check_taxon()</a></code></strong> — resolve scientific
-names against WCVP through TNRS, keeping matches that clear the
+<strong>Check Taxon Name</strong> —
+<strong><code><a href="../reference/check_taxon.html">check_taxon()</a></code></strong> resolves scientific names
+against WCVP through TNRS, keeping matches that clear the
 <code>accuracy</code> threshold and resolve below genus level</li>
 <li>
-<strong><code><a href="../reference/custom_filter.html">custom_filter()</a></code></strong> — join the three
-outputs by <code>gbifID</code> and drop records rule by rule, logging
-every step</li>
-</ol>
-<p><em>Stage 3 — Coordinate validation and native-status
-annotation</em></p>
-<ol start="5" style="list-style-type: decimal">
+<strong>Custom Filter</strong> —
+<strong><code><a href="../reference/custom_filter.html">custom_filter()</a></code></strong> joins the three outputs by
+<code>gbifID</code> and drops records rule by rule, logging every
+step</li>
 <li>
-<strong><code><a href="../reference/refine_coordinates.html">refine_coordinates()</a></code></strong> — run
+<strong>Refine Coordinates</strong> —
+<strong><code><a href="../reference/refine_coordinates.html">refine_coordinates()</a></code></strong> runs
 CoordinateCleaner tests in parallel, splitting records into
 coordinate-clean, coordinate-problematic, and coordinate-less
 tables</li>
 <li>
-<strong><code><a href="../reference/detect_native_status.html">detect_native_status()</a></code></strong> — classify each
+<strong>Detect Native Status</strong> —
+<strong><code><a href="../reference/detect_native_status.html">detect_native_status()</a></code></strong> classifies each
 record as <code>native</code>, <code>introduced</code>,
 <code>extinct</code>, <code>location_doubtful</code>, or
 <code>unknown</code>
 </li>
+<li>
+<strong>Export Records</strong> —
+<strong><code><a href="../reference/export_records.html">export_records()</a></code></strong> writes the classified
+records to two gzip-compressed CSV files</li>
+<li>
+<strong>Map Records</strong> —
+<strong><code><a href="../reference/map_records.html">map_records()</a></code></strong> renders the records on an
+interactive map with geohash-based decluttering</li>
 </ol>
 <p>Here we use the <em>Saxifraga</em> records (see <a href="https://doi.org/10.15468/dl.4ty3ap" class="external-link uri">https://doi.org/10.15468/dl.4ty3ap</a>) as example.
 Substitute your own GBIF ZIP for real analyses (see the
@@ -284,8 +290,7 @@ needed by <em>letsR</em>, and construct the matrix:</p>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://stringi.gagolewski.com/" class="external-link">stringi</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># prepare input for letsR</span></span>
-<span><span class="va">PAM_pre</span> <span class="op">&lt;-</span> <span class="va">refined_coordinates</span><span class="op">$</span><span class="va">CoordinateCleaned</span><span class="op">[</span></span>
-<span>  <span class="va">gbifID</span> <span class="op"><a href="https://rdrr.io/pkg/data.table/man/chmatch.html" class="external-link">%chin%</a></span> <span class="va">native_detected</span><span class="op">[</span><span class="va">native_status</span> <span class="op">==</span> <span class="st">'native'</span>, <span class="va">gbifID</span><span class="op">]</span>,</span>
+<span><span class="va">PAM_pre</span> <span class="op">&lt;-</span> <span class="va">native_detected</span><span class="op">[</span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">decimalLatitude</span><span class="op">)</span><span class="op">)</span> <span class="op">&amp;</span> <span class="va">native_status</span><span class="op">==</span><span class="st">'native'</span>,</span>
 <span>  <span class="fu">.</span><span class="op">(</span></span>
 <span>    <span class="va">Accepted_name</span>,</span>
 <span>    genus <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/stringi/man/stri_extract.html" class="external-link">stri_extract_first_regex</a></span><span class="op">(</span><span class="va">Accepted_name</span>, <span class="st">"^[^ ]+"</span><span class="op">)</span>,</span>

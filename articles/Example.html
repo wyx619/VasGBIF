@@ -31,7 +31,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,7 +50,7 @@
     <li><a class="dropdown-item" href="../articles/Application.html">Full application with letsR</a></li>
   </ul>
 </li>
-<li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
+<li class="nav-item"><a class="nav-link" href="../news/index.html">Changelogs</a></li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><form class="form-inline" role="search">
@@ -85,9 +85,9 @@ Wang</h4>
 University<br><a class="author_email" href="mailto:#"></a><a href="mailto:wyx1743@gmail.com" class="email">wyx1743@gmail.com</a>
       </address>
                   
-            <h4 data-toc-skip class="date">2026-08-05</h4>
+            <h4 data-toc-skip class="date">2026-08-06</h4>
       
-      <small class="dont-index">Source: <a href="https://github.com/wyx619/VasGBIF/blob/3.6.0/vignettes/Example.Rmd" class="external-link"><code>vignettes/Example.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/wyx619/VasGBIF/blob/master/vignettes/Example.Rmd" class="external-link"><code>vignettes/Example.Rmd</code></a></small>
       <div class="d-none name"><code>Example.Rmd</code></div>
     </div>
 
@@ -96,70 +96,22 @@ University<br><a class="author_email" href="mailto:#"></a><a href="mailto:wyx174
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>VasGBIF is a high-performance R package that compiles, validates, and
-standardizes tracheophyte occurrence records from GBIF into
-analysis-ready datasets. This basic example demonstrates the complete
-workflow using the built-in example dataset.</p>
-<p>The VasGBIF pipeline consists of <strong>4 stages</strong> with
-<strong>8 core functions</strong>:</p>
-<table class="table">
-<colgroup>
-<col width="50%">
-<col width="50%">
-</colgroup>
-<thead><tr class="header">
-<th>Stage</th>
-<th>Functions</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td>
-<strong>Stage 1:</strong> Import and issue parsing</td>
-<td>
-<code><a href="../reference/import_records.html">import_records()</a></code>,
-<code><a href="../reference/extract_gbif_issues.html">extract_gbif_issues()</a></code>
-</td>
-</tr>
-<tr class="even">
-<td>
-<strong>Stage 2:</strong> Taxonomic resolution and record
-filtering</td>
-<td>
-<code><a href="../reference/check_taxon.html">check_taxon()</a></code>, <code><a href="../reference/custom_filter.html">custom_filter()</a></code>
-</td>
-</tr>
-<tr class="odd">
-<td>
-<strong>Stage 3:</strong> Coordinate validation and native-status
-annotation</td>
-<td>
-<code><a href="../reference/refine_coordinates.html">refine_coordinates()</a></code>,
-<code><a href="../reference/detect_native_status.html">detect_native_status()</a></code>
-</td>
-</tr>
-<tr class="even">
-<td>
-<strong>Stage 4:</strong> Export and visualisation</td>
-<td>
-<code><a href="../reference/export_records.html">export_records()</a></code>, <code><a href="../reference/map_records.html">map_records()</a></code>
-</td>
-</tr>
-</tbody>
-</table>
-<p>Each stage progressively filters records through taxonomic, quality,
-and coordinate checks, so the dataset shrinks from the raw download to a
-high-quality, analysis-ready set.</p>
+<p>VasGBIF provides a reproducible, tracheophyte-optimized, and
+computationally efficient framework for transforming GBIF records into
+analysis-ready datasets. The package functions are organized into 8
+steps. This basic example demonstrates the complete workflow using the
+built-in example dataset.</p>
+<p>Each step below progressively filters records through taxonomic,
+quality, and coordinate checks, so the dataset shrinks from the raw
+download to a high-quality, analysis-ready set.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/wyx619/VasGBIF" class="external-link">VasGBIF</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com" class="external-link">data.table</a></span><span class="op">)</span></span>
 <span><span class="va">VasGBIF_summary</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="stage-1-import-and-issue-parsing">Stage 1: Import and Issue Parsing<a class="anchor" aria-label="anchor" href="#stage-1-import-and-issue-parsing"></a>
+<h2 id="import-records">Import Records<a class="anchor" aria-label="anchor" href="#import-records"></a>
 </h2>
-<div class="section level3">
-<h3 id="import-records">Import Records<a class="anchor" aria-label="anchor" href="#import-records"></a>
-</h3>
 <p><code><a href="../reference/import_records.html">import_records()</a></code> reads a GBIF occurrence download ZIP
 (‘SIMPLE_CSV’ or Darwin Core Archive), extracts the occurrence table,
 and returns an <code>"import"</code> data.table of the fields required
@@ -182,9 +134,9 @@ sativa</em> (preserved specimens with coordinates, obtained 23 July
 (<code>gbifID</code> coerced to character, plus the raw
 <code>issue</code> column).</p>
 </div>
-<div class="section level3">
-<h3 id="extract-gbif-issues">Extract GBIF Issues<a class="anchor" aria-label="anchor" href="#extract-gbif-issues"></a>
-</h3>
+<div class="section level2">
+<h2 id="extract-gbif-issues">Extract GBIF Issues<a class="anchor" aria-label="anchor" href="#extract-gbif-issues"></a>
+</h2>
 <p><code><a href="../reference/extract_gbif_issues.html">extract_gbif_issues()</a></code> expands the raw pipe-separated
 <code>issue</code> column into one logical indicator column per GBIF
 issue code, and returns a companion summary ranking issues by how many
@@ -203,13 +155,9 @@ records they flag.</p>
 ranked by decreasing flag count</li>
 </ul>
 </div>
-</div>
 <div class="section level2">
-<h2 id="stage-2-taxonomic-resolution-and-record-filtering">Stage 2: Taxonomic Resolution and Record Filtering<a class="anchor" aria-label="anchor" href="#stage-2-taxonomic-resolution-and-record-filtering"></a>
+<h2 id="check-taxon-name">Check Taxon Name<a class="anchor" aria-label="anchor" href="#check-taxon-name"></a>
 </h2>
-<div class="section level3">
-<h3 id="check-taxon-name">Check Taxon Name<a class="anchor" aria-label="anchor" href="#check-taxon-name"></a>
-</h3>
 <p><code><a href="../reference/check_taxon.html">check_taxon()</a></code> submits species- and infraspecific-rank
 names to the Taxonomic Name Resolution Service (TNRS; Boyle et al. 2013)
 for resolution against the World Checklist of Vascular Plants (WCVP) or
@@ -233,9 +181,9 @@ match quality</li>
 <code>runtime</code>: execution time</li>
 </ul>
 </div>
-<div class="section level3">
-<h3 id="custom-filter">Custom Filter<a class="anchor" aria-label="anchor" href="#custom-filter"></a>
-</h3>
+<div class="section level2">
+<h2 id="custom-filter">Custom Filter<a class="anchor" aria-label="anchor" href="#custom-filter"></a>
+</h2>
 <p><code><a href="../reference/custom_filter.html">custom_filter()</a></code> joins the imported records with the
 resolved taxonomy and the parsed issue flags, then applies the enabled
 filter rules to retain only high-quality records. By default the
@@ -261,13 +209,9 @@ per-rule <code>summary</code> table.</p>
 <code>dropped</code>, and <code>remaining</code> counts</li>
 </ul>
 </div>
-</div>
 <div class="section level2">
-<h2 id="stage-3-coordinate-validation-and-native-status-annotation">Stage 3: Coordinate Validation and Native-Status Annotation<a class="anchor" aria-label="anchor" href="#stage-3-coordinate-validation-and-native-status-annotation"></a>
+<h2 id="refine-coordinates">Refine Coordinates<a class="anchor" aria-label="anchor" href="#refine-coordinates"></a>
 </h2>
-<div class="section level3">
-<h3 id="refine-coordinates">Refine Coordinates<a class="anchor" aria-label="anchor" href="#refine-coordinates"></a>
-</h3>
 <p><code><a href="../reference/refine_coordinates.html">refine_coordinates()</a></code> validates coordinates with
 CoordinateCleaner (Zizka et al. 2019) to flag spatial errors such as
 centroids, capitals, marine coordinates, and zero coordinates, splitting
@@ -295,9 +239,9 @@ coordinates</li>
 <code>runtime</code>: execution time</li>
 </ul>
 </div>
-<div class="section level3">
-<h3 id="detect-native-status">Detect Native Status<a class="anchor" aria-label="anchor" href="#detect-native-status"></a>
-</h3>
+<div class="section level2">
+<h2 id="detect-native-status">Detect Native Status<a class="anchor" aria-label="anchor" href="#detect-native-status"></a>
+</h2>
 <p><code><a href="../reference/detect_native_status.html">detect_native_status()</a></code> matches each record against WCVP
 distribution data (the internal <code>Distributions</code> dataset) via
 WGSRPD Level 3 areas to classify it as native, introduced, extinct,
@@ -317,51 +261,44 @@ was obtained in <code>native_status_source</code>.</p>
 <span><span class="va">VasGBIF_summary</span><span class="op">$</span><span class="va">unknown</span> <span class="op">&lt;-</span> <span class="va">native_detected</span><span class="op">[</span><span class="va">native_status</span> <span class="op">==</span> <span class="st">"unknown"</span>, <span class="va">.N</span><span class="op">]</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">native_detected</span><span class="op">)</span></span></code></pre></div>
 <p>The <code>nativeDetected</code> object is a <code>data.table</code>
-keyed by <code>gbifID</code> with columns <code>LEVEL3_COD</code>,
-<code>native_status</code>, <code>native_status_source</code>, and
-<code>buffered</code>.</p>
-</div>
+keyed by <code>gbifID</code>. It retains every column of the input
+records and appends <code>LEVEL3_COD</code>, <code>native_status</code>,
+<code>native_status_source</code>, and <code>buffered</code>, so it can
+be passed straight to <code><a href="../reference/export_records.html">export_records()</a></code> and
+<code><a href="../reference/map_records.html">map_records()</a></code> without joining back to
+<code>refined_coordinates</code>.</p>
 </div>
 <div class="section level2">
-<h2 id="stage-4-export-and-visualisation">Stage 4: Export and Visualisation<a class="anchor" aria-label="anchor" href="#stage-4-export-and-visualisation"></a>
+<h2 id="export-records">Export Records<a class="anchor" aria-label="anchor" href="#export-records"></a>
 </h2>
-<div class="section level3">
-<h3 id="export-records">Export Records<a class="anchor" aria-label="anchor" href="#export-records"></a>
-</h3>
-<p><code><a href="../reference/export_records.html">export_records()</a></code> writes the refined records to disk as
-three gzip-compressed CSV files:</p>
+<p><code><a href="../reference/export_records.html">export_records()</a></code> writes the classified records to disk
+as two gzip-compressed CSV files:</p>
 <ul>
 <li>
-<code>all_records.csv.gz</code>: all usable records (cleaned +
-coordinateless) joined with native status</li>
+<code>all_records.csv.gz</code>: all classified records (cleaned +
+coordinateless) with their native status</li>
 <li>
 <code>native_records.csv.gz</code>: the subset classified as
 native</li>
-<li>
-<code>CoordinateProblematic_records.csv.gz</code>: records failing
-coordinate validation</li>
 </ul>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/export_records.html">export_records</a></span><span class="op">(</span></span>
-<span>  refined_coordinates <span class="op">=</span> <span class="va">refined_coordinates</span>,</span>
 <span>  native_detected <span class="op">=</span> <span class="va">native_detected</span>,</span>
 <span>  export_path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/getwd.html" class="external-link">getwd</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
-<div class="section level3">
-<h3 id="map-records">Map Records<a class="anchor" aria-label="anchor" href="#map-records"></a>
-</h3>
+<div class="section level2">
+<h2 id="map-records">Map Records<a class="anchor" aria-label="anchor" href="#map-records"></a>
+</h2>
 <p><code><a href="../reference/map_records.html">map_records()</a></code> renders the records on an interactive map
 via <code>mapview</code>, with geohash-based decluttering and
 colour-coding by native status.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/map_records.html">map_records</a></span><span class="op">(</span></span>
 <span>  native_detected <span class="op">=</span> <span class="va">native_detected</span>,</span>
-<span>  refined_coordinates <span class="op">=</span> <span class="va">refined_coordinates</span>,</span>
 <span>  precision <span class="op">=</span> <span class="fl">3</span>,</span>
 <span>  cex <span class="op">=</span> <span class="fl">3</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-</div>
 </div>
 <div class="section level2">
 <h2 id="summary">Summary<a class="anchor" aria-label="anchor" href="#summary"></a>

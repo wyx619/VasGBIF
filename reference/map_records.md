@@ -7,12 +7,7 @@ geohashes and color-coded by their native status.
 ## Usage
 
 ``` r
-map_records(
-  native_detected = NA,
-  refined_coordinates = NA,
-  precision = 3,
-  cex = 3
-)
+map_records(native_detected = NA, precision = 3, cex = 3)
 ```
 
 ## Arguments
@@ -21,11 +16,6 @@ map_records(
 
   A `nativeDetected` object returned by
   [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md).
-
-- refined_coordinates:
-
-  A `CoordinateRefined` object returned by
-  [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md).
 
 - precision:
 
@@ -48,13 +38,11 @@ metadata.
 
 ## Details
 
-The workflow has four stages:
+The function works in four steps:
 
-- **Record aggregation:** Joins the classification output of
-  [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
-  with the coordinate data of
-  [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
-  by `gbifID`, keeping records whose `native_status` is not `"unknown"`.
+- **Record selection:** Reads the classified records from
+  [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md),
+  keeping those whose `native_status` is not `"unknown"`.
 
 - **Geohash deduplication:** Encodes coordinates at the requested
   precision and retains one representative record per species, geohash
@@ -68,13 +56,13 @@ The workflow has four stages:
 
 ### Record selection
 
-The map combines the native-status classification from
+Both the classification and the coordinates are read from
+`native_detected`, which carries every column of the input records.
+Records with `native_status = "unknown"` are excluded, as are records
+with missing longitude or latitude — which removes the coordinateless
+records that
 [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
-with the coordinate data from
-[`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
-by `gbifID`. Records with `native_status = "unknown"` are excluded, as
-are records with missing longitude or latitude before geohash
-deduplication.
+classified through their country code.
 
 ### Geohash deduplication
 
@@ -102,9 +90,7 @@ The generated map includes:
 ## See also
 
 [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
-and
-[`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
-for the objects consumed by this function;
+for the object consumed by this function;
 [`gh_encode()`](https://rdrr.io/pkg/geohashTools/man/gh_encode.html) for
 geohash encoding and
 [`mapView()`](https://r-spatial.github.io/mapview/reference/mapView.html)
@@ -113,10 +99,9 @@ for interactive map construction.
 ## Examples
 
 ``` r
-if (FALSE) { # interactive() && exists("native_detected") && exists("refined_coordinates")
+if (FALSE) { # interactive() && exists("native_detected")
 map_records(
   native_detected = native_detected,
-  refined_coordinates = refined_coordinates,
   precision = 3,
   cex = 3
 )

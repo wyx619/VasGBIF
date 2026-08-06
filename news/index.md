@@ -1,5 +1,109 @@
 # Changelog
 
+## VasGBIF 3.6.1
+
+*A follow-up release that makes the output of
+[`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
+self-contained: the native-status classification now carries the input
+record columns, so
+[`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)
+and
+[`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)
+no longer need a separate `refined_coordinates` object.*
+
+### Breaking Changes
+
+- **[`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
+  now returns the record columns alongside the classification.** A
+  `nativeDetected` object retains every column of the input records
+  (`CoordinateCleaned` + `Coordinateless`) and appends `LEVEL3_COD`,
+  `native_status`, `native_status_source`, and `buffered`. The result is
+  keyed by `gbifID` and can be passed straight to
+  [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)
+  /
+  [`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)
+  without joining back to `refined_coordinates`. The intermediate
+  matching columns used internally (taxon keys, candidate areas, match
+  ranks) are no longer returned. Because the record columns are carried
+  through, the result holds a second copy of the input data;
+  `refined_coordinates` can be dropped once the classification is in
+  hand.
+- **[`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)
+  signature simplified to
+  `export_records(native_detected, export_path)`.** The
+  `refined_coordinates` argument is removed, and the
+  `CoordinateProblematic_records.csv.gz` file is no longer written — two
+  files are produced (`all_records.csv.gz`, `native_records.csv.gz`).
+  Records that failed coordinate validation are never classified and are
+  inspected through
+  [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
+  instead.
+- **[`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)
+  signature simplified to
+  `map_records(native_detected, precision = 3, cex = 3)`.** The
+  `refined_coordinates` argument is removed: both the coordinates and
+  the classification now come from `native_detected`, so the previous
+  join by `gbifID` is gone.
+
+### Improvements
+
+- **Runtime reporting across the pipeline.**
+  [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md),
+  [`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md),
+  and
+  [`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md)
+  now print the elapsed time in a `used` message when they finish,
+  matching the timing already reported by
+  [`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md)
+  and
+  [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md).
+- **Column-clash guard in
+  [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md).**
+  Passing an already-classified table back in (one that already contains
+  `LEVEL3_COD`, `native_status`, `native_status_source`, or `buffered`)
+  now stops with a clear error instead of producing `.x` / `.y` suffixed
+  columns in the final join.
+- **Row-count assertion in
+  [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md).**
+  Reattaching the record columns is asserted to be one-to-one: a
+  duplicated `gbifID` across the input tables would inflate the result
+  and now fails loudly rather than silently doubling rows.
+- **[`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)
+  writes `all_records.csv.gz` straight from `native_detected`.** No join
+  and no column selection are performed, so the exported table carries
+  every record column in addition to the classification.
+- **[`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)
+  popup columns are unchanged.** Although `native_detected` now carries
+  all record columns, only the informative fields (GBIF ID, issues,
+  taxon names, status, coordinates) are passed to the map popups; the
+  `nativeDetected` class is stripped from the display subset so the
+  print method is not misapplied.
+
+### Documentation
+
+- Package-level documentation, README, `Example.Rmd`, and
+  `Application.Rmd` updated for the new output structure and simplified
+  signatures. The `nativeDetected` description in `Application.Rmd` no
+  longer instructs users to join back to `refined_coordinates`.
+- Rd files regenerated for
+  [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md),
+  [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md),
+  and
+  [`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md).
+
+### Testing
+
+- `test-export_records.R` rewritten: the fixture no longer builds a
+  `refined_coordinates` object, and a new assertion checks that the
+  `CoordinateProblematic_records.csv.gz` file is no longer produced.
+- `test-map_records.R` rewritten: the fixture builds a `nativeDetected`
+  table that carries the record columns directly, and the
+  `CoordinateCleaned` inner-join behaviour test is replaced by a
+  coordinateless-dropping test.
+- `test-detect_native_status.R` updated: the output-column contract test
+  now expects the record columns to be preserved, with new tests for the
+  column-clash guard and for unchanged record columns in the result.
+
 ## VasGBIF 3.6.0
 
 *Major release: the package has been completely redesigned. The

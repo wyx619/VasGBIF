@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -29,7 +29,7 @@
     <li><a class="dropdown-item" href="../articles/Example.html">Minimal example</a></li>
     <li><a class="dropdown-item" href="../articles/Application.html">Full application with letsR</a></li>
   </ul></li>
-<li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
+<li class="nav-item"><a class="nav-link" href="../news/index.html">Changelogs</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
 <li class="nav-item dropdown">
@@ -66,7 +66,7 @@
         </dt>
         <dd>Fast and Easy Compilation of Vascular Plants Occurrence Records from GBIF</dd>
       </dl></div><div class="section level2">
-      <h2 id="stage-import-and-issue-parsing">Stage 1 — Import and issue parsing<a class="anchor" aria-label="anchor" href="#stage-import-and-issue-parsing"></a></h2>
+      <h2 id="step-import-records">Step 1 — Import Records<a class="anchor" aria-label="anchor" href="#step-import-records"></a></h2>
 
 
 
@@ -81,15 +81,24 @@
 
         </dt>
         <dd>Import GBIF occurrence records</dd>
+      </dl></div><div class="section level2">
+      <h2 id="step-extract-gbif-issues">Step 2 — Extract GBIF Issues<a class="anchor" aria-label="anchor" href="#step-extract-gbif-issues"></a></h2>
 
-        <dt>
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
 
           <code><a href="extract_gbif_issues.html">extract_gbif_issues()</a></code>
 
         </dt>
         <dd>Extract GBIF issue flags into logical columns</dd>
       </dl></div><div class="section level2">
-      <h2 id="stage-taxonomic-resolution-and-record-filtering">Stage 2 — Taxonomic resolution and record filtering<a class="anchor" aria-label="anchor" href="#stage-taxonomic-resolution-and-record-filtering"></a></h2>
+      <h2 id="step-check-taxon-name">Step 3 — Check Taxon Name<a class="anchor" aria-label="anchor" href="#step-check-taxon-name"></a></h2>
 
 
 
@@ -104,15 +113,24 @@
 
         </dt>
         <dd>Resolve taxon names via the Taxonomic Name Resolution Service</dd>
+      </dl></div><div class="section level2">
+      <h2 id="step-custom-filter">Step 4 — Custom Filter<a class="anchor" aria-label="anchor" href="#step-custom-filter"></a></h2>
 
-        <dt>
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
 
           <code><a href="custom_filter.html">custom_filter()</a></code>
 
         </dt>
         <dd>Apply custom quality filters to occurrence records</dd>
       </dl></div><div class="section level2">
-      <h2 id="stage-coordinate-validation-and-native-status-annotation">Stage 3 — Coordinate validation and native-status annotation<a class="anchor" aria-label="anchor" href="#stage-coordinate-validation-and-native-status-annotation"></a></h2>
+      <h2 id="step-refine-coordinates">Step 5 — Refine Coordinates<a class="anchor" aria-label="anchor" href="#step-refine-coordinates"></a></h2>
 
 
 
@@ -127,15 +145,24 @@
 
         </dt>
         <dd>Validate coordinates of filtered occurrence records</dd>
+      </dl></div><div class="section level2">
+      <h2 id="step-detect-native-status">Step 6 — Detect Native Status<a class="anchor" aria-label="anchor" href="#step-detect-native-status"></a></h2>
 
-        <dt>
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
 
           <code><a href="detect_native_status.html">detect_native_status()</a></code>
 
         </dt>
         <dd>Detect native status from WGSRPD distributions</dd>
       </dl></div><div class="section level2">
-      <h2 id="stage-export-and-visualisation">Stage 4 — Export and visualisation<a class="anchor" aria-label="anchor" href="#stage-export-and-visualisation"></a></h2>
+      <h2 id="step-export-records">Step 7 — Export Records<a class="anchor" aria-label="anchor" href="#step-export-records"></a></h2>
 
 
 
@@ -149,9 +176,18 @@
           <code><a href="export_records.html">export_records()</a></code>
 
         </dt>
-        <dd>Export refined records to compressed CSV files</dd>
+        <dd>Export classified records to compressed CSV files</dd>
+      </dl></div><div class="section level2">
+      <h2 id="step-map-records">Step 8 — Map Records<a class="anchor" aria-label="anchor" href="#step-map-records"></a></h2>
 
-        <dt>
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
 
           <code><a href="map_records.html">map_records()</a></code>
 

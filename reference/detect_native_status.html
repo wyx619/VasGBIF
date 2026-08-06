@@ -63,7 +63,7 @@ same status priority applies.'><meta property="og:image" content="https://wyx619
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -79,7 +79,7 @@ same status priority applies.'><meta property="og:image" content="https://wyx619
     <li><a class="dropdown-item" href="../articles/Example.html">Minimal example</a></li>
     <li><a class="dropdown-item" href="../articles/Application.html">Full application with letsR</a></li>
   </ul></li>
-<li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
+<li class="nav-item"><a class="nav-link" href="../news/index.html">Changelogs</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
 <li class="nav-item dropdown">
@@ -97,7 +97,7 @@ same status priority applies.'><meta property="og:image" content="https://wyx619
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Detect native status from WGSRPD distributions</h1>
-      <small class="dont-index">Source: <a href="https://github.com/wyx619/VasGBIF/blob/3.6.0/R/native_detect.R" class="external-link"><code>R/native_detect.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/wyx619/VasGBIF/blob/master/R/native_detect.R" class="external-link"><code>R/native_detect.R</code></a></small>
       <div class="d-none name"><code>detect_native_status.Rd</code></div>
     </div>
 
@@ -173,8 +173,8 @@ in one chunk, keeping the relate matrix small. Defaults to <code>2000</code>.</p
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A <code>nativeDetected</code> object — a <code>data.table</code> subclass with one row
 per input record (all records from <code>CoordinateCleaned</code> and all from
-<code>Coordinateless</code>) and columns:</p><ul><li><p><code>gbifID</code>: the record identifier</p></li>
-<li><p><code>LEVEL3_COD</code>: the assigned WGSRPD Level 3 area code, or <code>NA</code> if the
+<code>Coordinateless</code>), keyed by <code>gbifID</code>. Every column of the input records is
+retained unchanged, with four classification columns appended:</p><ul><li><p><code>LEVEL3_COD</code>: the assigned WGSRPD Level 3 area code, or <code>NA</code> if the
 record could not be matched</p></li>
 <li><p><code>native_status</code>: one of <code>"native"</code>, <code>"introduced"</code>, <code>"extinct"</code>,
 <code>"location_doubtful"</code>, or <code>"unknown"</code></p></li>
@@ -186,7 +186,13 @@ record could not be matched</p></li>
 taxon had no distribution entry there; <code>"unmatched"</code> means the record had
 no usable key at all.</p></li>
 <li><p><code>buffered</code>: <code>TRUE</code> when the status came from a buffered spatial hit</p></li>
-</ul></div>
+</ul><p>The intermediate matching columns used internally (taxon keys, candidate
+areas, match ranks) are not returned. Because the record columns are
+carried through, the result holds a second copy of the input data: for large
+inputs, <code>refined_coordinates</code> can be dropped once the classification is in
+hand. <code>CoordinateProblematic</code> records are not classified and do not appear
+in the result.</p>
+    </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p><strong>Coordinate reference system.</strong> Both the occurrence points and the

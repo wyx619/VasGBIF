@@ -33,7 +33,7 @@ laptop in under 15 minutes without specialised hardware."><meta property="og:ima
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -49,7 +49,7 @@ laptop in under 15 minutes without specialised hardware."><meta property="og:ima
     <li><a class="dropdown-item" href="../articles/Example.html">Minimal example</a></li>
     <li><a class="dropdown-item" href="../articles/Application.html">Full application with letsR</a></li>
   </ul></li>
-<li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
+<li class="nav-item"><a class="nav-link" href="../news/index.html">Changelogs</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
 <li class="nav-item dropdown">
@@ -67,7 +67,7 @@ laptop in under 15 minutes without specialised hardware."><meta property="og:ima
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Fast and Easy Compilation of Vascular Plants Occurrence Records from GBIF</h1>
-      <small class="dont-index">Source: <a href="https://github.com/wyx619/VasGBIF/blob/3.6.0/R/VasGBIF-package.R" class="external-link"><code>R/VasGBIF-package.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/wyx619/VasGBIF/blob/master/R/VasGBIF-package.R" class="external-link"><code>R/VasGBIF-package.R</code></a></small>
       <div class="d-none name"><code>VasGBIF.Rd</code></div>
     </div>
 
@@ -93,61 +93,52 @@ laptop in under 15 minutes without specialised hardware.</p>
 <h3 id="pipeline-overview">Pipeline overview<a class="anchor" aria-label="anchor" href="#pipeline-overview"></a></h3>
 
 
-<p>VasGBIF provides a reproducible workflow organised into four sequential
-stages built around eight core functions.</p><div class="section">
-<h4 id="stage-import-and-issue-parsing">Stage 1 — Import and issue parsing<a class="anchor" aria-label="anchor" href="#stage-import-and-issue-parsing"></a></h4>
-
-<ul><li><p><code><a href="import_records.html">import_records()</a></code>: loads a GBIF occurrence download ZIP ('SIMPLE_CSV'
-or Darwin Core Archive), extracts the occurrence table, and returns an
-<code>"import"</code> data.table of the fields required by the workflow.</p></li>
-<li><p><code><a href="extract_gbif_issues.html">extract_gbif_issues()</a></code>: expands the raw pipe-separated <code>issue</code> column
-into one logical indicator column per GBIF issue code, plus a companion
-summary ranking issues by how many records they flag.</p></li>
-</ul></div>
-
-<div class="section">
-<h4 id="stage-taxonomic-resolution-and-record-filtering">Stage 2 — Taxonomic resolution and record filtering<a class="anchor" aria-label="anchor" href="#stage-taxonomic-resolution-and-record-filtering"></a></h4>
-
-<ul><li><p><code><a href="check_taxon.html">check_taxon()</a></code>: submits species- and infraspecific-rank names to the
-Taxonomic Name Resolution Service (TNRS; Boyle et al. 2013) for
-resolution against the World Checklist of Vascular Plants (WCVP) or
-World Flora Online (WFO). Synonyms are resolved to accepted names;
-names that cannot be matched are flagged for review.</p></li>
-<li><p><code><a href="custom_filter.html">custom_filter()</a></code>: joins the imported records with the resolved taxonomy
-and the parsed issue flags, then applies the enabled filter rules
-(country code, coordinate uncertainty, GBIF issue count, event date,
-collector and identifier fields) to retain only high-quality records
-(see <em>Flexible and fluent custom filter system</em>).</p></li>
-</ul></div>
-
-<div class="section">
-<h4 id="stage-coordinate-validation-and-native-status-annotation">Stage 3 — Coordinate validation and native-status annotation<a class="anchor" aria-label="anchor" href="#stage-coordinate-validation-and-native-status-annotation"></a></h4>
-
-<ul><li><p><code><a href="refine_coordinates.html">refine_coordinates()</a></code>: validates coordinates with
-<code><a href="https://ropensci.github.io/CoordinateCleaner/reference/clean_coordinates.html" class="external-link">CoordinateCleaner::clean_coordinates()</a></code> (Zizka et al. 2019) to flag
-spatial errors such as centroids, capitals, marine coordinates, and zero
-coordinates, splitting records into cleaned, problematic, and
-coordinate-less tables.</p></li>
-<li><p><code><a href="detect_native_status.html">detect_native_status()</a></code>: matches each record against WCVP distribution
-data (the internal <code>Distributions</code> dataset) via WGSRPD Level 3 areas to
-classify it as native, introduced, extinct, location_doubtful, or
-unknown (see <em>Precise native-status detection system</em>).</p></li>
-</ul></div>
-
-<div class="section">
-<h4 id="stage-export-and-visualisation">Stage 4 — Export and visualisation<a class="anchor" aria-label="anchor" href="#stage-export-and-visualisation"></a></h4>
-
-<ul><li><p><code><a href="export_records.html">export_records()</a></code>: writes the refined records to disk as three
-gzip-compressed CSV files: all usable records, the native subset, and
-records that failed coordinate validation.</p></li>
-<li><p><code><a href="map_records.html">map_records()</a></code>: renders refined records on interactive maps via
-<code><a href="https://r-spatial.github.io/mapview/reference/mapView.html" class="external-link">mapView()</a></code>, with geohash-based decluttering and
-colour-coding by native status. Supports multiple basemap layers
-(OpenStreetMap, Esri World Imagery, and others).</p></li>
-</ul></div>
-
-
-</div>
+<p>VasGBIF provides a reproducible workflow organised into eight sequential
+steps. Each step progressively filters records through taxonomic, quality,
+and coordinate checks, transforming GBIF occurrence records into
+analysis-ready datasets.</p><ol><li><p><strong>Import Records</strong> — <code><a href="import_records.html">import_records()</a></code>: reads a GBIF occurrence
+download ZIP ('SIMPLE_CSV' or Darwin Core Archive), extracts the
+occurrence table, and returns an <code>"import"</code> data.table of the fields
+required by the workflow. No records are filtered at this step — all
+diagnostic flags are preserved for later quality scoring.</p></li>
+<li><p><strong>Extract GBIF Issues</strong> — <code><a href="extract_gbif_issues.html">extract_gbif_issues()</a></code>: expands the raw
+pipe-separated <code>issue</code> column into one logical indicator column per GBIF
+issue code, plus a companion summary ranking issues by how many records
+they flag.</p></li>
+<li><p><strong>Check Taxon Name</strong> — <code><a href="check_taxon.html">check_taxon()</a></code>: submits species- and
+infraspecific-rank names to the Taxonomic Name Resolution Service (TNRS;
+Boyle et al. 2013) for resolution against the World Checklist of
+Vascular Plants (WCVP) or World Flora Online (WFO). Synonyms are
+resolved to accepted names; records that fail the match-score threshold
+or lack an accepted/synonym status are excluded from the downstream
+table and reported in the <code>summary</code> for manual review.</p></li>
+<li><p><strong>Custom Filter</strong> — <code><a href="custom_filter.html">custom_filter()</a></code>: joins the imported records with
+the resolved taxonomy and the parsed issue flags, then applies the
+enabled filter rules (country code, coordinate uncertainty, GBIF issue
+count, event date, collector and identifier fields) to retain only
+high-quality records. Every rule is independently toggleable, and each
+step is recorded in a per-rule audit table (see <em>Flexible and fluent
+custom filter system</em>).</p></li>
+<li><p><strong>Refine Coordinates</strong> — <code><a href="refine_coordinates.html">refine_coordinates()</a></code>: validates coordinates
+with <code><a href="https://ropensci.github.io/CoordinateCleaner/reference/clean_coordinates.html" class="external-link">CoordinateCleaner::clean_coordinates()</a></code> (Zizka et al. 2019) to
+flag spatial errors such as centroids, capitals, marine coordinates, and
+zero coordinates, splitting records into cleaned, problematic, and
+coordinate-less tables. Validation is parallelized across user-specified
+threads.</p></li>
+<li><p><strong>Detect Native Status</strong> — <code><a href="detect_native_status.html">detect_native_status()</a></code>: matches each record
+against WCVP distribution data (the internal <code>Distributions</code> dataset)
+via WGSRPD Level 3 areas to classify it as native, introduced, extinct,
+location_doubtful, or unknown (see <em>Precise native-status detection
+system</em>).</p></li>
+<li><p><strong>Export Records</strong> — <code><a href="export_records.html">export_records()</a></code>: writes the classified records
+to disk as two gzip-compressed CSV files: all usable records and the
+native subset.</p></li>
+<li><p><strong>Map Records</strong> — <code><a href="map_records.html">map_records()</a></code>: renders refined records on
+interactive maps via <code><a href="https://r-spatial.github.io/mapview/reference/mapView.html" class="external-link">mapView()</a></code>, with geohash-based
+decluttering to reduce visual overlap. Records are colour-coded by
+native status, and multiple basemap layers are supported (OpenStreetMap,
+Esri World Imagery, and others).</p></li>
+</ol></div>
 
 <div class="section">
 <h3 id="precise-native-status-detection-system">Precise native-status detection system<a class="anchor" aria-label="anchor" href="#precise-native-status-detection-system"></a></h3>
@@ -192,9 +183,11 @@ and documented loss of precision; hybrid markers are normalised so
 <code>Alnus x pubescens</code> matches the <code>Alnus × pubescens</code> recorded in the
 distributions; and neither the spatial overlay nor the distribution
 lookup ever iterates record-by-record in R. The result is a
-<code>nativeDetected</code> table keyed by <code>gbifID</code> (<code>gbifID</code>, <code>LEVEL3_COD</code>,
-<code>native_status</code>, <code>native_status_source</code>, <code>buffered</code>) that feeds directly
-into <code><a href="export_records.html">export_records()</a></code> and <code><a href="map_records.html">map_records()</a></code>.</p>
+<code>nativeDetected</code> table keyed by <code>gbifID</code> that retains every column of the
+input records and appends <code>LEVEL3_COD</code>, <code>native_status</code>,
+<code>native_status_source</code>, and <code>buffered</code>, feeding directly into
+<code><a href="export_records.html">export_records()</a></code> and <code><a href="map_records.html">map_records()</a></code> without any join back to
+<code>refined_coordinates</code>.</p>
 </div>
 
 <div class="section">
@@ -244,44 +237,45 @@ decision chain at a glance.</p>
 GBIF download:</p>
 <p></p><div class="sourceCode r"><pre><code><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/wyx619/VasGBIF" class="external-link">VasGBIF</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Step 1: Import (built-in example, or use your own ZIP)</span></span>
+<span></span>
 <span><span class="va">gbif_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span></span>
 <span>  <span class="st">"extdata"</span>, <span class="st">"0003386-260721160103020.zip"</span>,</span>
 <span>  package <span class="op">=</span> <span class="st">"VasGBIF"</span></span>
 <span><span class="op">)</span></span>
+<span></span>
 <span><span class="va">occ_import</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/import_records.html">import_records</a></span><span class="op">(</span>path <span class="op">=</span> <span class="va">gbif_file</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Step 2: Parse GBIF issue flags</span></span>
+<span></span>
 <span><span class="va">gbif_issue</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/extract_gbif_issues.html">extract_gbif_issues</a></span><span class="op">(</span><span class="va">occ_import</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Step 3: Resolve taxon names against WCVP</span></span>
+<span></span>
 <span><span class="va">taxa_checked</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/check_taxon.html">check_taxon</a></span><span class="op">(</span>occ_import <span class="op">=</span> <span class="va">occ_import</span>, accuracy <span class="op">=</span> <span class="fl">0.85</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Step 4: Filter records by quality rules</span></span>
+<span></span>
 <span><span class="va">filtered</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/custom_filter.html">custom_filter</a></span><span class="op">(</span></span>
 <span>  occ_import <span class="op">=</span> <span class="va">occ_import</span>,</span>
 <span>  taxa_checked <span class="op">=</span> <span class="va">taxa_checked</span>,</span>
 <span>  gbif_issue <span class="op">=</span> <span class="va">gbif_issue</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Step 5: Validate coordinates and annotate native status</span></span>
+<span></span>
 <span><span class="va">refined_coordinates</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/refine_coordinates.html">refine_coordinates</a></span><span class="op">(</span></span>
 <span>  custom_filtered <span class="op">=</span> <span class="va">filtered</span>,</span>
 <span>  threads <span class="op">=</span> <span class="fl">4</span></span>
 <span><span class="op">)</span></span>
+<span></span>
 <span><span class="va">native_detected</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_native_status.html">detect_native_status</a></span><span class="op">(</span></span>
 <span>  refined_coordinates <span class="op">=</span> <span class="va">refined_coordinates</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Step 6: Export and visualise</span></span>
+<span></span>
 <span><span class="fu"><a href="../reference/export_records.html">export_records</a></span><span class="op">(</span></span>
-<span>  refined_coordinates <span class="op">=</span> <span class="va">refined_coordinates</span>,</span>
 <span>  native_detected <span class="op">=</span> <span class="va">native_detected</span>,</span>
-<span>  export_path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>  export_path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/getwd.html" class="external-link">getwd</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
+<span></span>
 <span><span class="fu"><a href="../reference/map_records.html">map_records</a></span><span class="op">(</span></span>
 <span>  native_detected <span class="op">=</span> <span class="va">native_detected</span>,</span>
-<span>  refined_coordinates <span class="op">=</span> <span class="va">refined_coordinates</span>,</span>
 <span>  precision <span class="op">=</span> <span class="fl">3</span>,</span>
 <span>  cex <span class="op">=</span> <span class="fl">3</span></span>
 <span><span class="op">)</span></span></code></pre><p></p></div>

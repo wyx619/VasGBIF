@@ -6,31 +6,43 @@
   Fast and Easy Compilation of Vascular Plants Occurrence Records from
   GBIF
 
-## Stage 1 — Import and issue parsing
+## Step 1 — Import Records
 
 - [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md)
   : Import GBIF occurrence records
+
+## Step 2 — Extract GBIF Issues
+
 - [`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md)
   : Extract GBIF issue flags into logical columns
 
-## Stage 2 — Taxonomic resolution and record filtering
+## Step 3 — Check Taxon Name
 
 - [`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md)
   : Resolve taxon names via the Taxonomic Name Resolution Service
+
+## Step 4 — Custom Filter
+
 - [`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md)
   : Apply custom quality filters to occurrence records
 
-## Stage 3 — Coordinate validation and native-status annotation
+## Step 5 — Refine Coordinates
 
 - [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
   : Validate coordinates of filtered occurrence records
+
+## Step 6 — Detect Native Status
+
 - [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
   : Detect native status from WGSRPD distributions
 
-## Stage 4 — Export and visualisation
+## Step 7 — Export Records
 
 - [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)
-  : Export refined records to compressed CSV files
+  : Export classified records to compressed CSV files
+
+## Step 8 — Map Records
+
 - [`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)
   : Visualize refined records on interactive maps
 

@@ -12,35 +12,39 @@ environmental variables.
 A presence-absence matrix is only as good as the records behind it, so
 downstream analysis needs occurrences whose names resolve to an accepted
 taxonomy, whose coordinates have been validated, and whose native status
-is known. The VasGBIF pipeline delivers that in four stages:
+is known. The VasGBIF pipeline delivers that in eight sequential steps:
 
-*Stage 1 — Import and issue parsing*
-
-1.  **[`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md)**
-    — read the GBIF occurrence download ZIP (`SIMPLE_CSV` or Darwin Core
+1.  **Import Records** —
+    **[`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md)**
+    reads the GBIF occurrence download ZIP (`SIMPLE_CSV` or Darwin Core
     Archive), keeping the raw `issue` field intact
-2.  **[`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md)**
-    — expand `issue` into one logical column per GBIF issue code, plus a
+2.  **Extract GBIF Issues** —
+    **[`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md)**
+    expands `issue` into one logical column per GBIF issue code, plus a
     per-record issue count
-
-*Stage 2 — Taxonomic resolution and record filtering*
-
-3.  **[`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md)**
-    — resolve scientific names against WCVP through TNRS, keeping
-    matches that clear the `accuracy` threshold and resolve below genus
-    level
-4.  **[`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md)**
-    — join the three outputs by `gbifID` and drop records rule by rule,
+3.  **Check Taxon Name** —
+    **[`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md)**
+    resolves scientific names against WCVP through TNRS, keeping matches
+    that clear the `accuracy` threshold and resolve below genus level
+4.  **Custom Filter** —
+    **[`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md)**
+    joins the three outputs by `gbifID` and drops records rule by rule,
     logging every step
-
-*Stage 3 — Coordinate validation and native-status annotation*
-
-5.  **[`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)**
-    — run CoordinateCleaner tests in parallel, splitting records into
+5.  **Refine Coordinates** —
+    **[`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)**
+    runs CoordinateCleaner tests in parallel, splitting records into
     coordinate-clean, coordinate-problematic, and coordinate-less tables
-6.  **[`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)**
-    — classify each record as `native`, `introduced`, `extinct`,
+6.  **Detect Native Status** —
+    **[`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)**
+    classifies each record as `native`, `introduced`, `extinct`,
     `location_doubtful`, or `unknown`
+7.  **Export Records** —
+    **[`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)**
+    writes the classified records to two gzip-compressed CSV files
+8.  **Map Records** —
+    **[`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)**
+    renders the records on an interactive map with geohash-based
+    decluttering
 
 Here we use the *Saxifraga* records (see
 <https://doi.org/10.15468/dl.4ty3ap>) as example. Substitute your own
@@ -195,8 +199,7 @@ library(letsR)
 library(stringi)
 
 # prepare input for letsR
-PAM_pre <- refined_coordinates$CoordinateCleaned[
-  gbifID %chin% native_detected[native_status == 'native', gbifID],
+PAM_pre <- native_detected[(!is.na(decimalLatitude)) & native_status=='native',
   .(
     Accepted_name,
     genus = stri_extract_first_regex(Accepted_name, "^[^ ]+"),

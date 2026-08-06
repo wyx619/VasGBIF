@@ -80,9 +80,8 @@ detect_native_status(
 
 A `nativeDetected` object — a `data.table` subclass with one row per
 input record (all records from `CoordinateCleaned` and all from
-`Coordinateless`) and columns:
-
-- `gbifID`: the record identifier
+`Coordinateless`), keyed by `gbifID`. Every column of the input records
+is retained unchanged, with four classification columns appended:
 
 - `LEVEL3_COD`: the assigned WGSRPD Level 3 area code, or `NA` if the
   record could not be matched
@@ -99,6 +98,13 @@ input record (all records from `CoordinateCleaned` and all from
   had no usable key at all.
 
 - `buffered`: `TRUE` when the status came from a buffered spatial hit
+
+The intermediate matching columns used internally (taxon keys, candidate
+areas, match ranks) are not returned. Because the record columns are
+carried through, the result holds a second copy of the input data: for
+large inputs, `refined_coordinates` can be dropped once the
+classification is in hand. `CoordinateProblematic` records are not
+classified and do not appear in the result.
 
 ## Details
 
