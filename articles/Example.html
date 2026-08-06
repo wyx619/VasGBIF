@@ -31,7 +31,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -251,7 +251,7 @@ retried through their country code. Every classification records how it
 was obtained in <code>native_status_source</code>.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">native_detected</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_native_status.html">detect_native_status</a></span><span class="op">(</span></span>
-<span>  refined_coordinates <span class="op">=</span> <span class="va">refined_coordinates</span>,species_fallback <span class="op">=</span> <span class="cn">F</span>,buffer_km <span class="op">=</span> <span class="fl">10</span>,buffer_chunk_size <span class="op">=</span> <span class="fl">2000</span><span class="op">)</span></span>
+<span>  refined_coordinates <span class="op">=</span> <span class="va">refined_coordinates</span>,buffer_km <span class="op">=</span> <span class="fl">10</span>,buffer_chunk_size <span class="op">=</span> <span class="fl">2000</span><span class="op">)</span></span>
 <span><span class="va">VasGBIF_summary</span><span class="op">$</span><span class="va">native</span> <span class="op">&lt;-</span> <span class="va">native_detected</span><span class="op">[</span><span class="va">native_status</span> <span class="op">==</span> <span class="st">"native"</span>, <span class="va">.N</span><span class="op">]</span></span>
 <span><span class="va">VasGBIF_summary</span><span class="op">$</span><span class="va">introduced</span> <span class="op">&lt;-</span> <span class="va">native_detected</span><span class="op">[</span><span class="va">native_status</span> <span class="op">==</span> <span class="st">"introduced"</span>, <span class="va">.N</span><span class="op">]</span></span>
 <span><span class="va">VasGBIF_summary</span><span class="op">$</span><span class="va">extinct</span> <span class="op">&lt;-</span> <span class="va">native_detected</span><span class="op">[</span><span class="va">native_status</span> <span class="op">==</span> <span class="st">"extinct"</span>, <span class="va">.N</span><span class="op">]</span></span>

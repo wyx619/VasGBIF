@@ -129,16 +129,14 @@ used, so this pass is nearly free, and buffering is chunked
 (`buffer_chunk_size`) to keep the relate matrix small.
 
 Every classification records how it was obtained in
-`native_status_source` — `accepted_name` / `accepted_species` for
-spatial matches, `country_code` / `country_code_after_spatial_miss` for
-country-code matches (with a `_species` suffix when fallback was used),
-`country_code_miss` when the country mapped but the taxon has no
+`native_status_source` — `spatial` / `spatial_buffered` for spatial
+matches (exact and buffered), `country_code` /
+`country_code_after_spatial_miss` for country-code matches,
+`country_code_no_entry` when the country mapped but the taxon has no
 distribution entry there, and `unmatched` when no usable key exists — so
 the entire decision chain is auditable.
 
-**Precision without a speed penalty.** Infraspecific taxa inherit their
-parent species' status only when `species_fallback = TRUE`, an explicit
-and documented loss of precision; hybrid markers are normalised so
+**Precision without a speed penalty.** Hybrid markers are normalised so
 `Alnus x pubescens` matches the `Alnus × pubescens` recorded in the
 distributions; and neither the spatial overlay nor the distribution
 lookup ever iterates record-by-record in R. The result is a

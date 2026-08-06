@@ -33,7 +33,7 @@ laptop in under 15 minutes without specialised hardware."><meta property="og:ima
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -171,15 +171,13 @@ WGSRPD Level 3 areas by the <code>Level3maping</code> table. No geometry is used
 this pass is nearly free, and buffering is chunked (<code>buffer_chunk_size</code>)
 to keep the relate matrix small.</p>
 <p>Every classification records how it was obtained in
-<code>native_status_source</code> — <code>accepted_name</code> / <code>accepted_species</code> for spatial
-matches, <code>country_code</code> / <code>country_code_after_spatial_miss</code> for
-country-code matches (with a <code>_species</code> suffix when fallback was used),
-<code>country_code_miss</code> when the country mapped but the taxon has no
+<code>native_status_source</code> — <code>spatial</code> / <code>spatial_buffered</code> for spatial
+matches (exact and buffered), <code>country_code</code> /
+<code>country_code_after_spatial_miss</code> for country-code matches,
+<code>country_code_no_entry</code> when the country mapped but the taxon has no
 distribution entry there, and <code>unmatched</code> when no usable key exists — so
 the entire decision chain is auditable.</p>
-<p><strong>Precision without a speed penalty.</strong> Infraspecific taxa inherit their
-parent species' status only when <code>species_fallback = TRUE</code>, an explicit
-and documented loss of precision; hybrid markers are normalised so
+<p><strong>Precision without a speed penalty.</strong> Hybrid markers are normalised so
 <code>Alnus x pubescens</code> matches the <code>Alnus × pubescens</code> recorded in the
 distributions; and neither the spatial overlay nor the distribution
 lookup ever iterates record-by-record in R. The result is a

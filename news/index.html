@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,6 +50,16 @@
       <small>Source: <a href="https://github.com/wyx619/VasGBIF/blob/master/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="3.6.2" id="vasgbif-362">VasGBIF 3.6.2<a class="anchor" aria-label="anchor" href="#vasgbif-362"></a></h2>
+<div class="section level3">
+<h3 id="breaking-changes-3-6-2">Breaking Changes<a class="anchor" aria-label="anchor" href="#breaking-changes-3-6-2"></a></h3>
+<ul><li>
+<strong><code>species_fallback</code> has been removed from <code><a href="../reference/detect_native_status.html">detect_native_status()</a></code>.</strong> The opt-in parameter let infraspecific taxa absent from <code>Distributions</code> inherit their parent species’ status, but this proxy has been shown by research to be unreliable — a subspecies may be introduced where the species is native. Classification is now strictly by <code>Accepted_name</code>. The signature is <code>detect_native_status(refined_coordinates, buffer_km = 10, buffer_chunk_size = 2000)</code>, and the <code>key_rank</code>-based fallback machinery in the internal matching pipeline has been removed with it.</li>
+<li>
+<strong><code>native_status_source</code> values renamed.</strong> Spatial matches are now <code>spatial</code> (exact) and <code>spatial_buffered</code> (buffered) instead of a single <code>accepted_name</code>; a country that mapped to WGSRPD areas but has no distribution entry for the taxon is <code>country_code_no_entry</code> instead of <code>country_code_miss</code>. The <code>accepted_species</code> value and the <code>_species</code>-suffixed country-code forms no longer exist.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="3.6.1" id="vasgbif-361">VasGBIF 3.6.1<a class="anchor" aria-label="anchor" href="#vasgbif-361"></a></h2>
 <p><em>A follow-up release that makes the output of <code><a href="../reference/detect_native_status.html">detect_native_status()</a></code> self-contained: the native-status classification now carries the input record columns, so <code><a href="../reference/export_records.html">export_records()</a></code> and <code><a href="../reference/map_records.html">map_records()</a></code> no longer need a separate <code>refined_coordinates</code> object.</em></p>

@@ -8,7 +8,7 @@ developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.re
 [![codecov.io](https://codecov.io/github/wyx619/VasGBIF/coverage.svg?branch=master)](https://app.codecov.io/github/wyx619/VasGBIF?branch=master)
 [![R-CMD-check](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml)
 ![](https://img.shields.io/github/issues/wyx619/VasGBIF?color=F48D73)![](https://img.shields.io/github/license/wyx619/VasGBIF.svg?logo=github)![GitHub
-stars](https://img.shields.io/github/stars/wyx619/VasGBIF.svg?style=social&label=Star&maxAge=2592000)![](https://img.shields.io/badge/version-3.6.1-blue?logo=R)
+stars](https://img.shields.io/github/stars/wyx619/VasGBIF.svg?style=social&label=Star&maxAge=2592000)![](https://img.shields.io/badge/version-3.6.2-blue?logo=R)
 
 ## Introduction
 
@@ -74,10 +74,10 @@ Online wikis and manuals are available on
 
 ## Typical Workflow
 
-***Architecture*** ***of VasGBIF.**  
-Each step progressively filters records through taxonomic, quality, and
-coordinate checks. After all, more than half of the initial records are
-retained as high-quality and non-redundant
+***Architecture*** ***of VasGBIF.** Each step progressively filters
+records through taxonomic, quality, and coordinate checks. After all,
+more than half of the initial records are retained as high-quality and
+non-redundant
 data.*![Workflow](reference/figures/workflow.png "VasGBIF workflow")
 
 VasGBIF provides a reproducible, tracheophyte-optimized, and
@@ -149,8 +149,6 @@ tracheophyte records for advanced biodiversity research.
 
 ### Precise native-status detection system
 
-![](reference/figures/native.svg)
-
 [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
 is the analytical core of VasGBIF. It assigns a native, introduced,
 extinct, location_doubtful, or unknown classification to every
@@ -177,16 +175,13 @@ passes so that the most precise available evidence always wins:
 The system stays precise without sacrificing speed: coastal points just
 outside a polygon are still matched through a geodesic buffer
 (`buffer_km`, applied in metres so its meaning is identical at every
-latitude), with buffered hits always ranked below exact ones;
-infraspecific taxa inherit their parent species’ status only when
-`species_fallback = TRUE`; hybrid markers are normalised so
-`Alnus x pubescens` matches the `Alnus × pubescens` in the
-distributions; and every classification records how it was obtained in
-`native_status_source`, making the whole decision chain auditable.
+latitude), with buffered hits always ranked below exact ones; hybrid
+markers are normalised so `Alnus x pubescens` matches the
+`Alnus × pubescens` in the distributions; and every classification
+records how it was obtained in `native_status_source`, making the whole
+decision chain auditable.
 
 ### Flexible and fluent custom filter system
-
-![](reference/figures/custom_filter_system.svg)
 
 [`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md)
 turns the raw download into an analysis-ready occurrence table. It joins
@@ -212,8 +207,6 @@ vectorised `data.table` pass per rule — with every step audited:
   and word-boundary matching keeps CJK keywords from splitting genuine
   names — deliberately conservative so that real records are never
   dropped.
-
-![](reference/figures/collector_identifier_criteria.svg)
 
 ## Minimal Complete Example
 

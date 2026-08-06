@@ -63,7 +63,7 @@ same status priority applies.'><meta property="og:image" content="https://wyx619
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -131,7 +131,6 @@ same status priority applies.</p>
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">detect_native_status</span><span class="op">(</span></span>
 <span>  refined_coordinates <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>  species_fallback <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  buffer_km <span class="op">=</span> <span class="fl">10</span>,</span>
 <span>  buffer_chunk_size <span class="op">=</span> <span class="fl">2000</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -145,17 +144,6 @@ same status priority applies.</p>
 <dd><p>A <code>CoordinateRefined</code> object (or a list with the
 same structure) containing <code>CoordinateCleaned</code> — records with validated
 coordinates — and <code>Coordinateless</code> — records without usable coordinates.</p></dd>
-
-
-<dt id="arg-species-fallback">species_fallback<a class="anchor" aria-label="anchor" href="#arg-species-fallback"></a></dt>
-<dd><p>Logical scalar. When <code>TRUE</code>, records that could not
-be matched on <code>Accepted_name</code> are retried against <code>Accepted_species</code>, so
-that infraspecific taxa absent from <code>Distributions</code> inherit the status
-recorded for their parent species. This is a deliberate loss of precision:
-a subspecies may be introduced in an area where the species is native.
-Rows resolved this way are marked <code>"accepted_species"</code> (spatial stage) or
-with a <code>"_species"</code> suffix (country-code stage) in
-<code>native_status_source</code>. Defaults to <code>FALSE</code>.</p></dd>
 
 
 <dt id="arg-buffer-km">buffer_km<a class="anchor" aria-label="anchor" href="#arg-buffer-km"></a></dt>
@@ -178,13 +166,12 @@ retained unchanged, with four classification columns appended:</p><ul><li><p><co
 record could not be matched</p></li>
 <li><p><code>native_status</code>: one of <code>"native"</code>, <code>"introduced"</code>, <code>"extinct"</code>,
 <code>"location_doubtful"</code>, or <code>"unknown"</code></p></li>
-<li><p><code>native_status_source</code>: how the status was inferred. <code>"accepted_name"</code> /
-<code>"accepted_species"</code> are spatial matches; <code>"country_code"</code> /
-<code>"country_code_after_spatial_miss"</code> are country-code matches (with a
-<code>"_species"</code> suffix when <code>species_fallback</code> was used);
-<code>"country_code_miss"</code> means the country mapped to WGSRPD areas but the
-taxon had no distribution entry there; <code>"unmatched"</code> means the record had
-no usable key at all.</p></li>
+<li><p><code>native_status_source</code>: how the status was inferred. <code>"spatial"</code> /
+<code>"spatial_buffered"</code> are spatial matches, the latter via the geodesic
+buffer; <code>"country_code"</code> / <code>"country_code_after_spatial_miss"</code> are
+country-code matches; <code>"country_code_no_entry"</code> means the country mapped
+to WGSRPD areas but the taxon had no distribution entry there;
+<code>"unmatched"</code> means the record had no usable key at all.</p></li>
 <li><p><code>buffered</code>: <code>TRUE</code> when the status came from a buffered spatial hit</p></li>
 </ul><p>The intermediate matching columns used internally (taxon keys, candidate
 areas, match ranks) are not returned. Because the record columns are

@@ -159,7 +159,7 @@ classification records how it was obtained in `native_status_source`.
 ``` r
 
 native_detected <- detect_native_status(
-  refined_coordinates = refined_coordinates,species_fallback = F,buffer_km = 10,buffer_chunk_size = 2000)
+  refined_coordinates = refined_coordinates,buffer_km = 10,buffer_chunk_size = 2000)
 VasGBIF_summary$native <- native_detected[native_status == "native", .N]
 VasGBIF_summary$introduced <- native_detected[native_status == "introduced", .N]
 VasGBIF_summary$extinct <- native_detected[native_status == "extinct", .N]

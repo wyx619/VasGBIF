@@ -40,7 +40,6 @@ used. The same status priority applies.
 ``` r
 detect_native_status(
   refined_coordinates = NA,
-  species_fallback = FALSE,
   buffer_km = 10,
   buffer_chunk_size = 2000
 )
@@ -53,17 +52,6 @@ detect_native_status(
   A `CoordinateRefined` object (or a list with the same structure)
   containing `CoordinateCleaned` — records with validated coordinates —
   and `Coordinateless` — records without usable coordinates.
-
-- species_fallback:
-
-  Logical scalar. When `TRUE`, records that could not be matched on
-  `Accepted_name` are retried against `Accepted_species`, so that
-  infraspecific taxa absent from `Distributions` inherit the status
-  recorded for their parent species. This is a deliberate loss of
-  precision: a subspecies may be introduced in an area where the species
-  is native. Rows resolved this way are marked `"accepted_species"`
-  (spatial stage) or with a `"_species"` suffix (country-code stage) in
-  `native_status_source`. Defaults to `FALSE`.
 
 - buffer_km:
 
@@ -89,13 +77,12 @@ is retained unchanged, with four classification columns appended:
 - `native_status`: one of `"native"`, `"introduced"`, `"extinct"`,
   `"location_doubtful"`, or `"unknown"`
 
-- `native_status_source`: how the status was inferred. `"accepted_name"`
-  / `"accepted_species"` are spatial matches; `"country_code"` /
-  `"country_code_after_spatial_miss"` are country-code matches (with a
-  `"_species"` suffix when `species_fallback` was used);
-  `"country_code_miss"` means the country mapped to WGSRPD areas but the
-  taxon had no distribution entry there; `"unmatched"` means the record
-  had no usable key at all.
+- `native_status_source`: how the status was inferred. `"spatial"` /
+  `"spatial_buffered"` are spatial matches, the latter via the geodesic
+  buffer; `"country_code"` / `"country_code_after_spatial_miss"` are
+  country-code matches; `"country_code_no_entry"` means the country
+  mapped to WGSRPD areas but the taxon had no distribution entry there;
+  `"unmatched"` means the record had no usable key at all.
 
 - `buffered`: `TRUE` when the status came from a buffered spatial hit
 

@@ -1,5 +1,26 @@
 # Changelog
 
+## VasGBIF 3.6.2
+
+### Breaking Changes
+
+- **`species_fallback` has been removed from
+  [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md).**
+  The opt-in parameter let infraspecific taxa absent from
+  `Distributions` inherit their parent species’ status, but this proxy
+  has been shown by research to be unreliable — a subspecies may be
+  introduced where the species is native. Classification is now strictly
+  by `Accepted_name`. The signature is
+  `detect_native_status(refined_coordinates, buffer_km = 10, buffer_chunk_size = 2000)`,
+  and the `key_rank`-based fallback machinery in the internal matching
+  pipeline has been removed with it.
+- **`native_status_source` values renamed.** Spatial matches are now
+  `spatial` (exact) and `spatial_buffered` (buffered) instead of a
+  single `accepted_name`; a country that mapped to WGSRPD areas but has
+  no distribution entry for the taxon is `country_code_no_entry` instead
+  of `country_code_miss`. The `accepted_species` value and the
+  `_species`-suffixed country-code forms no longer exist.
+
 ## VasGBIF 3.6.1
 
 *A follow-up release that makes the output of
