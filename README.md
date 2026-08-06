@@ -2,7 +2,7 @@
 
 ## Fast and Easy Compilation of Vascular Plants Occurrence Records from GBIF
 
-[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active) [![codecov.io](https://codecov.io/github/wyx619/VasGBIF/coverage.svg?branch=master)](https://app.codecov.io/github/wyx619/VasGBIF?branch=master) [![R-CMD-check](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml) ![](https://img.shields.io/github/issues/wyx619/VasGBIF?color=F48D73) ![](https://img.shields.io/github/license/wyx619/VasGBIF.svg?logo=github) ![GitHub stars](https://img.shields.io/github/stars/wyx619/VasGBIF.svg?style=social&label=Star&maxAge=2592000) ![](https://img.shields.io/badge/version-3.6.1-blue?logo=R)
+[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active) [![codecov.io](https://codecov.io/github/wyx619/VasGBIF/coverage.svg?branch=master)](https://app.codecov.io/github/wyx619/VasGBIF?branch=master) [![R-CMD-check](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml) ![](https://img.shields.io/github/issues/wyx619/VasGBIF?color=F48D73) ![](https://img.shields.io/github/license/wyx619/VasGBIF.svg?logo=github) ![GitHub stars](https://img.shields.io/github/stars/wyx619/VasGBIF.svg?style=social&label=Star&maxAge=2592000) ![](https://img.shields.io/badge/version-3.6.2-blue?logo=R)
 
 ## Introduction
 
@@ -41,8 +41,7 @@ Online wikis and manuals are available on <https://wyx619.github.io/VasGBIF/>.
 
 ## Typical Workflow
 
-***Architecture*** ***of VasGBIF.**\
-Each step progressively filters records through taxonomic, quality, and coordinate checks. After all, more than half of the initial records are retained as high-quality and non-redundant data.*![Workflow](man/figures/workflow.png "VasGBIF workflow")
+***Architecture*** ***of VasGBIF.** Each step progressively filters records through taxonomic, quality, and coordinate checks. After all, more than half of the initial records are retained as high-quality and non-redundant data.*![Workflow](man/figures/workflow.png "VasGBIF workflow")
 
 VasGBIF provides a reproducible, tracheophyte-optimized, and computationally efficient framework for transforming GBIF records into analysis-ready datasets. The package functions are organized into 8 steps.
 
@@ -70,26 +69,20 @@ Overall, VasGBIF integrates these components into a unified, automated workflow 
 
 ### Precise native-status detection system
 
-![](man/figures/native.svg)
-
 `detect_native_status()` is the analytical core of VasGBIF. It assigns a native, introduced, extinct, location_doubtful, or unknown classification to every occurrence by matching the record's identification and position against authoritative WCVP distribution data (the internal `Distributions` dataset) organised by WGSRPD Level 3 areas. Classification runs in two passes so that the most precise available evidence always wins:
 
 - **Spatial pass.** Records with validated coordinates are overlaid on the WGSRPD Level 3 polygon map with `terra::extract()` — a single vectorised call that assigns every point its area code in compiled code. Each area code is looked up in a distribution table classified from the WCVP flags (`introduced`, `extinct`, `location_doubtful`) with a fixed priority: `location_doubtful` \> `introduced` \> `extinct` \> `native` \> `unknown`. Records falling in several areas receive the most preferred status, never an arbitrary one.
 - **Country-code pass.** Records without coordinates, and records the spatial pass left unresolved, are retried through `countryCode` mapped to WGSRPD Level 3 areas by the `Level3maping` table. No geometry is used, so this pass is nearly free.
 
-The system stays precise without sacrificing speed: coastal points just outside a polygon are still matched through a geodesic buffer (`buffer_km`, applied in metres so its meaning is identical at every latitude), with buffered hits always ranked below exact ones; infraspecific taxa inherit their parent species' status only when `species_fallback = TRUE`; hybrid markers are normalised so `Alnus x pubescens` matches the `Alnus × pubescens` in the distributions; and every classification records how it was obtained in `native_status_source`, making the whole decision chain auditable.
+The system stays precise without sacrificing speed: coastal points just outside a polygon are still matched through a geodesic buffer (`buffer_km`, applied in metres so its meaning is identical at every latitude), with buffered hits always ranked below exact ones; hybrid markers are normalised so `Alnus x pubescens` matches the `Alnus × pubescens` in the distributions; and every classification records how it was obtained in `native_status_source`, making the whole decision chain auditable.
 
 ### Flexible and fluent custom filter system
-
-![](man/figures/custom_filter_system.svg)
 
 `custom_filter()` turns the raw download into an analysis-ready occurrence table. It joins the three preceding outputs (`occ_import`, `taxa_checked`, `gbif_issue`) into one table, then walks a user-selected set of quality rules — one vectorised `data.table` pass per rule — with every step audited:
 
 - **Fluent rule control.** Each rule is an independently toggleable argument. Three rules are on by default (`countryCode`, `coordinateUncertainty` ≤ 10,000 m, `gbif_issues_max` ≤ 5); `date`, `identifiedBy`, and `recordedBy` are opt-in, so no information is discarded without an explicit choice. Numeric thresholds share one uniform "off" convention — `NULL`, `NA`, or `''` — so any rule can be disabled without restructuring the call.
 - **Auditable pipeline.** Every step, including the `taxon_resolved` join, is logged in the returned `summary` table (`rule`, `dropped`, `remaining`), making the effect of each decision visible and reproducible.
 - **Careful collector and identifier detection.** The `identifiedBy` and `recordedBy` rules remove only values that contain no named person, using a curated multilingual keyword list and whole-value patterns; name separators protect values that mix a keyword with a real name, and word-boundary matching keeps CJK keywords from splitting genuine names — deliberately conservative so that real records are never dropped.
-
-![](man/figures/collector_identifier_criteria.svg)
 
 ## Minimal Complete Example
 

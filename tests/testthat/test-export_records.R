@@ -24,7 +24,7 @@ mk_native_detected <- function() {
     decimalLatitude = c(40, 50, 60, NA_real_, NA_real_),
     LEVEL3_COD = c("NOR", "POL", "NOR", "NOR", NA_character_),
     native_status = c("native", "introduced", "native", "native", "unknown"),
-    native_status_source = rep("accepted_name", 5),
+    native_status_source = rep("spatial", 5),
     buffered = rep(FALSE, 5)
   )
   class(out) <- c("nativeDetected", class(out))

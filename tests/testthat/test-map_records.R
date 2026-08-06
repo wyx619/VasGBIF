@@ -20,7 +20,7 @@ mk_native_detected <- function(
   name = "Sp alpha",
   lon = 10,
   lat = 60,
-  source = "accepted_name"
+  source = "spatial"
 ) {
   n <- length(gbifID)
   out <- data.table(

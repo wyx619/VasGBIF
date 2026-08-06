@@ -6,7 +6,6 @@
 \usage{
 detect_native_status(
   refined_coordinates = NA,
-  species_fallback = FALSE,
   buffer_km = 10,
   buffer_chunk_size = 2000
 )
@@ -15,15 +14,6 @@ detect_native_status(
 \item{refined_coordinates}{A \code{CoordinateRefined} object (or a list with the
 same structure) containing \code{CoordinateCleaned} — records with validated
 coordinates — and \code{Coordinateless} — records without usable coordinates.}
-
-\item{species_fallback}{Logical scalar. When \code{TRUE}, records that could not
-be matched on \code{Accepted_name} are retried against \code{Accepted_species}, so
-that infraspecific taxa absent from \code{Distributions} inherit the status
-recorded for their parent species. This is a deliberate loss of precision:
-a subspecies may be introduced in an area where the species is native.
-Rows resolved this way are marked \code{"accepted_species"} (spatial stage) or
-with a \code{"_species"} suffix (country-code stage) in
-\code{native_status_source}. Defaults to \code{FALSE}.}
 
 \item{buffer_km}{Numeric scalar. Width of the spatial buffer in km applied
 to records the exact spatial match left unresolved. \code{0} disables the
@@ -42,13 +32,12 @@ retained unchanged, with four classification columns appended:
 record could not be matched
 \item \code{native_status}: one of \code{"native"}, \code{"introduced"}, \code{"extinct"},
 \code{"location_doubtful"}, or \code{"unknown"}
-\item \code{native_status_source}: how the status was inferred. \code{"accepted_name"} /
-\code{"accepted_species"} are spatial matches; \code{"country_code"} /
-\code{"country_code_after_spatial_miss"} are country-code matches (with a
-\code{"_species"} suffix when \code{species_fallback} was used);
-\code{"country_code_miss"} means the country mapped to WGSRPD areas but the
-taxon had no distribution entry there; \code{"unmatched"} means the record had
-no usable key at all.
+\item \code{native_status_source}: how the status was inferred. \code{"spatial"} /
+\code{"spatial_buffered"} are spatial matches, the latter via the geodesic
+buffer; \code{"country_code"} / \code{"country_code_after_spatial_miss"} are
+country-code matches; \code{"country_code_no_entry"} means the country mapped
+to WGSRPD areas but the taxon had no distribution entry there;
+\code{"unmatched"} means the record had no usable key at all.
 \item \code{buffered}: \code{TRUE} when the status came from a buffered spatial hit
 }
 

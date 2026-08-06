@@ -39,14 +39,6 @@
 #' @param refined_coordinates A `CoordinateRefined` object (or a list with the
 #'   same structure) containing `CoordinateCleaned` — records with validated
 #'   coordinates — and `Coordinateless` — records without usable coordinates.
-#' @param species_fallback Logical scalar. When `TRUE`, records that could not
-#'   be matched on `Accepted_name` are retried against `Accepted_species`, so
-#'   that infraspecific taxa absent from `Distributions` inherit the status
-#'   recorded for their parent species. This is a deliberate loss of precision:
-#'   a subspecies may be introduced in an area where the species is native.
-#'   Rows resolved this way are marked `"accepted_species"` (spatial stage) or
-#'   with a `"_species"` suffix (country-code stage) in
-#'   `native_status_source`. Defaults to `FALSE`.
 #' @param buffer_km Numeric scalar. Width of the spatial buffer in km applied
 #'   to records the exact spatial match left unresolved. `0` disables the
 #'   buffer. Defaults to `10`.
@@ -62,13 +54,12 @@
 #'   record could not be matched
 #' - `native_status`: one of `"native"`, `"introduced"`, `"extinct"`,
 #'   `"location_doubtful"`, or `"unknown"`
-#' - `native_status_source`: how the status was inferred. `"accepted_name"` /
-#'   `"accepted_species"` are spatial matches; `"country_code"` /
-#'   `"country_code_after_spatial_miss"` are country-code matches (with a
-#'   `"_species"` suffix when `species_fallback` was used);
-#'   `"country_code_miss"` means the country mapped to WGSRPD areas but the
-#'   taxon had no distribution entry there; `"unmatched"` means the record had
-#'   no usable key at all.
+#' - `native_status_source`: how the status was inferred. `"spatial"` /
+#'   `"spatial_buffered"` are spatial matches, the latter via the geodesic
+#'   buffer; `"country_code"` / `"country_code_after_spatial_miss"` are
+#'   country-code matches; `"country_code_no_entry"` means the country mapped
+#'   to WGSRPD areas but the taxon had no distribution entry there;
+#'   `"unmatched"` means the record had no usable key at all.
 #' - `buffered`: `TRUE` when the status came from a buffered spatial hit
 #'
 #' The intermediate matching columns used internally (taxon keys, candidate
@@ -85,14 +76,10 @@
 #' @export
 detect_native_status <- function(
   refined_coordinates = NA,
-  species_fallback = FALSE,
   buffer_km = 10,
   buffer_chunk_size = 2000
 ) {
   t1 <- Sys.time()
-  if (!isTRUE(species_fallback) && !isFALSE(species_fallback)) {
-    stop("`species_fallback` must be TRUE or FALSE.", call. = FALSE)
-  }
 
   if (
     !is.numeric(buffer_km) ||
@@ -138,22 +125,10 @@ detect_native_status <- function(
     )
   }
 
-  if (species_fallback && !"Accepted_species" %chin% names(CoordinateCleaned)) {
-    stop(
-      "`species_fallback = TRUE` requires an `Accepted_species` column.",
-      call. = FALSE
-    )
-  }
-
   occurrences <- CoordinateCleaned[, .(
     occurrence_id = .I,
     gbifID,
     name_key = canonical_taxon_name(Accepted_name),
-    species_key = if (species_fallback) {
-      canonical_taxon_name(Accepted_species)
-    } else {
-      NA_character_
-    },
     decimalLongitude,
     decimalLatitude
   )]
@@ -172,20 +147,13 @@ detect_native_status <- function(
         NA_character_
       },
       name_key = canonical_taxon_name(Accepted_name),
-      species_key = if (species_fallback) {
-        canonical_taxon_name(Accepted_species)
-      } else {
-        NA_character_
-      },
       channel = "country_code"
     )]
   }
 
   lookup_keys <- unique(c(
     occurrences$name_key,
-    occurrences$species_key,
-    if (!is.null(coordinateless)) coordinateless$name_key,
-    if (!is.null(coordinateless)) coordinateless$species_key
+    if (!is.null(coordinateless)) coordinateless$name_key
   ))
   lookup_keys <- lookup_keys[!is.na(lookup_keys)]
 
@@ -251,32 +219,22 @@ detect_native_status <- function(
 
   candidates <- occurrences[
     extracted_areas,
-    .(occurrence_id, name_key, species_key, candidate_area),
+    .(occurrence_id, name_key, candidate_area),
     on = "occurrence_id"
   ]
   candidates[, `:=`(
     match_type = "exact",
     native_status = NA_character_,
     status_rank = NA_integer_,
-    source = NA_character_,
-    key_rank = NA_integer_
+    source = NA_character_
   )]
 
-  # Attach distribution status to a candidate table, by taxon name first and
-  # by parent species as a fallback. The fallback only updates rows that the
-  # name wave left unmatched, so it can never overwrite a name match.
-  # `key_rank` records the fallback level (1 = name, 2 = species); `source`
+  # Attach distribution status to a candidate table by taxon name. `source`
   # is filled afterwards because the labels differ between stages.
-  link_status(candidates, "name_key", 1L, native_distributions)
-  if (species_fallback) {
-    link_status(candidates, "species_key", 2L, native_distributions)
-  }
+  link_status(candidates, "name_key", native_distributions)
   candidates[
     !is.na(native_status),
-    source := fcase(
-      key_rank == 2L , "accepted_species" ,
-      default = "accepted_name"
-    )
+    source := "spatial"
   ]
 
   resolved <- adjudicate(candidates)
@@ -289,17 +247,14 @@ detect_native_status <- function(
   if (buffer_km > 0) {
     unresolved <- occurrences[
       !occurrence_id %in% resolved$occurrence_id,
-      .(occurrence_id, name_key, species_key, decimalLongitude, decimalLatitude)
+      .(occurrence_id, name_key, decimalLongitude, decimalLatitude)
     ]
 
     # A record whose taxon has no row at all in `native_distributions` cannot be
     # rescued by widening its geometry, so drop it before paying for `buffer()`
-    # and `relate()`. With `species_fallback = FALSE`, `species_key` is NA
-    # throughout and contributes nothing.
+    # and `relate()`.
     known_keys <- unique(native_distributions$taxon_key)
-    unresolved <- unresolved[
-      name_key %chin% known_keys | species_key %chin% known_keys
-    ]
+    unresolved <- unresolved[name_key %chin% known_keys]
 
     if (nrow(unresolved) > 0) {
       message("Buffering ", nrow(unresolved), " unresolved records")
@@ -342,26 +297,19 @@ detect_native_status <- function(
         match_type = "buffered",
         native_status = NA_character_,
         status_rank = NA_integer_,
-        source = NA_character_,
-        key_rank = NA_integer_
+        source = NA_character_
       )]
 
       if (nrow(buffered) > 0) {
         buffered <- merge(
           buffered,
-          unresolved[, .(occurrence_id, name_key, species_key)],
+          unresolved[, .(occurrence_id, name_key)],
           by = "occurrence_id"
         )
-        link_status(buffered, "name_key", 1L, native_distributions)
-        if (species_fallback) {
-          link_status(buffered, "species_key", 2L, native_distributions)
-        }
+        link_status(buffered, "name_key", native_distributions)
         buffered[
           !is.na(native_status),
-          source := fcase(
-            key_rank == 2L , "accepted_species" ,
-            default = "accepted_name"
-          )
+          source := "spatial_buffered"
         ]
         resolved <- rbind(resolved, adjudicate(buffered))
       }
@@ -407,10 +355,9 @@ detect_native_status <- function(
   # unresolved, are matched without geometry: `countryCode` is mapped to
   # WGSRPD Level 3 areas by `Level3maping` and looked up in the same
   # `native_distributions` table. Resolved rows are labelled
-  # `country_code` / `country_code_after_spatial_miss` (with a `_species`
-  # suffix when the species fallback was used); records whose country mapped
-  # but had no distribution hit are `country_code_miss`, and records without
-  # a usable country code stay `unmatched`.
+  # `country_code` / `country_code_after_spatial_miss`; records whose country
+  # mapped but had no distribution hit are `country_code_no_entry`, and records
+  # without a usable country code stay `unmatched`.
   l3_by_iso <- unique(Level3maping[
     !is.na(`L3 ISOcode`),
     .(countryCode = `L3 ISOcode`, candidate_area = `L3 code`)
@@ -425,14 +372,13 @@ detect_native_status <- function(
       .(
         gbifID,
         name_key,
-        species_key,
         countryCode = NA_character_
       )
     ]
   } else {
     miss_records <- occurrences[
       native_status_source == "unmatched",
-      .(gbifID, name_key, species_key)
+      .(gbifID, name_key)
     ][
       CoordinateCleaned[, .(gbifID, countryCode)],
       on = "gbifID",
@@ -460,27 +406,20 @@ detect_native_status <- function(
   country_candidates <- stage2[mapped == TRUE][
     l3_by_iso,
     on = "countryCode",
-    .(occurrence_id, name_key, species_key, candidate_area, channel),
+    .(occurrence_id, name_key, candidate_area, channel),
     allow.cartesian = TRUE
   ]
   country_candidates[, `:=`(
     match_type = "exact",
     native_status = NA_character_,
     status_rank = NA_integer_,
-    source = NA_character_,
-    key_rank = NA_integer_
+    source = NA_character_
   )]
 
-  link_status(country_candidates, "name_key", 1L, native_distributions)
-  if (species_fallback) {
-    link_status(country_candidates, "species_key", 2L, native_distributions)
-  }
+  link_status(country_candidates, "name_key", native_distributions)
   country_candidates[
     !is.na(native_status),
-    source := fcase(
-      key_rank == 2L , paste0(channel, "_species") ,
-      default = channel
-    )
+    source := channel
   ]
 
   resolved_country <- adjudicate(country_candidates)
@@ -500,7 +439,7 @@ detect_native_status <- function(
     is.na(native_status),
     `:=`(
       native_status = "unknown",
-      native_status_source = fifelse(mapped, "country_code_miss", "unmatched"),
+      native_status_source = fifelse(mapped, "country_code_no_entry", "unmatched"),
       buffered = FALSE
     )
   ]
@@ -633,25 +572,21 @@ build_distribution_lookup <- function(lookup_keys) {
 
 #' Attach distribution status to candidate rows
 #'
-#' Updates candidate rows that are still unmatched, joining on one key column
-#' (accepted name or parent species) and a candidate area code. `key_rank`
-#' records the fallback level (1 = name, 2 = species); `source` is filled by
-#' the caller afterwards so labels can differ between the spatial and
-#' country-code stages.
+#' Updates candidate rows that are still unmatched, joining on the canonical
+#' taxon key and a candidate area code. `source` is filled by the caller
+#' afterwards so labels can differ between the spatial and country-code
+#' stages.
 #'
 #' @param cand A candidate `data.table` with columns `occurrence_id`,
-#'   `candidate_area`, `native_status`, `status_rank`, `source`, `key_rank`.
+#'   `candidate_area`, `native_status`, `status_rank`, `source`.
 #' @param key Column name in `cand` holding the canonical taxon key.
-#' @param rank_val Integer fallback level to stamp on matches (1 = name,
-#'   2 = species). Named to avoid colliding with the `key_rank` column inside
-#'   the `:=` assignment.
 #' @param native_distributions The classified distribution table from
 #'   `build_distribution_lookup()`.
 #'
 #' @returns `cand`, invisibly, modified in place.
 #'
 #' @noRd
-link_status <- function(cand, key, rank_val, native_distributions) {
+link_status <- function(cand, key, native_distributions) {
   pool <- cand[is.na(native_status)]
   if (!nrow(pool)) {
     return(invisible(cand))
@@ -672,7 +607,6 @@ link_status <- function(cand, key, rank_val, native_distributions) {
   cand[
     updates,
     `:=`(
-      key_rank = rank_val,
       native_status = i.status,
       status_rank = i.rank
     ),
@@ -683,10 +617,9 @@ link_status <- function(cand, key, rank_val, native_distributions) {
 
 #' Reduce candidate rows to one status per occurrence
 #'
-#' Exact hits beat buffered ones, an accepted-name match beats a species
-#' fallback, and within either level the more preferred status wins (native
-#' first, see `native_status_priority`); remaining ties follow candidate
-#' order.
+#' Exact hits beat buffered ones, and within a match type the more preferred
+#' status wins (native first, see `native_status_priority`); remaining ties
+#' follow candidate order.
 #'
 #' @param cand A candidate `data.table` (see `link_status()`).
 #'
@@ -696,7 +629,7 @@ link_status <- function(cand, key, rank_val, native_distributions) {
 #' @noRd
 adjudicate <- function(cand) {
   cand[!is.na(native_status)][
-    order(match_type != "exact", key_rank, status_rank)
+    order(match_type != "exact", status_rank)
   ][
     !duplicated(occurrence_id)
   ][, .(

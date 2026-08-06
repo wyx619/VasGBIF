@@ -125,7 +125,7 @@ test_that("a point in a documented area resolves from its accepted name", {
 
   expect_equal(result$LEVEL3_COD, "NOR")
   expect_equal(result$native_status, "native")
-  expect_equal(result$native_status_source, "accepted_name")
+  expect_equal(result$native_status_source, "spatial")
   expect_false(result$buffered)
 })
 
@@ -163,7 +163,7 @@ test_that("a buffer wide enough to reach the polygon resolves and is flagged", {
 
   expect_equal(result$native_status, "native")
   expect_equal(result$LEVEL3_COD, "NOR")
-  expect_equal(result$native_status_source, "accepted_name")
+  expect_equal(result$native_status_source, "spatial_buffered")
   expect_true(result$buffered)
 })
 
@@ -175,7 +175,7 @@ test_that("an exact hit is never displaced by a buffered candidate", {
     Coordinateless = NULL
   ), buffer_km = 25))
 
-  expect_equal(result$native_status_source, "accepted_name")
+  expect_equal(result$native_status_source, "spatial")
   expect_false(result$buffered)
 })
 
@@ -200,63 +200,6 @@ test_that("buffer results do not depend on buffer_chunk_size", {
   expect_equal(nrow(small), 7L)
 })
 
-# --- species_fallback -------------------------------------------------------
-
-test_that("species_fallback = FALSE leaves an infraspecific taxon unmatched", {
-  result <- suppressMessages(detect_native_status(list(
-    CoordinateCleaned = mk_clean(
-      "1", "Alnus glutinosa subsp. ficticia",
-      species = "Alnus glutinosa", lon = 10, lat = 60
-    ),
-    Coordinateless = NULL
-  ), species_fallback = FALSE))
-
-  expect_equal(result$native_status, "unknown")
-  expect_equal(result$native_status_source, "unmatched")
-})
-
-test_that("species_fallback = TRUE inherits the parent species status", {
-  result <- suppressMessages(detect_native_status(list(
-    CoordinateCleaned = mk_clean(
-      "1", "Alnus glutinosa subsp. ficticia",
-      species = "Alnus glutinosa", lon = 10, lat = 60
-    ),
-    Coordinateless = NULL
-  ), species_fallback = TRUE))
-
-  expect_equal(result$native_status, "native")
-  expect_equal(result$native_status_source, "accepted_species")
-})
-
-test_that("an accepted-name match outranks a parent species match", {
-  # Ajuga chamaepitys subsp. chamaepitys is introduced in POL while the
-  # species is native there; the more precise name must win even though
-  # native is the preferred status.
-  result <- suppressMessages(detect_native_status(list(
-    CoordinateCleaned = mk_clean(
-      "1", "Ajuga chamaepitys subsp. chamaepitys",
-      species = "Ajuga chamaepitys", lon = 19.4, lat = 52.1, cc = "PL"
-    ),
-    Coordinateless = NULL
-  ), species_fallback = TRUE))
-
-  expect_equal(result$native_status, "introduced")
-  expect_equal(result$native_status_source, "accepted_name")
-  expect_equal(result$LEVEL3_COD, "POL")
-})
-
-test_that("species_fallback = TRUE requires an Accepted_species column", {
-  clean <- mk_clean("1", "Alnus glutinosa", lon = 10, lat = 60)
-  clean[, Accepted_species := NULL]
-  expect_error(
-    suppressMessages(detect_native_status(list(
-      CoordinateCleaned = clean,
-      Coordinateless = NULL
-    ), species_fallback = TRUE)),
-    "Accepted_species"
-  )
-})
-
 # --- Hybrid name normalisation ----------------------------------------------
 
 test_that("a hybrid recorded with ASCII 'x' matches the U+00D7 name", {
@@ -266,7 +209,7 @@ test_that("a hybrid recorded with ASCII 'x' matches the U+00D7 name", {
   )))
 
   expect_equal(result$native_status, "native")
-  expect_equal(result$native_status_source, "accepted_name")
+  expect_equal(result$native_status_source, "spatial")
   expect_equal(result$LEVEL3_COD, "NOR")
 })
 
@@ -297,7 +240,7 @@ test_that("a spatial miss is retried by country code", {
   expect_equal(result$LEVEL3_COD, "NOR")
 })
 
-test_that("a mapped country with no distribution hit is country_code_miss", {
+test_that("a mapped country with no distribution hit is country_code_no_entry", {
   result <- suppressMessages(detect_native_status(list(
     CoordinateCleaned = mk_clean("x", "Alnus glutinosa", lon = 10, lat = 60),
     Coordinateless = mk_without("1", "Test absentia ficta", cc = "NO")
@@ -305,7 +248,7 @@ test_that("a mapped country with no distribution hit is country_code_miss", {
 
   row <- result[gbifID == "1"]
   expect_equal(row$native_status, "unknown")
-  expect_equal(row$native_status_source, "country_code_miss")
+  expect_equal(row$native_status_source, "country_code_no_entry")
 })
 
 test_that("no usable country code leaves a record unmatched", {
@@ -331,7 +274,7 @@ test_that("a missing countryCode column is treated as no country code", {
   )))
 
   # The spatial hit still resolves; the coordinateless row has no code.
-  expect_equal(result[gbifID == "1"]$native_status_source, "accepted_name")
+  expect_equal(result[gbifID == "1"]$native_status_source, "spatial")
   expect_equal(result[gbifID == "2"]$native_status, "unknown")
   expect_equal(result[gbifID == "2"]$native_status_source, "unmatched")
 })
@@ -361,8 +304,6 @@ test_that("invalid parameters are rejected", {
   clean <- mk_clean("1", "Alnus glutinosa", lon = 10, lat = 60)
   dist <- list(CoordinateCleaned = clean, Coordinateless = NULL)
 
-  expect_error(detect_native_status(dist, species_fallback = NA), "TRUE or FALSE")
-  expect_error(detect_native_status(dist, species_fallback = "yes"), "TRUE or FALSE")
   expect_error(detect_native_status(dist, buffer_km = -1), "non-negative")
   expect_error(detect_native_status(dist, buffer_km = c(1, 2)), "non-negative")
   expect_error(detect_native_status(dist, buffer_km = NA_real_), "non-negative")
@@ -399,7 +340,7 @@ test_that("print shows a compact status summary", {
   expect_true(any(grepl("native_status:", out)))
   expect_true(any(grepl("native_status_source:", out)))
   expect_true(any(grepl("native", out)))
-  expect_true(any(grepl("accepted_name", out)))
+  expect_true(any(grepl("spatial", out)))
 })
 
 test_that("print handles an empty result", {
