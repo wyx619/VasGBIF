@@ -33,8 +33,10 @@
 
 ## Step 6 — Detect Native Status
 
-- [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
+- [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)
   : Detect native status from WGSRPD distributions
+- [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)
+  : Detect native status from country codes
 
 ## Step 7 — Export Records
 

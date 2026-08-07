@@ -1,11 +1,110 @@
 # Changelog
 
+## VasGBIF 3.6.3
+
+Native-status detection is split into two independent functions:
+[`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)
+classifies records with validated coordinates through the spatial pass,
+while
+[`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)
+classifies records without coordinates through their country code. The
+previous “retry unresolved records by country code” mechanism is
+removed, and the downstream consumers
+([`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md),
+[`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md))
+now require and validate that their input carries coordinates.
+
+### Breaking Changes
+
+- **`detect_native_status()` is replaced by
+  [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)
+  and
+  [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md).**
+  The combined two-pass classifier no longer exists; classification is
+  split by whether a record has coordinates.
+  - `detect_native_coord(refined_coordinates, buffer_km = 10, buffer_chunk_size = 2000)`
+    classifies the records with validated coordinates
+    (`refined_coordinates$CoordinateCleaned`) by overlaying them on the
+    WGSRPD Level 3 polygon map. `native_status_source` is `spatial`
+    (exact hit), `spatial_buffered` (geodesic buffer hit), or
+    `unmatched`.
+  - `detect_native_country(custom_filtered)` classifies the records
+    missing longitude or latitude
+    (`custom_filtered$occ_filtered[is.na(decimalLatitude) | is.na(decimalLongitude)]`)
+    through `countryCode` mapped to Level 3 areas by `Level3maping`;
+    records with complete coordinates are not part of the result.
+    `native_status_source` is `country_code`, `country_code_no_entry`,
+    or `unmatched`, and `buffered` is always `FALSE` because no geometry
+    is used.
+  - Both return a `nativeDetected` object keyed by `gbifID`; the two
+    results can be combined with
+    [`rbind()`](https://rdrr.io/r/base/cbind.html) for a full
+    classification.
+- **Records the spatial stage leaves unresolved are no longer retried by
+  country code.** The migration mechanism and its
+  `country_code_after_spatial_miss` source value are gone: a spatial
+  miss stays `unmatched` and is never re-classified through the country
+  code. Coordinateless records are classified separately with
+  [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md).
+- **[`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)
+  and
+  [`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)
+  now take `native_detected_coord` (renamed from `native_detected`) and
+  require coordinates.** The input must be the output of
+  [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md):
+  both functions stop with an error if `decimalLongitude` or
+  `decimalLatitude` is missing for any record, so the output of
+  [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)
+  is rejected.
+- **[`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
+  no longer returns a `Coordinateless` table.** The `CoordinateRefined`
+  object now has three elements (`CoordinateCleaned`,
+  `CoordinateProblematic`, `runtime`). Records missing longitude or
+  latitude are not carried by
+  [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md);
+  they are classified directly from `custom_filtered` by
+  [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md).
+
+### Bug Fixes
+
+- **[`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
+  empty-input path no longer errors.** The guard previously referenced
+  an undefined `Coordinateless` variable, failing with “object
+  ‘Coordinateless’ not found”; it now returns a well-formed
+  `CoordinateRefined` object with empty `CoordinateCleaned` and
+  `CoordinateProblematic` tables.
+- **A blank `countryCode` no longer resolves to Level 3 areas.** The 42
+  WGSRPD areas whose `L3 ISOcode` is stored as `""` were previously
+  treated as a valid mapping, so a record with an empty country code
+  could be classified from those areas; such records are now
+  `unmatched`.
+
+### Documentation
+
+- Package-level documentation, README, `Example.Rmd`, and
+  `Application.Rmd` rewritten for the two-function split; every
+  `detect_native_status()` reference — including `@seealso` cross-links
+  — has been removed from `R/`, `man/`, README, and the vignettes.
+- Rd files regenerated for the new and updated functions.
+
+### Testing
+
+- `test-detect_native_status.R` replaced by `test-detect_native_coord.R`
+  (spatial classification, buffer passes, hybrid-name normalisation,
+  print method) and `test-detect_native_country.R` (country-code
+  classification, multi-area status adjudication, blank and unknown
+  country codes, empty inputs).
+- `test-export_records.R` and `test-map_records.R` updated for the
+  renamed argument and the new coordinate-presence check; fixtures carry
+  coordinates for every record.
+- `test-refine_coordinates.R` updated for the three-element
+  `CoordinateRefined` contract (`Coordinateless` is no longer returned).
+
 ## VasGBIF 3.6.2
 
 ### Breaking Changes
 
-- **`species_fallback` has been removed from
-  [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md).**
+- **`species_fallback` has been removed from `detect_native_status()`.**
   The opt-in parameter let infraspecific taxa absent from
   `Distributions` inherit their parent species’ status, but this proxy
   has been shown by research to be unreliable — a subspecies may be
@@ -23,8 +122,7 @@
 
 ## VasGBIF 3.6.1
 
-*A follow-up release that makes the output of
-[`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
+*A follow-up release that makes the output of `detect_native_status()`
 self-contained: the native-status classification now carries the input
 record columns, so
 [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)
@@ -34,12 +132,12 @@ no longer need a separate `refined_coordinates` object.*
 
 ### Breaking Changes
 
-- **[`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
-  now returns the record columns alongside the classification.** A
-  `nativeDetected` object retains every column of the input records
-  (`CoordinateCleaned` + `Coordinateless`) and appends `LEVEL3_COD`,
-  `native_status`, `native_status_source`, and `buffered`. The result is
-  keyed by `gbifID` and can be passed straight to
+- **`detect_native_status()` now returns the record columns alongside
+  the classification.** A `nativeDetected` object retains every column
+  of the input records (`CoordinateCleaned` + `Coordinateless`) and
+  appends `LEVEL3_COD`, `native_status`, `native_status_source`, and
+  `buffered`. The result is keyed by `gbifID` and can be passed straight
+  to
   [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)
   /
   [`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)
@@ -78,17 +176,15 @@ no longer need a separate `refined_coordinates` object.*
   [`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md)
   and
   [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md).
-- **Column-clash guard in
-  [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md).**
-  Passing an already-classified table back in (one that already contains
+- **Column-clash guard in `detect_native_status()`.** Passing an
+  already-classified table back in (one that already contains
   `LEVEL3_COD`, `native_status`, `native_status_source`, or `buffered`)
   now stops with a clear error instead of producing `.x` / `.y` suffixed
   columns in the final join.
-- **Row-count assertion in
-  [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md).**
-  Reattaching the record columns is asserted to be one-to-one: a
-  duplicated `gbifID` across the input tables would inflate the result
-  and now fails loudly rather than silently doubling rows.
+- **Row-count assertion in `detect_native_status()`.** Reattaching the
+  record columns is asserted to be one-to-one: a duplicated `gbifID`
+  across the input tables would inflate the result and now fails loudly
+  rather than silently doubling rows.
 - **[`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)
   writes `all_records.csv.gz` straight from `native_detected`.** No join
   and no column selection are performed, so the exported table carries
@@ -106,8 +202,7 @@ no longer need a separate `refined_coordinates` object.*
   `Application.Rmd` updated for the new output structure and simplified
   signatures. The `nativeDetected` description in `Application.Rmd` no
   longer instructs users to join back to `refined_coordinates`.
-- Rd files regenerated for
-  [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md),
+- Rd files regenerated for `detect_native_status()`,
   [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md),
   and
   [`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md).
@@ -149,9 +244,7 @@ The workflow is now:
 [`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md)
 →
 [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
-→
-[`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
-→
+→ `detect_native_status()` →
 [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)
 /
 [`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)
@@ -344,14 +437,13 @@ and
 - **`Level3maping`**: the tabular component of the WGSRPD standard — 369
   Level 3 units with code, name, parent Level 2 region, and ISO 3166-1
   alpha-2 concordance — used by the country-code pass of
-  [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md).
-  Its documentation states plainly that the published `L3 ISOcode`
-  column is neither complete nor one-to-one: one ISO code usually maps
-  to several areas (`US` to 51, `RU` to 21), 42 areas carry no ISO code
-  at all (including mainland France, Italy, Spain, Austria, Belgium,
-  Ireland, Ukraine, and Korea, so a naive lookup silently returns only
-  their offshore units), and Belarus is listed under `RU`, reflecting
-  the standard’s 2001 vintage.
+  `detect_native_status()`. Its documentation states plainly that the
+  published `L3 ISOcode` column is neither complete nor one-to-one: one
+  ISO code usually maps to several areas (`US` to 51, `RU` to 21), 42
+  areas carry no ISO code at all (including mainland France, Italy,
+  Spain, Austria, Belgium, Ireland, Ukraine, and Korea, so a naive
+  lookup silently returns only their offshore units), and Belarus is
+  listed under `RU`, reflecting the standard’s 2001 vintage.
 - **`Distributions`** has been rebuilt and now holds 1,647,045 rows
   (previously reported as 1,983,653), reducing the installed data size.
 
@@ -413,8 +505,7 @@ and
   [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md),
   [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md),
   [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md),
-  [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md),
-  and
+  `detect_native_status()`, and
   [`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md),
   testing the new object classes, the per-rule filter summary, the
   two-pass status priority, buffered matching, and input validation for
@@ -427,9 +518,8 @@ and
 - **Added search and dark/light mode toggle** to the pkgdown navbar.
 - **Simplified navbar labels**: “Get started” → “Start”, “Reference” →
   “Functions”, “Articles” → “Manuals”.
-- Reorganized reference index:
-  [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
-  and `restore_duplicates()` moved under Utilities.
+- Reorganized reference index: `detect_native_status()` and
+  `restore_duplicates()` moved under Utilities.
 - Workflow diagram converted from JPG to PNG.
 
 ### Documentation
@@ -474,12 +564,12 @@ and
     coercion for `year`/`month`/`day`, `"NA"` string treated as missing,
     skipping of values \>10,000 characters, special character stripping,
     and first-available-duplicate selection.
-  - [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
-    (14 tests): return structure, unknown status for taxa absent from
-    `Distributions`, known-native classification (e.g. *Rosa canina* in
-    Denmark), independent multi-taxon processing, and verification of
-    the `fcase` priority logic (location_doubtful \> introduced \>
-    extinct \> native \> unknown).
+  - `detect_native_status()` (14 tests): return structure, unknown
+    status for taxa absent from `Distributions`, known-native
+    classification (e.g. *Rosa canina* in Denmark), independent
+    multi-taxon processing, and verification of the `fcase` priority
+    logic (location_doubtful \> introduced \> extinct \> native \>
+    unknown).
   - `refine_records()` (15 tests): return structure, `native_status`
     column integration, valid coordinate pass-through, zero-coordinate
     flagging by the `"zeros"` test, equal lat/lon flagging by `"equal"`,
@@ -550,11 +640,10 @@ substantially simplified pipeline.*
 
 ### New Functions
 
-- [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
-  detects native status by matching validated coordinates to WGSRPD
-  Level 3 polygons and WCVP distribution data. Classification uses a
-  priority-based scheme: location_doubtful \> introduced \> extinct \>
-  native \> unknown.
+- `detect_native_status()` detects native status by matching validated
+  coordinates to WGSRPD Level 3 polygons and WCVP distribution data.
+  Classification uses a priority-based scheme: location_doubtful \>
+  introduced \> extinct \> native \> unknown.
 - [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)
   writes refined records to disk as three gzip-compressed CSV files: all
   usable records, the native subset, and records that failed coordinate
@@ -573,7 +662,7 @@ substantially simplified pipeline.*
   `taxon_name|eventDate|latitude|longitude` via `get_collections()`.
 - `refine_records()` has been modularised into a three-step internal
   pipeline: `restore_duplicates()` → CoordinateCleaner →
-  [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md).
+  `detect_native_status()`.
 - `get_collections()` builds collection-event keys from resolved taxon
   names, event dates, and rounded coordinates, with user-controlled
   spatial precision.

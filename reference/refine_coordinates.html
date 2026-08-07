@@ -6,34 +6,26 @@
     }
   };
 </script><script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Validate coordinates of filtered occurrence records — refine_coordinates"><meta name="description" content="Validates the coordinates of filtered occurrence records with
-CoordinateCleaner and splits them into coordinate-clean, problematic, and
-coordinate-less tables.
-The function works in two steps:
-Splits custom_filtered$occ_filtered into records with complete
-coordinates and records missing longitude or latitude (the
-Coordinateless table).
-Runs CoordinateCleaner::clean_coordinates checks in parallel to flag
+CoordinateCleaner and splits them into coordinate-clean and problematic
+tables.
+CoordinateCleaner::clean_coordinates checks run in parallel to flag
 common spatial issues such as centroids, capitals, and marine records.
-
-
 Records that pass all requested tests are returned in CoordinateCleaned;
 records that fail one or more tests are returned in CoordinateProblematic.
-Native-status classification is a separate step performed by
-detect_native_status()."><meta property="og:description" content="Validates the coordinates of filtered occurrence records with
-CoordinateCleaner and splits them into coordinate-clean, problematic, and
-coordinate-less tables.
-The function works in two steps:
-Splits custom_filtered$occ_filtered into records with complete
-coordinates and records missing longitude or latitude (the
-Coordinateless table).
-Runs CoordinateCleaner::clean_coordinates checks in parallel to flag
+Native-status classification is a separate step: detect_native_coord()
+classifies the records with validated coordinates, and
+detect_native_country() the coordinate-less records (taken directly from
+custom_filtered)."><meta property="og:description" content="Validates the coordinates of filtered occurrence records with
+CoordinateCleaner and splits them into coordinate-clean and problematic
+tables.
+CoordinateCleaner::clean_coordinates checks run in parallel to flag
 common spatial issues such as centroids, capitals, and marine records.
-
-
 Records that pass all requested tests are returned in CoordinateCleaned;
 records that fail one or more tests are returned in CoordinateProblematic.
-Native-status classification is a separate step performed by
-detect_native_status()."><meta property="og:image" content="https://wyx619.github.io/VasGBIF/logo.png"></head><body>
+Native-status classification is a separate step: detect_native_coord()
+classifies the records with validated coordinates, and
+detect_native_country() the coordinate-less records (taken directly from
+custom_filtered)."><meta property="og:image" content="https://wyx619.github.io/VasGBIF/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -41,7 +33,7 @@ detect_native_status()."><meta property="og:image" content="https://wyx619.githu
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -81,17 +73,16 @@ detect_native_status()."><meta property="og:image" content="https://wyx619.githu
 
     <div class="ref-description section level2">
     <p>Validates the coordinates of filtered occurrence records with
-CoordinateCleaner and splits them into coordinate-clean, problematic, and
-coordinate-less tables.</p>
-<p>The function works in two steps:</p><ol><li><p>Splits <code>custom_filtered$occ_filtered</code> into records with complete
-coordinates and records missing longitude or latitude (the
-<code>Coordinateless</code> table).</p></li>
-<li><p>Runs <a href="https://ropensci.github.io/CoordinateCleaner/reference/clean_coordinates.html" class="external-link">CoordinateCleaner::clean_coordinates</a> checks in parallel to flag
-common spatial issues such as centroids, capitals, and marine records.</p></li>
-</ol><p>Records that pass all requested tests are returned in <code>CoordinateCleaned</code>;
+CoordinateCleaner and splits them into coordinate-clean and problematic
+tables.</p>
+<p><a href="https://ropensci.github.io/CoordinateCleaner/reference/clean_coordinates.html" class="external-link">CoordinateCleaner::clean_coordinates</a> checks run in parallel to flag
+common spatial issues such as centroids, capitals, and marine records.</p>
+<p>Records that pass all requested tests are returned in <code>CoordinateCleaned</code>;
 records that fail one or more tests are returned in <code>CoordinateProblematic</code>.
-Native-status classification is a separate step performed by
-<code><a href="detect_native_status.html">detect_native_status()</a></code>.</p>
+Native-status classification is a separate step: <code><a href="detect_native_coord.html">detect_native_coord()</a></code>
+classifies the records with validated coordinates, and
+<code><a href="detect_native_country.html">detect_native_country()</a></code> the coordinate-less records (taken directly from
+<code>custom_filtered</code>).</p>
     </div>
 
     <div class="section level2">
@@ -129,14 +120,14 @@ default uses all tests.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A <code>CoordinateRefined</code> object (list) with four elements:</p><ul><li><p><code>CoordinateCleaned</code>: a <code>data.table</code> of records that passed all requested
+    <p>A <code>CoordinateRefined</code> object (list) with three elements:</p><ul><li><p><code>CoordinateCleaned</code>: a <code>data.table</code> of records that passed all requested
 coordinate tests</p></li>
 <li><p><code>CoordinateProblematic</code>: a <code>data.table</code> of records that failed one or more
 tests, retaining the CoordinateCleaner flag columns (e.g. <code>.summary</code>) so
 the failing tests can be inspected</p></li>
-<li><p><code>Coordinateless</code>: a <code>data.table</code> of records missing longitude or latitude</p></li>
 <li><p><code>runtime</code>: the elapsed execution time</p></li>
-</ul><p>Use <code><a href="detect_native_status.html">detect_native_status()</a></code> to classify native status then.</p>
+</ul><p>Use <code><a href="detect_native_coord.html">detect_native_coord()</a></code> to classify the records with validated
+coordinates, and <code><a href="detect_native_country.html">detect_native_country()</a></code> for the coordinate-less records.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -169,9 +160,8 @@ capped to the number of records to avoid idle cluster nodes.</p>
 <h3 id="empty-input">Empty input<a class="anchor" aria-label="anchor" href="#empty-input"></a></h3>
 
 
-<p>If no records have complete coordinates, validation is skipped and all
-records are returned in <code>Coordinateless</code>, with empty <code>CoordinateCleaned</code> and
-<code>CoordinateProblematic</code> tables.</p>
+<p>If no records have complete coordinates, validation is skipped and empty
+<code>CoordinateCleaned</code> and <code>CoordinateProblematic</code> tables are returned.</p>
 </div>
 
     </div>
@@ -187,8 +177,8 @@ biological collection databases. <em>Methods in Ecology and Evolution</em>, 10(5
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="https://ropensci.github.io/CoordinateCleaner/reference/clean_coordinates.html" class="external-link">clean_coordinates()</a></code>,
-<code><a href="custom_filter.html">custom_filter()</a></code>, <code><a href="detect_native_status.html">detect_native_status()</a></code>, <code><a href="export_records.html">export_records()</a></code>,
-<code><a href="print.CoordinateRefined.html">print.CoordinateRefined()</a></code>, <code><a href="set_threads.html">set_threads()</a></code></p></div>
+<code><a href="custom_filter.html">custom_filter()</a></code>, <code><a href="detect_native_coord.html">detect_native_coord()</a></code>, <code><a href="detect_native_country.html">detect_native_country()</a></code>,
+<code><a href="export_records.html">export_records()</a></code>, <code><a href="print.CoordinateRefined.html">print.CoordinateRefined()</a></code>, <code><a href="set_threads.html">set_threads()</a></code></p></div>
     </div>
 
     <div class="section level2">

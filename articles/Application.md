@@ -33,10 +33,12 @@ is known. The VasGBIF pipeline delivers that in eight sequential steps:
 5.  **Refine Coordinates** —
     **[`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)**
     runs CoordinateCleaner tests in parallel, splitting records into
-    coordinate-clean, coordinate-problematic, and coordinate-less tables
+    coordinate-clean and coordinate-problematic tables
 6.  **Detect Native Status** —
-    **[`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)**
-    classifies each record as `native`, `introduced`, `extinct`,
+    **[`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)**
+    and
+    **[`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)**
+    classify each record as `native`, `introduced`, `extinct`,
     `location_doubtful`, or `unknown`
 7.  **Export Records** —
     **[`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)**
@@ -88,22 +90,28 @@ refined_coordinates <- refine_coordinates(
 )
 
 # Step 6: Annotate native status
-native_detected <- detect_native_status(
+native_detected_coord <- detect_native_coord(
   refined_coordinates = refined_coordinates
+)
+native_detected_country <- detect_native_country(
+  custom_filtered = filtered
 )
 ```
 
 Every object prints a summary, so `filtered$summary` shows how many
-records each rule removed, and `native_detected` reports the status
-breakdown — both worth inspecting before committing to a matrix.
+records each rule removed, and `native_detected_coord` /
+`native_detected_country` report the status breakdown — both worth
+inspecting before committing to a matrix.
 
 Two objects carry forward. `refined_coordinates$CoordinateCleaned` holds
-the records that passed every coordinate test, and `native_detected`
-holds one row per record with its `native_status`. Because
-[`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
-also classifies coordinate-less records, joining the two tables on
-`gbifID` keeps only native records that actually have coordinates —
-exactly what a presence-absence matrix requires.
+the records that passed every coordinate test, and
+`native_detected_coord` holds one row per record with its
+`native_status`. Because
+[`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)
+only classifies records with validated coordinates, filtering it for
+`native_status == "native"` yields exactly the native records that
+actually have coordinates — precisely what a presence-absence matrix
+requires.
 
 ### Introducing *letsR* and Presence-Absence Matrices
 
@@ -199,7 +207,7 @@ library(letsR)
 library(stringi)
 
 # prepare input for letsR
-PAM_pre <- native_detected[(!is.na(decimalLatitude)) & native_status=='native',
+PAM_pre <- native_detected_coord[native_status=='native',
   .(
     Accepted_name,
     genus = stri_extract_first_regex(Accepted_name, "^[^ ]+"),

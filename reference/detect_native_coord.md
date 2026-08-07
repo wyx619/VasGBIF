@@ -2,11 +2,10 @@
 
 Assigns a native status classification to each occurrence record by
 matching it against WCVP distribution data (the internal `Distributions`
-dataset) via WGSRPD Level 3 areas. Classification proceeds in two
-stages.
-
-**Spatial stage.** Records with validated coordinates are overlaid on
-the WGSRPD Level 3 polygon map (via
+dataset) via WGSRPD Level 3 areas. Classification uses only the spatial
+stage: records with validated coordinates, taken from
+`refined_coordinates$CoordinateCleaned`, are overlaid on the WGSRPD
+Level 3 polygon map (via
 [`terra::extract()`](https://rspatial.github.io/terra/reference/extract.html))
 to assign an area code to each record. That area code is looked up in a
 distribution table classified from the WCVP flags (`introduced`,
@@ -26,19 +25,18 @@ distribution table classified from the WCVP flags (`introduced`,
 A record that falls in several areas at once is assigned the most
 preferred status (`"native"` first). Unresolved records may be buffered
 (`buffer_km`) so coastal points just outside a polygon can still be
-matched; buffered hits are ranked below exact ones. Records that the
-spatial stage still leaves unresolved are retried by country code (see
-below).
+matched; buffered hits are ranked below exact ones.
 
-**Country-code stage.** Records without coordinates, plus records the
-spatial stage left unresolved, are matched through `countryCode` mapped
-to WGSRPD Level 3 areas by the `Level3maping` table; no geometry is
-used. The same status priority applies.
+Records without usable coordinates are **not** classified here; classify
+them with
+[`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md),
+which matches records through their `countryCode` without using
+geometry.
 
 ## Usage
 
 ``` r
-detect_native_status(
+detect_native_coord(
   refined_coordinates = NA,
   buffer_km = 10,
   buffer_chunk_size = 2000
@@ -49,9 +47,12 @@ detect_native_status(
 
 - refined_coordinates:
 
-  A `CoordinateRefined` object (or a list with the same structure)
-  containing `CoordinateCleaned` — records with validated coordinates —
-  and `Coordinateless` — records without usable coordinates.
+  A `CoordinateRefined` object returned by
+  [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md),
+  or a list with the same structure. Only the `CoordinateCleaned` table
+  — records with validated coordinates — is classified;
+  `CoordinateProblematic` and `Coordinateless` records are not part of
+  the result.
 
 - buffer_km:
 
@@ -67,9 +68,9 @@ detect_native_status(
 ## Value
 
 A `nativeDetected` object — a `data.table` subclass with one row per
-input record (all records from `CoordinateCleaned` and all from
-`Coordinateless`), keyed by `gbifID`. Every column of the input records
-is retained unchanged, with four classification columns appended:
+input record (every row of `CoordinateCleaned`), keyed by `gbifID`.
+Every column of the input records is retained unchanged, with four
+classification columns appended:
 
 - `LEVEL3_COD`: the assigned WGSRPD Level 3 area code, or `NA` if the
   record could not be matched
@@ -79,10 +80,7 @@ is retained unchanged, with four classification columns appended:
 
 - `native_status_source`: how the status was inferred. `"spatial"` /
   `"spatial_buffered"` are spatial matches, the latter via the geodesic
-  buffer; `"country_code"` / `"country_code_after_spatial_miss"` are
-  country-code matches; `"country_code_no_entry"` means the country
-  mapped to WGSRPD areas but the taxon had no distribution entry there;
-  `"unmatched"` means the record had no usable key at all.
+  buffer; `"unmatched"` means the record matched no area.
 
 - `buffered`: `TRUE` when the status came from a buffered spatial hit
 
@@ -90,8 +88,7 @@ The intermediate matching columns used internally (taxon keys, candidate
 areas, match ranks) are not returned. Because the record columns are
 carried through, the result holds a second copy of the input data: for
 large inputs, `refined_coordinates` can be dropped once the
-classification is in hand. `CoordinateProblematic` records are not
-classified and do not appear in the result.
+classification is in hand.
 
 ## Details
 
@@ -104,5 +101,7 @@ geodesic buffer, so it keeps the same meaning at every latitude.
 
 ## See also
 
+[`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)
+for records without coordinates,
 [`print.nativeDetected()`](https://wyx619.github.io/VasGBIF/reference/print.nativeDetected.md)
 for a compact summary of the result.

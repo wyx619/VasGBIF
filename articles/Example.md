@@ -123,9 +123,8 @@ The `customFiltered` object contains:
 [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
 validates coordinates with CoordinateCleaner (Zizka et al. 2019) to flag
 spatial errors such as centroids, capitals, marine coordinates, and zero
-coordinates, splitting records into cleaned, problematic, and
-coordinate-less tables. Validation is parallelized across user-specified
-threads.
+coordinates, splitting records into cleaned and problematic tables.
+Validation is parallelized across user-specified threads.
 
 ``` r
 
@@ -134,7 +133,6 @@ refined_coordinates <- refine_coordinates(
   threads = 4,tests = c("capitals", "centroids", "equal", "gbif", "institutions", "outliers", "seas", "zeros"))
 VasGBIF_summary$cleaned <- nrow(refined_coordinates$CoordinateCleaned)
 VasGBIF_summary$problematic <- nrow(refined_coordinates$CoordinateProblematic)
-VasGBIF_summary$coordinateless <- nrow(refined_coordinates$Coordinateless)
 print(refined_coordinates)
 ```
 
@@ -143,23 +141,35 @@ The `CoordinateRefined` object contains:
 - `CoordinateCleaned`: records with valid coordinates
 - `CoordinateProblematic`: records failing one or more CoordinateCleaner
   tests
-- `Coordinateless`: records without complete coordinates
 - `runtime`: execution time
 
 ## Detect Native Status
 
-[`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
-matches each record against WCVP distribution data (the internal
+[`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)
+and
+[`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)
+match each record against WCVP distribution data (the internal
 `Distributions` dataset) via WGSRPD Level 3 areas to classify it as
 native, introduced, extinct, location_doubtful, or unknown. Records with
-validated coordinates are matched spatially; records without coordinates
-(and spatial misses) are retried through their country code. Every
-classification records how it was obtained in `native_status_source`.
+validated coordinates are matched spatially by
+[`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md);
+records without coordinates are matched through their country code by
+[`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md).
+Every classification records how it was obtained in
+`native_status_source`.
 
 ``` r
 
-native_detected <- detect_native_status(
-  refined_coordinates = refined_coordinates,buffer_km = 10,buffer_chunk_size = 2000)
+native_detected_coord <- detect_native_coord(
+  refined_coordinates = refined_coordinates, buffer_km = 10, buffer_chunk_size = 2000)
+native_detected_country <- detect_native_country(
+  custom_filtered = filtered)
+native_detected <- rbind(
+  native_detected_coord,
+  native_detected_country,
+  use.names = TRUE,
+  fill = TRUE
+)
 VasGBIF_summary$native <- native_detected[native_status == "native", .N]
 VasGBIF_summary$introduced <- native_detected[native_status == "introduced", .N]
 VasGBIF_summary$extinct <- native_detected[native_status == "extinct", .N]
@@ -170,10 +180,11 @@ VasGBIF_summary$unknown <- native_detected[native_status == "unknown", .N]
 print(native_detected)
 ```
 
-The `nativeDetected` object is a `data.table` keyed by `gbifID`. It
+The `nativeDetected` objects are `data.table`s keyed by `gbifID`. Each
 retains every column of the input records and appends `LEVEL3_COD`,
-`native_status`, `native_status_source`, and `buffered`, so it can be
-passed straight to
+`native_status`, `native_status_source`, and `buffered`. The spatial
+result (`native_detected_coord`) carries coordinates for every record
+and can be passed straight to
 [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)
 and
 [`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)
@@ -184,14 +195,14 @@ without joining back to `refined_coordinates`.
 [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)
 writes the classified records to disk as two gzip-compressed CSV files:
 
-- `all_records.csv.gz`: all classified records (cleaned +
-  coordinateless) with their native status
+- `all_records.csv.gz`: all classified records with validated
+  coordinates, with their native status
 - `native_records.csv.gz`: the subset classified as native
 
 ``` r
 
 export_records(
-  native_detected = native_detected,
+  native_detected_coord = native_detected_coord,
   export_path = getwd()
 )
 ```
@@ -205,7 +216,7 @@ geohash-based decluttering and colour-coding by native status.
 ``` r
 
 map_records(
-  native_detected = native_detected,
+  native_detected_coord = native_detected_coord,
   precision = 3,
   cex = 3
 )
@@ -233,7 +244,6 @@ VasGBIF_summary |>
 ## after_custom_filter  11443
 ## cleaned              10030
 ## problematic           1413
-## coordinateless           0
 ## native                 470
 ## introduced            9535
 ## extinct                  0
@@ -249,7 +259,6 @@ VasGBIF_summary |>
 | `after_custom_filter` | Records retained after the quality filter rules |
 | `cleaned` | Records with valid coordinates after CoordinateCleaner |
 | `problematic` | Records failing one or more coordinate tests |
-| `coordinateless` | Records without complete coordinates |
 | `native` | Records classified as native |
 | `introduced` | Records classified as introduced |
 | `extinct` | Records classified as extinct |
@@ -261,9 +270,11 @@ The workflow progressively filters the dataset through taxonomic
 resolution, quality rules, and coordinate validation. The drop from
 `initial_records` to `after_custom_filter` reflects unresolved names and
 records failing the quality rules; the drop from `after_custom_filter`
-to `cleaned` + `coordinateless` reflects the removal of problematic
-coordinates; and the transition from `initial_taxa` to `final_taxa`
-reflects synonym resolution.
+to `cleaned` reflects records that failed the coordinate tests being set
+aside (records without coordinates are not carried by
+[`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md));
+and the transition from `initial_taxa` to `final_taxa` reflects synonym
+resolution.
 
 ## Performance
 
@@ -274,7 +285,9 @@ VasGBIF achieves its speed through:
 - **Vectorisation**: issue-flag detection in
   [`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md)
   and native-status lookups in
-  [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
+  [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)
+  and
+  [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)
   process entire columns in compiled calls
 - **Memory-efficient design**: in-place modification (`:=`,
   [`set()`](https://rdrr.io/pkg/data.table/man/assign.html)) avoids

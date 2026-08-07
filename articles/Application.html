@@ -31,7 +31,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -85,7 +85,7 @@ Wang</h4>
 University<br><a class="author_email" href="mailto:#"></a><a href="mailto:wyx1743@gmail.com" class="email">wyx1743@gmail.com</a>
       </address>
                   
-            <h4 data-toc-skip class="date">2026-08-06</h4>
+            <h4 data-toc-skip class="date">2026-08-07</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/wyx619/VasGBIF/blob/master/vignettes/Application.Rmd" class="external-link"><code>vignettes/Application.Rmd</code></a></small>
       <div class="d-none name"><code>Application.Rmd</code></div>
@@ -133,11 +133,11 @@ step</li>
 <strong>Refine Coordinates</strong> —
 <strong><code><a href="../reference/refine_coordinates.html">refine_coordinates()</a></code></strong> runs
 CoordinateCleaner tests in parallel, splitting records into
-coordinate-clean, coordinate-problematic, and coordinate-less
-tables</li>
+coordinate-clean and coordinate-problematic tables</li>
 <li>
 <strong>Detect Native Status</strong> —
-<strong><code><a href="../reference/detect_native_status.html">detect_native_status()</a></code></strong> classifies each
+<strong><code><a href="../reference/detect_native_coord.html">detect_native_coord()</a></code></strong> and
+<strong><code><a href="../reference/detect_native_country.html">detect_native_country()</a></code></strong> classify each
 record as <code>native</code>, <code>introduced</code>,
 <code>extinct</code>, <code>location_doubtful</code>, or
 <code>unknown</code>
@@ -187,20 +187,25 @@ Substitute your own GBIF ZIP for real analyses (see the
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Step 6: Annotate native status</span></span>
-<span><span class="va">native_detected</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_native_status.html">detect_native_status</a></span><span class="op">(</span></span>
+<span><span class="va">native_detected_coord</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_native_coord.html">detect_native_coord</a></span><span class="op">(</span></span>
 <span>  refined_coordinates <span class="op">=</span> <span class="va">refined_coordinates</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">native_detected_country</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_native_country.html">detect_native_country</a></span><span class="op">(</span></span>
+<span>  custom_filtered <span class="op">=</span> <span class="va">filtered</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>Every object prints a summary, so <code>filtered$summary</code> shows
-how many records each rule removed, and <code>native_detected</code>
-reports the status breakdown — both worth inspecting before committing
-to a matrix.</p>
+how many records each rule removed, and
+<code>native_detected_coord</code> /
+<code>native_detected_country</code> report the status breakdown — both
+worth inspecting before committing to a matrix.</p>
 <p>Two objects carry forward.
 <code>refined_coordinates$CoordinateCleaned</code> holds the records
-that passed every coordinate test, and <code>native_detected</code>
-holds one row per record with its <code>native_status</code>. Because
-<code><a href="../reference/detect_native_status.html">detect_native_status()</a></code> also classifies coordinate-less
-records, joining the two tables on <code>gbifID</code> keeps only native
-records that actually have coordinates — exactly what a presence-absence
+that passed every coordinate test, and
+<code>native_detected_coord</code> holds one row per record with its
+<code>native_status</code>. Because <code><a href="../reference/detect_native_coord.html">detect_native_coord()</a></code>
+only classifies records with validated coordinates, filtering it for
+<code>native_status == "native"</code> yields exactly the native records
+that actually have coordinates — precisely what a presence-absence
 matrix requires.</p>
 </div>
 <div class="section level3">
@@ -290,7 +295,7 @@ needed by <em>letsR</em>, and construct the matrix:</p>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://stringi.gagolewski.com/" class="external-link">stringi</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># prepare input for letsR</span></span>
-<span><span class="va">PAM_pre</span> <span class="op">&lt;-</span> <span class="va">native_detected</span><span class="op">[</span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">decimalLatitude</span><span class="op">)</span><span class="op">)</span> <span class="op">&amp;</span> <span class="va">native_status</span><span class="op">==</span><span class="st">'native'</span>,</span>
+<span><span class="va">PAM_pre</span> <span class="op">&lt;-</span> <span class="va">native_detected_coord</span><span class="op">[</span><span class="va">native_status</span><span class="op">==</span><span class="st">'native'</span>,</span>
 <span>  <span class="fu">.</span><span class="op">(</span></span>
 <span>    <span class="va">Accepted_name</span>,</span>
 <span>    genus <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/stringi/man/stri_extract.html" class="external-link">stri_extract_first_regex</a></span><span class="op">(</span><span class="va">Accepted_name</span>, <span class="st">"^[^ ]+"</span><span class="op">)</span>,</span>

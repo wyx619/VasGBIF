@@ -1,22 +1,23 @@
 # Export classified records to compressed CSV files
 
 Writes the results of
-[`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
+[`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)
 to disk as gzip-compressed CSV files. Two files are exported: all
 classified records and the native subset.
 
 ## Usage
 
 ``` r
-export_records(native_detected = NA, export_path = NA)
+export_records(native_detected_coord = NA, export_path = NA)
 ```
 
 ## Arguments
 
-- native_detected:
+- native_detected_coord:
 
   A `nativeDetected` object returned by
-  [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md).
+  [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md),
+  containing records with validated coordinates.
 
 - export_path:
 
@@ -31,18 +32,27 @@ Called for its side effect of writing files to `export_path`. Returns
 
 The following files are written:
 
-- `all_records.csv.gz`: every classified record — those with validated
-  coordinates and those without — with all its columns and its native
-  status
+- `all_records.csv.gz`: every classified record with validated
+  coordinates, with all its columns and its native status
 
 - `native_records.csv.gz`: the subset classified as `"native"`
 
-`native_detected` already carries every column of the input records, so
-no join is performed here: `all_records.csv.gz` is written straight from
-it. Records that failed coordinate validation are never classified and
-therefore do not appear in the output; use
-[`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
-to inspect them.
+`native_detected_coord` already carries every column of the input
+records, so no join is performed here: `all_records.csv.gz` is written
+straight from it.
+
+`native_detected_coord` must carry coordinates for every record: it is
+the spatial output of
+[`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md),
+which only classifies records with validated coordinates. The function
+stops if `decimalLongitude` or `decimalLatitude` is missing for any
+record — the output of
+[`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)
+would be rejected this way. Records without coordinates are classified
+separately by
+[`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md);
+to export both sets together, bind the two results before calling this
+function.
 
 Files are written with `fwrite(encoding = "UTF-8")`. `export_path` is
 validated before writing: if it is not a single character path or exists
@@ -52,5 +62,6 @@ automatically.
 
 ## See also
 
-[`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md),
+[`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md),
+[`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md),
 [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)

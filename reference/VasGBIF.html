@@ -33,7 +33,7 @@ laptop in under 15 minutes without specialised hardware."><meta property="og:ima
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -122,14 +122,13 @@ custom filter system</em>).</p></li>
 <li><p><strong>Refine Coordinates</strong> — <code><a href="refine_coordinates.html">refine_coordinates()</a></code>: validates coordinates
 with <code><a href="https://ropensci.github.io/CoordinateCleaner/reference/clean_coordinates.html" class="external-link">CoordinateCleaner::clean_coordinates()</a></code> (Zizka et al. 2019) to
 flag spatial errors such as centroids, capitals, marine coordinates, and
-zero coordinates, splitting records into cleaned, problematic, and
-coordinate-less tables. Validation is parallelized across user-specified
-threads.</p></li>
-<li><p><strong>Detect Native Status</strong> — <code><a href="detect_native_status.html">detect_native_status()</a></code>: matches each record
-against WCVP distribution data (the internal <code>Distributions</code> dataset)
-via WGSRPD Level 3 areas to classify it as native, introduced, extinct,
-location_doubtful, or unknown (see <em>Precise native-status detection
-system</em>).</p></li>
+zero coordinates, splitting records into cleaned and problematic tables.
+Validation is parallelized across user-specified threads.</p></li>
+<li><p><strong>Detect Native Status</strong> — <code><a href="detect_native_coord.html">detect_native_coord()</a></code> and
+<code><a href="detect_native_country.html">detect_native_country()</a></code>: match each record against WCVP distribution
+data (the internal <code>Distributions</code> dataset) via WGSRPD Level 3 areas to
+classify it as native, introduced, extinct, location_doubtful, or
+unknown (see <em>Precise native-status detection system</em>).</p></li>
 <li><p><strong>Export Records</strong> — <code><a href="export_records.html">export_records()</a></code>: writes the classified records
 to disk as two gzip-compressed CSV files: all usable records and the
 native subset.</p></li>
@@ -144,17 +143,22 @@ Esri World Imagery, and others).</p></li>
 <h3 id="precise-native-status-detection-system">Precise native-status detection system<a class="anchor" aria-label="anchor" href="#precise-native-status-detection-system"></a></h3>
 
 
-<p><code><a href="detect_native_status.html">detect_native_status()</a></code> is the analytical core of VasGBIF: it assigns a
-native, introduced, extinct, location_doubtful, or unknown classification
-to every occurrence by matching the record's identification and position
-against authoritative WCVP distribution data (the internal <code>Distributions</code>
-dataset) organised by WGSRPD Level 3 areas. Classification runs in two
-passes so that the most precise available evidence always wins.</p>
-<p><strong>Spatial pass.</strong> Records with validated coordinates are overlaid on the
-WGSRPD Level 3 polygon map with <code><a href="https://rspatial.github.io/terra/reference/extract.html" class="external-link">terra::extract()</a></code> — a single vectorised
-call that assigns every point its area code in compiled code. Each area
-code is looked up in a distribution table classified from the WCVP flags
-(<code>introduced</code>, <code>extinct</code>, <code>location_doubtful</code>) with a fixed priority:</p><ol><li><p><code>location_doubtful</code> wins over every other flag;</p></li>
+<p><code><a href="detect_native_coord.html">detect_native_coord()</a></code> and <code><a href="detect_native_country.html">detect_native_country()</a></code> are the analytical
+core of VasGBIF: together they assign a native, introduced, extinct,
+location_doubtful, or unknown classification to every occurrence by
+matching the record's identification and position against authoritative
+WCVP distribution data (the internal <code>Distributions</code> dataset) organised by
+WGSRPD Level 3 areas. Classification is split across two functions so that
+the most precise available evidence always wins: records with validated
+coordinates are matched spatially by <code><a href="detect_native_coord.html">detect_native_coord()</a></code>, and records
+without coordinates are matched through their country code by
+<code><a href="detect_native_country.html">detect_native_country()</a></code>.</p>
+<p><strong>Spatial classification.</strong> <code><a href="detect_native_coord.html">detect_native_coord()</a></code> overlays records with
+validated coordinates on the WGSRPD Level 3 polygon map with
+<code><a href="https://rspatial.github.io/terra/reference/extract.html" class="external-link">terra::extract()</a></code> — a single vectorised call that assigns every point its
+area code in compiled code. Each area code is looked up in a distribution
+table classified from the WCVP flags (<code>introduced</code>, <code>extinct</code>,
+<code>location_doubtful</code>) with a fixed priority:</p><ol><li><p><code>location_doubtful</code> wins over every other flag;</p></li>
 <li><p>otherwise <code>introduced</code>;</p></li>
 <li><p>otherwise <code>extinct</code>;</p></li>
 <li><p>otherwise, when no flag is set, the area is <code>native</code>;</p></li>
@@ -164,27 +168,27 @@ status (<code>native</code> first), never an arbitrary one. Coastal points that 
 just outside a polygon are still matched through a geodesic buffer
 (<code>buffer_km</code>, applied in metres by <code><a href="https://rspatial.github.io/terra/reference/buffer.html" class="external-link">terra::buffer()</a></code> so its meaning is
 identical at every latitude); buffered hits always rank below exact ones,
-so a genuine in-polygon match is never displaced by a buffered candidate.</p>
-<p><strong>Country-code pass.</strong> Records without coordinates, and records the
-spatial pass left unresolved, are retried through <code>countryCode</code> mapped to
-WGSRPD Level 3 areas by the <code>Level3maping</code> table. No geometry is used, so
-this pass is nearly free, and buffering is chunked (<code>buffer_chunk_size</code>)
-to keep the relate matrix small.</p>
+so a genuine in-polygon match is never displaced by a buffered candidate.
+The buffer pass is chunked (<code>buffer_chunk_size</code>) to keep the relate matrix
+small.</p>
+<p><strong>Country-code classification.</strong> <code><a href="detect_native_country.html">detect_native_country()</a></code> matches records
+without coordinates through <code>countryCode</code> mapped to WGSRPD Level 3 areas
+by the <code>Level3maping</code> table. No geometry is used, so this pass is nearly
+free.</p>
 <p>Every classification records how it was obtained in
 <code>native_status_source</code> — <code>spatial</code> / <code>spatial_buffered</code> for spatial
-matches (exact and buffered), <code>country_code</code> /
-<code>country_code_after_spatial_miss</code> for country-code matches,
+matches (exact and buffered), <code>country_code</code> for country-code matches,
 <code>country_code_no_entry</code> when the country mapped but the taxon has no
 distribution entry there, and <code>unmatched</code> when no usable key exists — so
 the entire decision chain is auditable.</p>
 <p><strong>Precision without a speed penalty.</strong> Hybrid markers are normalised so
 <code>Alnus x pubescens</code> matches the <code>Alnus × pubescens</code> recorded in the
 distributions; and neither the spatial overlay nor the distribution
-lookup ever iterates record-by-record in R. The result is a
+lookup ever iterates record-by-record in R. Both functions return a
 <code>nativeDetected</code> table keyed by <code>gbifID</code> that retains every column of the
 input records and appends <code>LEVEL3_COD</code>, <code>native_status</code>,
-<code>native_status_source</code>, and <code>buffered</code>, feeding directly into
-<code><a href="export_records.html">export_records()</a></code> and <code><a href="map_records.html">map_records()</a></code> without any join back to
+<code>native_status_source</code>, and <code>buffered</code>; the spatial result feeds directly
+into <code><a href="export_records.html">export_records()</a></code> and <code><a href="map_records.html">map_records()</a></code> without any join back to
 <code>refined_coordinates</code>.</p>
 </div>
 
@@ -262,18 +266,23 @@ GBIF download:</p>
 <span>  threads <span class="op">=</span> <span class="fl">4</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">native_detected</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_native_status.html">detect_native_status</a></span><span class="op">(</span></span>
+<span><span class="va">native_detected_coord</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_native_coord.html">detect_native_coord</a></span><span class="op">(</span></span>
 <span>  refined_coordinates <span class="op">=</span> <span class="va">refined_coordinates</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span></span>
+<span><span class="va">native_detected_country</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_native_country.html">detect_native_country</a></span><span class="op">(</span></span>
+<span>  custom_filtered <span class="op">=</span> <span class="va">filtered</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span></span>
 <span><span class="fu"><a href="../reference/export_records.html">export_records</a></span><span class="op">(</span></span>
-<span>  native_detected <span class="op">=</span> <span class="va">native_detected</span>,</span>
+<span>  native_detected_coord <span class="op">=</span> <span class="va">native_detected_coord</span>,</span>
 <span>  export_path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/getwd.html" class="external-link">getwd</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/map_records.html">map_records</a></span><span class="op">(</span></span>
-<span>  native_detected <span class="op">=</span> <span class="va">native_detected</span>,</span>
+<span>  native_detected_coord <span class="op">=</span> <span class="va">native_detected_coord</span>,</span>
 <span>  precision <span class="op">=</span> <span class="fl">3</span>,</span>
 <span>  cex <span class="op">=</span> <span class="fl">3</span></span>
 <span><span class="op">)</span></span></code></pre><p></p></div>
@@ -288,8 +297,8 @@ GBIF download:</p>
 per-iteration interpretive overhead.</p></li>
 <li><p><strong>Vectorisation over explicit loops</strong>: operations such as issue-flag
 detection in <code><a href="extract_gbif_issues.html">extract_gbif_issues()</a></code> and native-status lookups in
-<code><a href="detect_native_status.html">detect_native_status()</a></code> process entire columns in compiled calls rather
-than iterating in R.</p></li>
+<code><a href="detect_native_coord.html">detect_native_coord()</a></code> and <code><a href="detect_native_country.html">detect_native_country()</a></code> process entire
+columns in compiled calls rather than iterating in R.</p></li>
 <li><p><strong>SIMD exploitation</strong>: vectorised routines in <a href="https://rdrr.io/pkg/stringi/man/stringi-package.html" class="external-link">stringi</a> and
 <code><a href="https://rspatial.github.io/terra/reference/extract.html" class="external-link">terra::extract()</a></code> allow the compiler to emit SIMD
 instructions (AVX, AVX-512) that process multiple data elements per CPU

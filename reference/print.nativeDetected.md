@@ -18,7 +18,9 @@ print(x, ...)
 - x:
 
   An object of class `"nativeDetected"` returned by
-  [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md).
+  [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)
+  or
+  [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md).
 
 - ...:
 

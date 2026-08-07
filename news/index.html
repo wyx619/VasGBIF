@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -51,22 +51,64 @@
     </div>
 
     <div class="section level2">
+<h2 class="pkg-version" data-toc-text="3.6.3" id="vasgbif-363">VasGBIF 3.6.3<a class="anchor" aria-label="anchor" href="#vasgbif-363"></a></h2>
+<p>Native-status detection is split into two independent functions: <code><a href="../reference/detect_native_coord.html">detect_native_coord()</a></code> classifies records with validated coordinates through the spatial pass, while <code><a href="../reference/detect_native_country.html">detect_native_country()</a></code> classifies records without coordinates through their country code. The previous “retry unresolved records by country code” mechanism is removed, and the downstream consumers (<code><a href="../reference/export_records.html">export_records()</a></code>, <code><a href="../reference/map_records.html">map_records()</a></code>) now require and validate that their input carries coordinates.</p>
+<div class="section level3">
+<h3 id="breaking-changes-3-6-3">Breaking Changes<a class="anchor" aria-label="anchor" href="#breaking-changes-3-6-3"></a></h3>
+<ul><li>
+<strong><code>detect_native_status()</code> is replaced by <code><a href="../reference/detect_native_coord.html">detect_native_coord()</a></code> and <code><a href="../reference/detect_native_country.html">detect_native_country()</a></code>.</strong> The combined two-pass classifier no longer exists; classification is split by whether a record has coordinates.
+<ul><li>
+<code>detect_native_coord(refined_coordinates, buffer_km = 10, buffer_chunk_size = 2000)</code> classifies the records with validated coordinates (<code>refined_coordinates$CoordinateCleaned</code>) by overlaying them on the WGSRPD Level 3 polygon map. <code>native_status_source</code> is <code>spatial</code> (exact hit), <code>spatial_buffered</code> (geodesic buffer hit), or <code>unmatched</code>.</li>
+<li>
+<code>detect_native_country(custom_filtered)</code> classifies the records missing longitude or latitude (<code>custom_filtered$occ_filtered[is.na(decimalLatitude) | is.na(decimalLongitude)]</code>) through <code>countryCode</code> mapped to Level 3 areas by <code>Level3maping</code>; records with complete coordinates are not part of the result. <code>native_status_source</code> is <code>country_code</code>, <code>country_code_no_entry</code>, or <code>unmatched</code>, and <code>buffered</code> is always <code>FALSE</code> because no geometry is used.</li>
+<li>Both return a <code>nativeDetected</code> object keyed by <code>gbifID</code>; the two results can be combined with <code><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind()</a></code> for a full classification.</li>
+</ul></li>
+<li>
+<strong>Records the spatial stage leaves unresolved are no longer retried by country code.</strong> The migration mechanism and its <code>country_code_after_spatial_miss</code> source value are gone: a spatial miss stays <code>unmatched</code> and is never re-classified through the country code. Coordinateless records are classified separately with <code><a href="../reference/detect_native_country.html">detect_native_country()</a></code>.</li>
+<li>
+<strong><code><a href="../reference/export_records.html">export_records()</a></code> and <code><a href="../reference/map_records.html">map_records()</a></code> now take <code>native_detected_coord</code> (renamed from <code>native_detected</code>) and require coordinates.</strong> The input must be the output of <code><a href="../reference/detect_native_coord.html">detect_native_coord()</a></code>: both functions stop with an error if <code>decimalLongitude</code> or <code>decimalLatitude</code> is missing for any record, so the output of <code><a href="../reference/detect_native_country.html">detect_native_country()</a></code> is rejected.</li>
+<li>
+<strong><code><a href="../reference/refine_coordinates.html">refine_coordinates()</a></code> no longer returns a <code>Coordinateless</code> table.</strong> The <code>CoordinateRefined</code> object now has three elements (<code>CoordinateCleaned</code>, <code>CoordinateProblematic</code>, <code>runtime</code>). Records missing longitude or latitude are not carried by <code><a href="../reference/refine_coordinates.html">refine_coordinates()</a></code>; they are classified directly from <code>custom_filtered</code> by <code><a href="../reference/detect_native_country.html">detect_native_country()</a></code>.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="bug-fixes-3-6-3">Bug Fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-3-6-3"></a></h3>
+<ul><li>
+<strong><code><a href="../reference/refine_coordinates.html">refine_coordinates()</a></code> empty-input path no longer errors.</strong> The guard previously referenced an undefined <code>Coordinateless</code> variable, failing with “object ‘Coordinateless’ not found”; it now returns a well-formed <code>CoordinateRefined</code> object with empty <code>CoordinateCleaned</code> and <code>CoordinateProblematic</code> tables.</li>
+<li>
+<strong>A blank <code>countryCode</code> no longer resolves to Level 3 areas.</strong> The 42 WGSRPD areas whose <code>L3 ISOcode</code> is stored as <code>""</code> were previously treated as a valid mapping, so a record with an empty country code could be classified from those areas; such records are now <code>unmatched</code>.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="documentation-3-6-3">Documentation<a class="anchor" aria-label="anchor" href="#documentation-3-6-3"></a></h3>
+<ul><li>Package-level documentation, README, <code>Example.Rmd</code>, and <code>Application.Rmd</code> rewritten for the two-function split; every <code>detect_native_status()</code> reference — including <code>@seealso</code> cross-links — has been removed from <code>R/</code>, <code>man/</code>, README, and the vignettes.</li>
+<li>Rd files regenerated for the new and updated functions.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="testing-3-6-3">Testing<a class="anchor" aria-label="anchor" href="#testing-3-6-3"></a></h3>
+<ul><li>
+<code>test-detect_native_status.R</code> replaced by <code>test-detect_native_coord.R</code> (spatial classification, buffer passes, hybrid-name normalisation, print method) and <code>test-detect_native_country.R</code> (country-code classification, multi-area status adjudication, blank and unknown country codes, empty inputs).</li>
+<li>
+<code>test-export_records.R</code> and <code>test-map_records.R</code> updated for the renamed argument and the new coordinate-presence check; fixtures carry coordinates for every record.</li>
+<li>
+<code>test-refine_coordinates.R</code> updated for the three-element <code>CoordinateRefined</code> contract (<code>Coordinateless</code> is no longer returned).</li>
+</ul></div>
+</div>
+    <div class="section level2">
 <h2 class="pkg-version" data-toc-text="3.6.2" id="vasgbif-362">VasGBIF 3.6.2<a class="anchor" aria-label="anchor" href="#vasgbif-362"></a></h2>
 <div class="section level3">
 <h3 id="breaking-changes-3-6-2">Breaking Changes<a class="anchor" aria-label="anchor" href="#breaking-changes-3-6-2"></a></h3>
 <ul><li>
-<strong><code>species_fallback</code> has been removed from <code><a href="../reference/detect_native_status.html">detect_native_status()</a></code>.</strong> The opt-in parameter let infraspecific taxa absent from <code>Distributions</code> inherit their parent species’ status, but this proxy has been shown by research to be unreliable — a subspecies may be introduced where the species is native. Classification is now strictly by <code>Accepted_name</code>. The signature is <code>detect_native_status(refined_coordinates, buffer_km = 10, buffer_chunk_size = 2000)</code>, and the <code>key_rank</code>-based fallback machinery in the internal matching pipeline has been removed with it.</li>
+<strong><code>species_fallback</code> has been removed from <code>detect_native_status()</code>.</strong> The opt-in parameter let infraspecific taxa absent from <code>Distributions</code> inherit their parent species’ status, but this proxy has been shown by research to be unreliable — a subspecies may be introduced where the species is native. Classification is now strictly by <code>Accepted_name</code>. The signature is <code>detect_native_status(refined_coordinates, buffer_km = 10, buffer_chunk_size = 2000)</code>, and the <code>key_rank</code>-based fallback machinery in the internal matching pipeline has been removed with it.</li>
 <li>
 <strong><code>native_status_source</code> values renamed.</strong> Spatial matches are now <code>spatial</code> (exact) and <code>spatial_buffered</code> (buffered) instead of a single <code>accepted_name</code>; a country that mapped to WGSRPD areas but has no distribution entry for the taxon is <code>country_code_no_entry</code> instead of <code>country_code_miss</code>. The <code>accepted_species</code> value and the <code>_species</code>-suffixed country-code forms no longer exist.</li>
 </ul></div>
 </div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="3.6.1" id="vasgbif-361">VasGBIF 3.6.1<a class="anchor" aria-label="anchor" href="#vasgbif-361"></a></h2>
-<p><em>A follow-up release that makes the output of <code><a href="../reference/detect_native_status.html">detect_native_status()</a></code> self-contained: the native-status classification now carries the input record columns, so <code><a href="../reference/export_records.html">export_records()</a></code> and <code><a href="../reference/map_records.html">map_records()</a></code> no longer need a separate <code>refined_coordinates</code> object.</em></p>
+<p><em>A follow-up release that makes the output of <code>detect_native_status()</code> self-contained: the native-status classification now carries the input record columns, so <code><a href="../reference/export_records.html">export_records()</a></code> and <code><a href="../reference/map_records.html">map_records()</a></code> no longer need a separate <code>refined_coordinates</code> object.</em></p>
 <div class="section level3">
 <h3 id="breaking-changes-3-6-1">Breaking Changes<a class="anchor" aria-label="anchor" href="#breaking-changes-3-6-1"></a></h3>
 <ul><li>
-<strong><code><a href="../reference/detect_native_status.html">detect_native_status()</a></code> now returns the record columns alongside the classification.</strong> A <code>nativeDetected</code> object retains every column of the input records (<code>CoordinateCleaned</code> + <code>Coordinateless</code>) and appends <code>LEVEL3_COD</code>, <code>native_status</code>, <code>native_status_source</code>, and <code>buffered</code>. The result is keyed by <code>gbifID</code> and can be passed straight to <code><a href="../reference/export_records.html">export_records()</a></code> / <code><a href="../reference/map_records.html">map_records()</a></code> without joining back to <code>refined_coordinates</code>. The intermediate matching columns used internally (taxon keys, candidate areas, match ranks) are no longer returned. Because the record columns are carried through, the result holds a second copy of the input data; <code>refined_coordinates</code> can be dropped once the classification is in hand.</li>
+<strong><code>detect_native_status()</code> now returns the record columns alongside the classification.</strong> A <code>nativeDetected</code> object retains every column of the input records (<code>CoordinateCleaned</code> + <code>Coordinateless</code>) and appends <code>LEVEL3_COD</code>, <code>native_status</code>, <code>native_status_source</code>, and <code>buffered</code>. The result is keyed by <code>gbifID</code> and can be passed straight to <code><a href="../reference/export_records.html">export_records()</a></code> / <code><a href="../reference/map_records.html">map_records()</a></code> without joining back to <code>refined_coordinates</code>. The intermediate matching columns used internally (taxon keys, candidate areas, match ranks) are no longer returned. Because the record columns are carried through, the result holds a second copy of the input data; <code>refined_coordinates</code> can be dropped once the classification is in hand.</li>
 <li>
 <strong><code><a href="../reference/export_records.html">export_records()</a></code> signature simplified to <code>export_records(native_detected, export_path)</code>.</strong> The <code>refined_coordinates</code> argument is removed, and the <code>CoordinateProblematic_records.csv.gz</code> file is no longer written — two files are produced (<code>all_records.csv.gz</code>, <code>native_records.csv.gz</code>). Records that failed coordinate validation are never classified and are inspected through <code><a href="../reference/refine_coordinates.html">refine_coordinates()</a></code> instead.</li>
 <li>
@@ -77,9 +119,9 @@
 <ul><li>
 <strong>Runtime reporting across the pipeline.</strong> <code><a href="../reference/import_records.html">import_records()</a></code>, <code><a href="../reference/extract_gbif_issues.html">extract_gbif_issues()</a></code>, and <code><a href="../reference/custom_filter.html">custom_filter()</a></code> now print the elapsed time in a <code>used</code> message when they finish, matching the timing already reported by <code><a href="../reference/check_taxon.html">check_taxon()</a></code> and <code><a href="../reference/refine_coordinates.html">refine_coordinates()</a></code>.</li>
 <li>
-<strong>Column-clash guard in <code><a href="../reference/detect_native_status.html">detect_native_status()</a></code>.</strong> Passing an already-classified table back in (one that already contains <code>LEVEL3_COD</code>, <code>native_status</code>, <code>native_status_source</code>, or <code>buffered</code>) now stops with a clear error instead of producing <code>.x</code> / <code>.y</code> suffixed columns in the final join.</li>
+<strong>Column-clash guard in <code>detect_native_status()</code>.</strong> Passing an already-classified table back in (one that already contains <code>LEVEL3_COD</code>, <code>native_status</code>, <code>native_status_source</code>, or <code>buffered</code>) now stops with a clear error instead of producing <code>.x</code> / <code>.y</code> suffixed columns in the final join.</li>
 <li>
-<strong>Row-count assertion in <code><a href="../reference/detect_native_status.html">detect_native_status()</a></code>.</strong> Reattaching the record columns is asserted to be one-to-one: a duplicated <code>gbifID</code> across the input tables would inflate the result and now fails loudly rather than silently doubling rows.</li>
+<strong>Row-count assertion in <code>detect_native_status()</code>.</strong> Reattaching the record columns is asserted to be one-to-one: a duplicated <code>gbifID</code> across the input tables would inflate the result and now fails loudly rather than silently doubling rows.</li>
 <li>
 <strong><code><a href="../reference/export_records.html">export_records()</a></code> writes <code>all_records.csv.gz</code> straight from <code>native_detected</code>.</strong> No join and no column selection are performed, so the exported table carries every record column in addition to the classification.</li>
 <li>
@@ -88,7 +130,7 @@
 <div class="section level3">
 <h3 id="documentation-3-6-1">Documentation<a class="anchor" aria-label="anchor" href="#documentation-3-6-1"></a></h3>
 <ul><li>Package-level documentation, README, <code>Example.Rmd</code>, and <code>Application.Rmd</code> updated for the new output structure and simplified signatures. The <code>nativeDetected</code> description in <code>Application.Rmd</code> no longer instructs users to join back to <code>refined_coordinates</code>.</li>
-<li>Rd files regenerated for <code><a href="../reference/detect_native_status.html">detect_native_status()</a></code>, <code><a href="../reference/export_records.html">export_records()</a></code>, and <code><a href="../reference/map_records.html">map_records()</a></code>.</li>
+<li>Rd files regenerated for <code>detect_native_status()</code>, <code><a href="../reference/export_records.html">export_records()</a></code>, and <code><a href="../reference/map_records.html">map_records()</a></code>.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="testing-3-6-1">Testing<a class="anchor" aria-label="anchor" href="#testing-3-6-1"></a></h3>
@@ -108,7 +150,7 @@
 <div class="section level4">
 <h4 id="the-new-pipeline-3-6-0">The new pipeline<a class="anchor" aria-label="anchor" href="#the-new-pipeline-3-6-0"></a></h4>
 <p>The workflow is now:</p>
-<p><code><a href="../reference/import_records.html">import_records()</a></code> → <code><a href="../reference/extract_gbif_issues.html">extract_gbif_issues()</a></code> → <code><a href="../reference/check_taxon.html">check_taxon()</a></code> → <code><a href="../reference/custom_filter.html">custom_filter()</a></code> → <code><a href="../reference/refine_coordinates.html">refine_coordinates()</a></code> → <code><a href="../reference/detect_native_status.html">detect_native_status()</a></code> → <code><a href="../reference/export_records.html">export_records()</a></code> / <code><a href="../reference/map_records.html">map_records()</a></code></p>
+<p><code><a href="../reference/import_records.html">import_records()</a></code> → <code><a href="../reference/extract_gbif_issues.html">extract_gbif_issues()</a></code> → <code><a href="../reference/check_taxon.html">check_taxon()</a></code> → <code><a href="../reference/custom_filter.html">custom_filter()</a></code> → <code><a href="../reference/refine_coordinates.html">refine_coordinates()</a></code> → <code>detect_native_status()</code> → <code><a href="../reference/export_records.html">export_records()</a></code> / <code><a href="../reference/map_records.html">map_records()</a></code></p>
 </div>
 <div class="section level4">
 <h4 id="removed-functions-3-6-0">Removed functions<a class="anchor" aria-label="anchor" href="#removed-functions-3-6-0"></a></h4>
@@ -191,7 +233,7 @@
 <div class="section level3">
 <h3 id="new-data-3-6-0">New Data<a class="anchor" aria-label="anchor" href="#new-data-3-6-0"></a></h3>
 <ul><li>
-<strong><code>Level3maping</code></strong>: the tabular component of the WGSRPD standard — 369 Level 3 units with code, name, parent Level 2 region, and ISO 3166-1 alpha-2 concordance — used by the country-code pass of <code><a href="../reference/detect_native_status.html">detect_native_status()</a></code>. Its documentation states plainly that the published <code>L3 ISOcode</code> column is neither complete nor one-to-one: one ISO code usually maps to several areas (<code>US</code> to 51, <code>RU</code> to 21), 42 areas carry no ISO code at all (including mainland France, Italy, Spain, Austria, Belgium, Ireland, Ukraine, and Korea, so a naive lookup silently returns only their offshore units), and Belarus is listed under <code>RU</code>, reflecting the standard’s 2001 vintage.</li>
+<strong><code>Level3maping</code></strong>: the tabular component of the WGSRPD standard — 369 Level 3 units with code, name, parent Level 2 region, and ISO 3166-1 alpha-2 concordance — used by the country-code pass of <code>detect_native_status()</code>. Its documentation states plainly that the published <code>L3 ISOcode</code> column is neither complete nor one-to-one: one ISO code usually maps to several areas (<code>US</code> to 51, <code>RU</code> to 21), 42 areas carry no ISO code at all (including mainland France, Italy, Spain, Austria, Belgium, Ireland, Ukraine, and Korea, so a naive lookup silently returns only their offshore units), and Belarus is listed under <code>RU</code>, reflecting the standard’s 2001 vintage.</li>
 <li>
 <strong><code>Distributions</code></strong> has been rebuilt and now holds 1,647,045 rows (previously reported as 1,983,653), reducing the installed data size.</li>
 </ul></div>
@@ -215,7 +257,7 @@
 <div class="section level3">
 <h3 id="testing-3-6-0">Testing<a class="anchor" aria-label="anchor" href="#testing-3-6-0"></a></h3>
 <ul><li>Test suites for the removed functions (<code>set_vouchers()</code>, <code>get_collections()</code>, <code>restore_duplicates()</code>, <code>refine_records()</code>) have been deleted, along with the stale <code><a href="../reference/import_records.html">import_records()</a></code> snapshots.</li>
-<li>New and rewritten suites cover <code><a href="../reference/custom_filter.html">custom_filter()</a></code>, <code><a href="../reference/check_taxon.html">check_taxon()</a></code>, <code><a href="../reference/extract_gbif_issues.html">extract_gbif_issues()</a></code>, <code><a href="../reference/refine_coordinates.html">refine_coordinates()</a></code>, <code><a href="../reference/import_records.html">import_records()</a></code>, <code><a href="../reference/export_records.html">export_records()</a></code>, <code><a href="../reference/detect_native_status.html">detect_native_status()</a></code>, and <code><a href="../reference/map_records.html">map_records()</a></code>, testing the new object classes, the per-rule filter summary, the two-pass status priority, buffered matching, and input validation for every exported function.</li>
+<li>New and rewritten suites cover <code><a href="../reference/custom_filter.html">custom_filter()</a></code>, <code><a href="../reference/check_taxon.html">check_taxon()</a></code>, <code><a href="../reference/extract_gbif_issues.html">extract_gbif_issues()</a></code>, <code><a href="../reference/refine_coordinates.html">refine_coordinates()</a></code>, <code><a href="../reference/import_records.html">import_records()</a></code>, <code><a href="../reference/export_records.html">export_records()</a></code>, <code>detect_native_status()</code>, and <code><a href="../reference/map_records.html">map_records()</a></code>, testing the new object classes, the per-rule filter summary, the two-pass status priority, buffered matching, and input validation for every exported function.</li>
 </ul></div>
 </div>
     <div class="section level2">
@@ -226,7 +268,7 @@
 <strong>Added search and dark/light mode toggle</strong> to the pkgdown navbar.</li>
 <li>
 <strong>Simplified navbar labels</strong>: “Get started” → “Start”, “Reference” → “Functions”, “Articles” → “Manuals”.</li>
-<li>Reorganized reference index: <code><a href="../reference/detect_native_status.html">detect_native_status()</a></code> and <code>restore_duplicates()</code> moved under Utilities.</li>
+<li>Reorganized reference index: <code>detect_native_status()</code> and <code>restore_duplicates()</code> moved under Utilities.</li>
 <li>Workflow diagram converted from JPG to PNG.</li>
 </ul></div>
 <div class="section level3">
@@ -253,7 +295,7 @@
 <li>
 <code>restore_duplicates()</code> (26 tests): return structure, restoration of all eight metadata fields (<code>eventDate</code>, <code>year</code>, <code>month</code>, <code>day</code>, <code>identifiedBy</code>, <code>countryCode</code>, <code>stateProvince</code>, <code>locality</code>), integer coercion for <code>year</code>/<code>month</code>/<code>day</code>, <code>"NA"</code> string treated as missing, skipping of values &gt;10,000 characters, special character stripping, and first-available-duplicate selection.</li>
 <li>
-<code><a href="../reference/detect_native_status.html">detect_native_status()</a></code> (14 tests): return structure, unknown status for taxa absent from <code>Distributions</code>, known-native classification (e.g. <em>Rosa canina</em> in Denmark), independent multi-taxon processing, and verification of the <code>fcase</code> priority logic (location_doubtful &gt; introduced &gt; extinct &gt; native &gt; unknown).</li>
+<code>detect_native_status()</code> (14 tests): return structure, unknown status for taxa absent from <code>Distributions</code>, known-native classification (e.g. <em>Rosa canina</em> in Denmark), independent multi-taxon processing, and verification of the <code>fcase</code> priority logic (location_doubtful &gt; introduced &gt; extinct &gt; native &gt; unknown).</li>
 <li>
 <code>refine_records()</code> (15 tests): return structure, <code>native_status</code> column integration, valid coordinate pass-through, zero-coordinate flagging by the <code>"zeros"</code> test, equal lat/lon flagging by <code>"equal"</code>, empty <code>tests</code> parameter behaviour, and exclusion of <code>"unusable"</code> records by <code>restore_duplicates()</code>.</li>
 </ul></li>
@@ -307,7 +349,7 @@
 <div class="section level3">
 <h3 id="new-functions-3-5-0">New Functions<a class="anchor" aria-label="anchor" href="#new-functions-3-5-0"></a></h3>
 <ul><li>
-<code><a href="../reference/detect_native_status.html">detect_native_status()</a></code> detects native status by matching validated coordinates to WGSRPD Level 3 polygons and WCVP distribution data. Classification uses a priority-based scheme: location_doubtful &gt; introduced &gt; extinct &gt; native &gt; unknown.</li>
+<code>detect_native_status()</code> detects native status by matching validated coordinates to WGSRPD Level 3 polygons and WCVP distribution data. Classification uses a priority-based scheme: location_doubtful &gt; introduced &gt; extinct &gt; native &gt; unknown.</li>
 <li>
 <code><a href="../reference/export_records.html">export_records()</a></code> writes refined records to disk as three gzip-compressed CSV files: all usable records, the native subset, and records that failed coordinate validation.</li>
 <li>
@@ -318,7 +360,7 @@
 <ul><li>
 <strong>Simplified pipeline</strong>: The workflow has been reduced from 8 modules (with collector checking) to 7 core functions across 4 stages. The collector name standardization stage has been removed entirely; duplicate detection now uses composite keys of <code>taxon_name|eventDate|latitude|longitude</code> via <code>get_collections()</code>.</li>
 <li>
-<code>refine_records()</code> has been modularised into a three-step internal pipeline: <code>restore_duplicates()</code> → CoordinateCleaner → <code><a href="../reference/detect_native_status.html">detect_native_status()</a></code>.</li>
+<code>refine_records()</code> has been modularised into a three-step internal pipeline: <code>restore_duplicates()</code> → CoordinateCleaner → <code>detect_native_status()</code>.</li>
 <li>
 <code>get_collections()</code> builds collection-event keys from resolved taxon names, event dates, and rounded coordinates, with user-controlled spatial precision.</li>
 <li>

@@ -7,15 +7,16 @@ geohashes and color-coded by their native status.
 ## Usage
 
 ``` r
-map_records(native_detected = NA, precision = 3, cex = 3)
+map_records(native_detected_coord = NA, precision = 3, cex = 3)
 ```
 
 ## Arguments
 
-- native_detected:
+- native_detected_coord:
 
   A `nativeDetected` object returned by
-  [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md).
+  [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md),
+  containing records with validated coordinates.
 
 - precision:
 
@@ -41,7 +42,7 @@ metadata.
 The function works in four steps:
 
 - **Record selection:** Reads the classified records from
-  [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md),
+  [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md),
   keeping those whose `native_status` is not `"unknown"`.
 
 - **Geohash deduplication:** Encodes coordinates at the requested
@@ -57,12 +58,15 @@ The function works in four steps:
 ### Record selection
 
 Both the classification and the coordinates are read from
-`native_detected`, which carries every column of the input records.
-Records with `native_status = "unknown"` are excluded, as are records
-with missing longitude or latitude — which removes the coordinateless
-records that
-[`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
-classified through their country code.
+`native_detected_coord`, which carries every column of the input
+records. Records with `native_status = "unknown"` are excluded. Records
+with missing longitude or latitude are excluded as a guard;
+[`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)
+only classifies records with validated coordinates, so none are
+expected, and inputs that carry missing coordinates (such as the output
+of
+[`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md))
+are rejected outright.
 
 ### Geohash deduplication
 
@@ -89,7 +93,7 @@ The generated map includes:
 
 ## See also
 
-[`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
+[`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)
 for the object consumed by this function;
 [`gh_encode()`](https://rdrr.io/pkg/geohashTools/man/gh_encode.html) for
 geohash encoding and
@@ -99,9 +103,9 @@ for interactive map construction.
 ## Examples
 
 ``` r
-if (FALSE) { # interactive() && exists("native_detected")
+if (FALSE) { # interactive() && exists("native_detected_coord")
 map_records(
-  native_detected = native_detected,
+  native_detected_coord = native_detected_coord,
   precision = 3,
   cex = 3
 )

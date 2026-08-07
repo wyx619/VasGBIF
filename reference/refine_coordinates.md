@@ -1,25 +1,21 @@
 # Validate coordinates of filtered occurrence records
 
 Validates the coordinates of filtered occurrence records with
-CoordinateCleaner and splits them into coordinate-clean, problematic,
-and coordinate-less tables.
+CoordinateCleaner and splits them into coordinate-clean and problematic
+tables.
 
-The function works in two steps:
-
-1.  Splits `custom_filtered$occ_filtered` into records with complete
-    coordinates and records missing longitude or latitude (the
-    `Coordinateless` table).
-
-2.  Runs
-    [CoordinateCleaner::clean_coordinates](https://ropensci.github.io/CoordinateCleaner/reference/clean_coordinates.html)
-    checks in parallel to flag common spatial issues such as centroids,
-    capitals, and marine records.
+[CoordinateCleaner::clean_coordinates](https://ropensci.github.io/CoordinateCleaner/reference/clean_coordinates.html)
+checks run in parallel to flag common spatial issues such as centroids,
+capitals, and marine records.
 
 Records that pass all requested tests are returned in
 `CoordinateCleaned`; records that fail one or more tests are returned in
-`CoordinateProblematic`. Native-status classification is a separate step
-performed by
-[`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md).
+`CoordinateProblematic`. Native-status classification is a separate
+step:
+[`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)
+classifies the records with validated coordinates, and
+[`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)
+the coordinate-less records (taken directly from `custom_filtered`).
 
 ## Usage
 
@@ -55,7 +51,7 @@ refine_coordinates(
 
 ## Value
 
-A `CoordinateRefined` object (list) with four elements:
+A `CoordinateRefined` object (list) with three elements:
 
 - `CoordinateCleaned`: a `data.table` of records that passed all
   requested coordinate tests
@@ -64,14 +60,13 @@ A `CoordinateRefined` object (list) with four elements:
   more tests, retaining the CoordinateCleaner flag columns (e.g.
   `.summary`) so the failing tests can be inspected
 
-- `Coordinateless`: a `data.table` of records missing longitude or
-  latitude
-
 - `runtime`: the elapsed execution time
 
 Use
-[`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
-to classify native status then.
+[`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)
+to classify the records with validated coordinates, and
+[`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)
+for the coordinate-less records.
 
 ## Details
 
@@ -105,9 +100,8 @@ nodes.
 
 ### Empty input
 
-If no records have complete coordinates, validation is skipped and all
-records are returned in `Coordinateless`, with empty `CoordinateCleaned`
-and `CoordinateProblematic` tables.
+If no records have complete coordinates, validation is skipped and empty
+`CoordinateCleaned` and `CoordinateProblematic` tables are returned.
 
 ## References
 
@@ -123,7 +117,8 @@ and `CoordinateProblematic` tables.
 
 [`clean_coordinates()`](https://ropensci.github.io/CoordinateCleaner/reference/clean_coordinates.html),
 [`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md),
-[`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md),
+[`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md),
+[`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md),
 [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md),
 [`print.CoordinateRefined()`](https://wyx619.github.io/VasGBIF/reference/print.CoordinateRefined.md),
 [`set_threads()`](https://wyx619.github.io/VasGBIF/reference/set_threads.md)

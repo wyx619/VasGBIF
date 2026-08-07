@@ -62,12 +62,14 @@ into analysis-ready datasets.
     [`CoordinateCleaner::clean_coordinates()`](https://ropensci.github.io/CoordinateCleaner/reference/clean_coordinates.html)
     (Zizka et al. 2019) to flag spatial errors such as centroids,
     capitals, marine coordinates, and zero coordinates, splitting
-    records into cleaned, problematic, and coordinate-less tables.
-    Validation is parallelized across user-specified threads.
+    records into cleaned and problematic tables. Validation is
+    parallelized across user-specified threads.
 
 6.  **Detect Native Status** —
-    [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md):
-    matches each record against WCVP distribution data (the internal
+    [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)
+    and
+    [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md):
+    match each record against WCVP distribution data (the internal
     `Distributions` dataset) via WGSRPD Level 3 areas to classify it as
     native, introduced, extinct, location_doubtful, or unknown (see
     *Precise native-status detection system*).
@@ -87,16 +89,26 @@ into analysis-ready datasets.
 
 ### Precise native-status detection system
 
-[`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
-is the analytical core of VasGBIF: it assigns a native, introduced,
-extinct, location_doubtful, or unknown classification to every
-occurrence by matching the record's identification and position against
-authoritative WCVP distribution data (the internal `Distributions`
-dataset) organised by WGSRPD Level 3 areas. Classification runs in two
-passes so that the most precise available evidence always wins.
+[`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)
+and
+[`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)
+are the analytical core of VasGBIF: together they assign a native,
+introduced, extinct, location_doubtful, or unknown classification to
+every occurrence by matching the record's identification and position
+against authoritative WCVP distribution data (the internal
+`Distributions` dataset) organised by WGSRPD Level 3 areas.
+Classification is split across two functions so that the most precise
+available evidence always wins: records with validated coordinates are
+matched spatially by
+[`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md),
+and records without coordinates are matched through their country code
+by
+[`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md).
 
-**Spatial pass.** Records with validated coordinates are overlaid on the
-WGSRPD Level 3 polygon map with
+**Spatial classification.**
+[`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)
+overlays records with validated coordinates on the WGSRPD Level 3
+polygon map with
 [`terra::extract()`](https://rspatial.github.io/terra/reference/extract.html)
 — a single vectorised call that assigns every point its area code in
 compiled code. Each area code is looked up in a distribution table
@@ -120,18 +132,18 @@ fall just outside a polygon are still matched through a geodesic buffer
 [`terra::buffer()`](https://rspatial.github.io/terra/reference/buffer.html)
 so its meaning is identical at every latitude); buffered hits always
 rank below exact ones, so a genuine in-polygon match is never displaced
-by a buffered candidate.
-
-**Country-code pass.** Records without coordinates, and records the
-spatial pass left unresolved, are retried through `countryCode` mapped
-to WGSRPD Level 3 areas by the `Level3maping` table. No geometry is
-used, so this pass is nearly free, and buffering is chunked
+by a buffered candidate. The buffer pass is chunked
 (`buffer_chunk_size`) to keep the relate matrix small.
+
+**Country-code classification.**
+[`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)
+matches records without coordinates through `countryCode` mapped to
+WGSRPD Level 3 areas by the `Level3maping` table. No geometry is used,
+so this pass is nearly free.
 
 Every classification records how it was obtained in
 `native_status_source` — `spatial` / `spatial_buffered` for spatial
-matches (exact and buffered), `country_code` /
-`country_code_after_spatial_miss` for country-code matches,
+matches (exact and buffered), `country_code` for country-code matches,
 `country_code_no_entry` when the country mapped but the taxon has no
 distribution entry there, and `unmatched` when no usable key exists — so
 the entire decision chain is auditable.
@@ -139,10 +151,11 @@ the entire decision chain is auditable.
 **Precision without a speed penalty.** Hybrid markers are normalised so
 `Alnus x pubescens` matches the `Alnus × pubescens` recorded in the
 distributions; and neither the spatial overlay nor the distribution
-lookup ever iterates record-by-record in R. The result is a
+lookup ever iterates record-by-record in R. Both functions return a
 `nativeDetected` table keyed by `gbifID` that retains every column of
 the input records and appends `LEVEL3_COD`, `native_status`,
-`native_status_source`, and `buffered`, feeding directly into
+`native_status_source`, and `buffered`; the spatial result feeds
+directly into
 [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)
 and
 [`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)
@@ -224,18 +237,23 @@ GBIF download:
       threads = 4
     )
 
-    native_detected <- detect_native_status(
+    native_detected_coord <- detect_native_coord(
       refined_coordinates = refined_coordinates
     )
 
 
+    native_detected_country <- detect_native_country(
+      custom_filtered = filtered
+    )
+
+
     export_records(
-      native_detected = native_detected,
+      native_detected_coord = native_detected_coord,
       export_path = getwd()
     )
 
     map_records(
-      native_detected = native_detected,
+      native_detected_coord = native_detected_coord,
       precision = 3,
       cex = 3
     )
@@ -255,7 +273,9 @@ VasGBIF achieves its speed through several architectural choices:
   detection in
   [`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md)
   and native-status lookups in
-  [`detect_native_status()`](https://wyx619.github.io/VasGBIF/reference/detect_native_status.md)
+  [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)
+  and
+  [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)
   process entire columns in compiled calls rather than iterating in R.
 
 - **SIMD exploitation**: vectorised routines in
