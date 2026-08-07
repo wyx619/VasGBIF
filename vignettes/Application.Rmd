@@ -48,8 +48,8 @@ A presence-absence matrix is only as good as the records behind it, so downstrea
 2.  **Extract GBIF Issues** — **`extract_gbif_issues()`** expands `issue` into one logical column per GBIF issue code, plus a per-record issue count
 3.  **Check Taxon Name** — **`check_taxon()`** resolves scientific names against WCVP through TNRS, keeping matches that clear the `accuracy` threshold and resolve below genus level
 4.  **Custom Filter** — **`custom_filter()`** joins the three outputs by `gbifID` and drops records rule by rule, logging every step
-5.  **Refine Coordinates** — **`refine_coordinates()`** runs CoordinateCleaner tests in parallel, splitting records into coordinate-clean, coordinate-problematic, and coordinate-less tables
-6.  **Detect Native Status** — **`detect_native_status()`** classifies each record as `native`, `introduced`, `extinct`, `location_doubtful`, or `unknown`
+5.  **Refine Coordinates** — **`refine_coordinates()`** runs CoordinateCleaner tests in parallel, splitting records into coordinate-clean and coordinate-problematic tables
+6.  **Detect Native Status** — **`detect_native_coord()`** and **`detect_native_country()`** classify each record as `native`, `introduced`, `extinct`, `location_doubtful`, or `unknown`
 7.  **Export Records** — **`export_records()`** writes the classified records to two gzip-compressed CSV files
 8.  **Map Records** — **`map_records()`** renders the records on an interactive map with geohash-based decluttering
 
@@ -90,14 +90,17 @@ refined_coordinates <- refine_coordinates(
 )
 
 # Step 6: Annotate native status
-native_detected <- detect_native_status(
+native_detected_coord <- detect_native_coord(
   refined_coordinates = refined_coordinates
+)
+native_detected_country <- detect_native_country(
+  custom_filtered = filtered
 )
 ```
 
-Every object prints a summary, so `filtered$summary` shows how many records each rule removed, and `native_detected` reports the status breakdown — both worth inspecting before committing to a matrix.
+Every object prints a summary, so `filtered$summary` shows how many records each rule removed, and `native_detected_coord` / `native_detected_country` report the status breakdown — both worth inspecting before committing to a matrix.
 
-Two objects carry forward. `refined_coordinates$CoordinateCleaned` holds the records that passed every coordinate test, and `native_detected` holds one row per record with its `native_status`. Because `detect_native_status()` also classifies coordinate-less records, joining the two tables on `gbifID` keeps only native records that actually have coordinates — exactly what a presence-absence matrix requires.
+Two objects carry forward. `refined_coordinates$CoordinateCleaned` holds the records that passed every coordinate test, and `native_detected_coord` holds one row per record with its `native_status`. Because `detect_native_coord()` only classifies records with validated coordinates, filtering it for `native_status == "native"` yields exactly the native records that actually have coordinates — precisely what a presence-absence matrix requires.
 
 ## Introducing *letsR* and Presence-Absence Matrices
 
@@ -162,7 +165,7 @@ library(letsR)
 library(stringi)
 
 # prepare input for letsR
-PAM_pre <- native_detected[(!is.na(decimalLatitude)) & native_status=='native',
+PAM_pre <- native_detected_coord[native_status=='native',
   .(
     Accepted_name,
     genus = stri_extract_first_regex(Accepted_name, "^[^ ]+"),

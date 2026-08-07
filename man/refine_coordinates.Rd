@@ -26,37 +26,33 @@ apply. Choose one or more of \code{"capitals"}, \code{"centroids"}, \code{"equal
 default uses all tests.}
 }
 \value{
-A \code{CoordinateRefined} object (list) with four elements:
+A \code{CoordinateRefined} object (list) with three elements:
 \itemize{
 \item \code{CoordinateCleaned}: a \code{data.table} of records that passed all requested
 coordinate tests
 \item \code{CoordinateProblematic}: a \code{data.table} of records that failed one or more
 tests, retaining the CoordinateCleaner flag columns (e.g. \code{.summary}) so
 the failing tests can be inspected
-\item \code{Coordinateless}: a \code{data.table} of records missing longitude or latitude
 \item \code{runtime}: the elapsed execution time
 }
 
-Use \code{\link[=detect_native_status]{detect_native_status()}} to classify native status then.
+Use \code{\link[=detect_native_coord]{detect_native_coord()}} to classify the records with validated
+coordinates, and \code{\link[=detect_native_country]{detect_native_country()}} for the coordinate-less records.
 }
 \description{
 Validates the coordinates of filtered occurrence records with
-CoordinateCleaner and splits them into coordinate-clean, problematic, and
-coordinate-less tables.
+CoordinateCleaner and splits them into coordinate-clean and problematic
+tables.
 
-The function works in two steps:
-\enumerate{
-\item Splits \code{custom_filtered$occ_filtered} into records with complete
-coordinates and records missing longitude or latitude (the
-\code{Coordinateless} table).
-\item Runs \link[CoordinateCleaner:clean_coordinates]{CoordinateCleaner::clean_coordinates} checks in parallel to flag
+\link[CoordinateCleaner:clean_coordinates]{CoordinateCleaner::clean_coordinates} checks run in parallel to flag
 common spatial issues such as centroids, capitals, and marine records.
-}
 
 Records that pass all requested tests are returned in \code{CoordinateCleaned};
 records that fail one or more tests are returned in \code{CoordinateProblematic}.
-Native-status classification is a separate step performed by
-\code{\link[=detect_native_status]{detect_native_status()}}.
+Native-status classification is a separate step: \code{\link[=detect_native_coord]{detect_native_coord()}}
+classifies the records with validated coordinates, and
+\code{\link[=detect_native_country]{detect_native_country()}} the coordinate-less records (taken directly from
+\code{custom_filtered}).
 }
 \details{
 \subsection{Coordinate validation}{
@@ -84,9 +80,8 @@ capped to the number of records to avoid idle cluster nodes.
 
 \subsection{Empty input}{
 
-If no records have complete coordinates, validation is skipped and all
-records are returned in \code{Coordinateless}, with empty \code{CoordinateCleaned} and
-\code{CoordinateProblematic} tables.
+If no records have complete coordinates, validation is skipped and empty
+\code{CoordinateCleaned} and \code{CoordinateProblematic} tables are returned.
 }
 }
 \examples{
@@ -105,6 +100,6 @@ biological collection databases. \emph{Methods in Ecology and Evolution}, 10(5),
 }
 \seealso{
 \code{\link[CoordinateCleaner:clean_coordinates]{clean_coordinates()}},
-\code{\link[=custom_filter]{custom_filter()}}, \code{\link[=detect_native_status]{detect_native_status()}}, \code{\link[=export_records]{export_records()}},
-\code{\link[=print.CoordinateRefined]{print.CoordinateRefined()}}, \code{\link[=set_threads]{set_threads()}}
+\code{\link[=custom_filter]{custom_filter()}}, \code{\link[=detect_native_coord]{detect_native_coord()}}, \code{\link[=detect_native_country]{detect_native_country()}},
+\code{\link[=export_records]{export_records()}}, \code{\link[=print.CoordinateRefined]{print.CoordinateRefined()}}, \code{\link[=set_threads]{set_threads()}}
 }

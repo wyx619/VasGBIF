@@ -72,11 +72,10 @@ test_that("returns a CoordinateRefined object with the expected elements", {
   expect_s3_class(res, "CoordinateRefined")
   expect_named(
     res,
-    c("CoordinateCleaned", "CoordinateProblematic", "Coordinateless", "runtime")
+    c("CoordinateCleaned", "CoordinateProblematic", "runtime")
   )
   expect_s3_class(res$CoordinateCleaned, "data.table")
   expect_s3_class(res$CoordinateProblematic, "data.table")
-  expect_s3_class(res$Coordinateless, "data.table")
   expect_s3_class(res$runtime, "difftime")
 })
 
@@ -96,7 +95,6 @@ test_that("passing and failing records are split by CoordinateCleaner", {
 
   expect_setequal(res$CoordinateCleaned$gbifID, "1")
   expect_setequal(res$CoordinateProblematic$gbifID, c("2", "3"))
-  expect_setequal(res$Coordinateless$gbifID, c("4", "5"))
 })
 
 test_that("CoordinateCleaned keeps the original columns only", {
@@ -136,7 +134,6 @@ test_that("records without complete coordinates bypass validation", {
 
   expect_equal(nrow(res$CoordinateCleaned), 0L)
   expect_equal(nrow(res$CoordinateProblematic), 0L)
-  expect_setequal(res$Coordinateless$gbifID, c("1", "2"))
 })
 
 test_that("empty-coordinate input reports skipping validation", {
@@ -156,7 +153,6 @@ test_that("a fully empty occ_filtered returns empty tables", {
 
   expect_equal(nrow(res$CoordinateCleaned), 0L)
   expect_equal(nrow(res$CoordinateProblematic), 0L)
-  expect_equal(nrow(res$Coordinateless), 0L)
 })
 
 # --- Print method -----------------------------------------------------------
@@ -173,7 +169,6 @@ test_that("print.CoordinateRefined shows counts and runtime", {
   expect_true(any(grepl("<CoordinateRefined> 2 records", out)))
   expect_true(any(grepl("CoordinateCleaned", out)))
   expect_true(any(grepl("CoordinateProblematic", out)))
-  expect_true(any(grepl("Coordinateless", out)))
   expect_true(any(grepl("runtime:", out)))
 
   expect_invisible(print(res))

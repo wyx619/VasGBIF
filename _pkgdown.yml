@@ -57,7 +57,8 @@ reference:
       - refine_coordinates
   - title: "Step 6 — Detect Native Status"
     contents:
-      - detect_native_status
+      - detect_native_coord
+      - detect_native_country
   - title: "Step 7 — Export Records"
     contents:
       - export_records

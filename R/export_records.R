@@ -1,11 +1,11 @@
 #' @title Export classified records to compressed CSV files
 #'
-#' @description Writes the results of [detect_native_status()] to disk as
+#' @description Writes the results of [detect_native_coord()] to disk as
 #'   gzip-compressed CSV files. Two files are exported: all classified records
 #'   and the native subset.
 #'
-#' @param native_detected A `nativeDetected` object returned by
-#'   [detect_native_status()].
+#' @param native_detected_coord A `nativeDetected` object returned by
+#'   [detect_native_coord()], containing records with validated coordinates.
 #' @param export_path Directory where the compressed CSV files should be written.
 #'
 #' @returns Called for its side effect of writing files to `export_path`. Returns
@@ -14,14 +14,21 @@
 #' @details
 #' The following files are written:
 #'
-#' - `all_records.csv.gz`: every classified record — those with validated
-#'   coordinates and those without — with all its columns and its native status
+#' - `all_records.csv.gz`: every classified record with validated coordinates,
+#'   with all its columns and its native status
 #' - `native_records.csv.gz`: the subset classified as `"native"`
 #'
-#' `native_detected` already carries every column of the input records, so no
-#' join is performed here: `all_records.csv.gz` is written straight from it.
-#' Records that failed coordinate validation are never classified and therefore
-#' do not appear in the output; use [refine_coordinates()] to inspect them.
+#' `native_detected_coord` already carries every column of the input records, so
+#' no join is performed here: `all_records.csv.gz` is written straight from it.
+#'
+#' `native_detected_coord` must carry coordinates for every record: it is the
+#' spatial output of [detect_native_coord()], which only classifies records
+#' with validated coordinates. The function stops if `decimalLongitude` or
+#' `decimalLatitude` is missing for any record — the output of
+#' [detect_native_country()] would be rejected this way. Records without
+#' coordinates are classified separately by [detect_native_country()]; to
+#' export both sets together, bind the two results before calling this
+#' function.
 #'
 #' Files are written with `fwrite(encoding = "UTF-8")`. `export_path` is
 #' validated before writing: if it is not a single character path or exists as
@@ -29,27 +36,48 @@
 #' exist, a warning is emitted and the directory is created automatically.
 #'
 #' @import data.table
-#' @seealso [detect_native_status()], [refine_coordinates()]
+#' @seealso [detect_native_coord()], [detect_native_country()],
+#'   [refine_coordinates()]
 #' @export
 export_records <- function(
-  native_detected = NA,
+  native_detected_coord = NA,
   export_path = NA
 ) {
   # ---- validate inputs ----
-  if (!inherits(native_detected, "nativeDetected")) {
+  if (!inherits(native_detected_coord, "nativeDetected")) {
     stop(
-      '`native_detected` must be a "nativeDetected" object from detect_native_status().'
+      '`native_detected_coord` must be a "nativeDetected" object from detect_native_coord().'
     )
   }
 
-  missing_status_cols <- setdiff(
-    c("gbifID", "native_status"),
-    names(native_detected)
+  required_cols <- c(
+    "gbifID",
+    "native_status",
+    "decimalLongitude",
+    "decimalLatitude"
   )
-  if (length(missing_status_cols) > 0L) {
+  missing_cols <- setdiff(required_cols, names(native_detected_coord))
+  if (length(missing_cols) > 0L) {
     stop(
-      "`native_detected` is missing required column(s): ",
-      paste(missing_status_cols, collapse = ", ")
+      "`native_detected_coord` is missing required column(s): ",
+      paste(missing_cols, collapse = ", ")
+    )
+  }
+
+  # The spatial stage classifies records with validated coordinates only, so a
+  # `native_detected_coord` carrying missing coordinates is a misuse (e.g. the
+  # output of `detect_native_country()`), not a legitimate input.
+  n_missing_coord <- sum(
+    is.na(native_detected_coord$decimalLongitude) |
+      is.na(native_detected_coord$decimalLatitude)
+  )
+  if (n_missing_coord > 0L) {
+    stop(
+      "`native_detected_coord` contains ",
+      n_missing_coord,
+      " record(s) with missing coordinates; it must be the output of ",
+      "`detect_native_coord()`, which carries coordinates for every record.",
+      call. = FALSE
     )
   }
 
@@ -69,9 +97,9 @@ export_records <- function(
     dir.create(export_path, recursive = TRUE)
   }
 
-  # `detect_native_status()` returns the record columns alongside the status,
+  # `detect_native_coord()` returns the record columns alongside the status,
   # so this is the export table as-is -- no join, no column selection.
-  all_records <- native_detected
+  all_records <- native_detected_coord
 
   message(paste(all_records[, .N], 'records finally left'))
 

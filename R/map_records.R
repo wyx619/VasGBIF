@@ -7,7 +7,7 @@
 #' The function works in four steps:
 #'
 #' * **Record selection:** Reads the classified records from
-#'   [detect_native_status()], keeping those whose `native_status` is not
+#'   [detect_native_coord()], keeping those whose `native_status` is not
 #'   `"unknown"`.
 #' * **Geohash deduplication:** Encodes coordinates at the requested precision
 #'   and retains one representative record per species, geohash cell, and native
@@ -17,8 +17,8 @@
 #' * **Basemap selection:** Provides OpenStreetMap, Esri World Imagery, and
 #'   Stadia Stamen Watercolor basemaps.
 #'
-#' @param native_detected A `nativeDetected` object returned by
-#'   [detect_native_status()].
+#' @param native_detected_coord A `nativeDetected` object returned by
+#'   [detect_native_coord()], containing records with validated coordinates.
 #' @param precision Positive integer controlling the spatial resolution of
 #'   geohash-based deduplication. Higher values produce finer-grained cells. For
 #'   reference, precision values of 4, 3, and 2 represent approximately 20 km,
@@ -29,11 +29,13 @@
 #' @details
 #' ## Record selection
 #'
-#' Both the classification and the coordinates are read from `native_detected`,
-#' which carries every column of the input records. Records with
-#' `native_status = "unknown"` are excluded, as are records with missing
-#' longitude or latitude — which removes the coordinateless records that
-#' [detect_native_status()] classified through their country code.
+#' Both the classification and the coordinates are read from
+#' `native_detected_coord`, which carries every column of the input records.
+#' Records with `native_status = "unknown"` are excluded. Records with missing
+#' longitude or latitude are excluded as a guard; [detect_native_coord()] only
+#' classifies records with validated coordinates, so none are expected, and
+#' inputs that carry missing coordinates (such as the output of
+#' [detect_native_country()]) are rejected outright.
 #'
 #' ## Geohash deduplication
 #'
@@ -60,7 +62,7 @@
 #' three switchable basemap layers, and clickable popups with record metadata.
 #'
 #' @seealso
-#' [detect_native_status()] for the object consumed by this function;
+#' [detect_native_coord()] for the object consumed by this function;
 #' [`gh_encode()`][geohashTools::gh_encode] for geohash encoding and
 #' [`mapView()`][mapview::mapView] for interactive map construction.
 #'
@@ -69,23 +71,23 @@
 #' @import mapview
 #' @importFrom dplyr %>% filter mutate select slice ungroup group_by
 #'
-#' @examplesIf interactive() && exists("native_detected")
+#' @examplesIf interactive() && exists("native_detected_coord")
 #' map_records(
-#'   native_detected = native_detected,
+#'   native_detected_coord = native_detected_coord,
 #'   precision = 3,
 #'   cex = 3
 #' )
 #'
 #' @export
 map_records <- function(
-  native_detected = NA,
+  native_detected_coord = NA,
   precision = 3,
   cex = 3
 ) {
   # ---- validate inputs ----
-  if (!inherits(native_detected, "nativeDetected")) {
+  if (!inherits(native_detected_coord, "nativeDetected")) {
     stop(
-      '`native_detected` must be a "nativeDetected" object from detect_native_status().'
+      '`native_detected_coord` must be a "nativeDetected" object from detect_native_coord().'
     )
   }
 
@@ -103,11 +105,28 @@ map_records <- function(
     "decimalLatitude",
     "decimalLongitude"
   )
-  missing_cols <- setdiff(required_cols, names(native_detected))
+  missing_cols <- setdiff(required_cols, names(native_detected_coord))
   if (length(missing_cols) > 0L) {
     stop(
-      "`native_detected` is missing required column(s): ",
+      "`native_detected_coord` is missing required column(s): ",
       paste(missing_cols, collapse = ", ")
+    )
+  }
+
+  # The spatial stage classifies records with validated coordinates only, so a
+  # `native_detected_coord` carrying missing coordinates is a misuse (e.g. the
+  # output of `detect_native_country()`), not a legitimate input.
+  n_missing_coord <- sum(
+    is.na(native_detected_coord$decimalLongitude) |
+      is.na(native_detected_coord$decimalLatitude)
+  )
+  if (n_missing_coord > 0L) {
+    stop(
+      "`native_detected_coord` contains ",
+      n_missing_coord,
+      " record(s) with missing coordinates; it must be the output of ",
+      "`detect_native_coord()`, which carries coordinates for every record.",
+      call. = FALSE
     )
   }
 
@@ -124,9 +143,10 @@ map_records <- function(
     stop("`cex` must be a single positive number.")
   }
 
-  # `native_detected` carries every column of the input records, but a popup
-  # listing all of them is unreadable, so only the informative ones are kept.
-  all_records <- native_detected[
+  # `native_detected_coord` carries every column of the input records, but a
+  # popup listing all of them is unreadable, so only the informative ones are
+  # kept.
+  all_records <- native_detected_coord[
     native_status != 'unknown',
     .(
       gbifID,

@@ -55,15 +55,14 @@
 #' 5. **Refine Coordinates** — [refine_coordinates()]: validates coordinates
 #'    with [CoordinateCleaner::clean_coordinates()] (Zizka et al. 2019) to
 #'    flag spatial errors such as centroids, capitals, marine coordinates, and
-#'    zero coordinates, splitting records into cleaned, problematic, and
-#'    coordinate-less tables. Validation is parallelized across user-specified
-#'    threads.
+#'    zero coordinates, splitting records into cleaned and problematic tables.
+#'    Validation is parallelized across user-specified threads.
 #'
-#' 6. **Detect Native Status** — [detect_native_status()]: matches each record
-#'    against WCVP distribution data (the internal `Distributions` dataset)
-#'    via WGSRPD Level 3 areas to classify it as native, introduced, extinct,
-#'    location_doubtful, or unknown (see *Precise native-status detection
-#'    system*).
+#' 6. **Detect Native Status** — [detect_native_coord()] and
+#'    [detect_native_country()]: match each record against WCVP distribution
+#'    data (the internal `Distributions` dataset) via WGSRPD Level 3 areas to
+#'    classify it as native, introduced, extinct, location_doubtful, or
+#'    unknown (see *Precise native-status detection system*).
 #'
 #' 7. **Export Records** — [export_records()]: writes the classified records
 #'    to disk as two gzip-compressed CSV files: all usable records and the
@@ -77,18 +76,23 @@
 #'
 #' ## Precise native-status detection system
 #'
-#' [detect_native_status()] is the analytical core of VasGBIF: it assigns a
-#' native, introduced, extinct, location_doubtful, or unknown classification
-#' to every occurrence by matching the record's identification and position
-#' against authoritative WCVP distribution data (the internal `Distributions`
-#' dataset) organised by WGSRPD Level 3 areas. Classification runs in two
-#' passes so that the most precise available evidence always wins.
+#' [detect_native_coord()] and [detect_native_country()] are the analytical
+#' core of VasGBIF: together they assign a native, introduced, extinct,
+#' location_doubtful, or unknown classification to every occurrence by
+#' matching the record's identification and position against authoritative
+#' WCVP distribution data (the internal `Distributions` dataset) organised by
+#' WGSRPD Level 3 areas. Classification is split across two functions so that
+#' the most precise available evidence always wins: records with validated
+#' coordinates are matched spatially by [detect_native_coord()], and records
+#' without coordinates are matched through their country code by
+#' [detect_native_country()].
 #'
-#' **Spatial pass.** Records with validated coordinates are overlaid on the
-#' WGSRPD Level 3 polygon map with [terra::extract()] — a single vectorised
-#' call that assigns every point its area code in compiled code. Each area
-#' code is looked up in a distribution table classified from the WCVP flags
-#' (`introduced`, `extinct`, `location_doubtful`) with a fixed priority:
+#' **Spatial classification.** [detect_native_coord()] overlays records with
+#' validated coordinates on the WGSRPD Level 3 polygon map with
+#' [terra::extract()] — a single vectorised call that assigns every point its
+#' area code in compiled code. Each area code is looked up in a distribution
+#' table classified from the WCVP flags (`introduced`, `extinct`,
+#' `location_doubtful`) with a fixed priority:
 #'
 #' 1. `location_doubtful` wins over every other flag;
 #' 2. otherwise `introduced`;
@@ -102,17 +106,17 @@
 #' (`buffer_km`, applied in metres by [terra::buffer()] so its meaning is
 #' identical at every latitude); buffered hits always rank below exact ones,
 #' so a genuine in-polygon match is never displaced by a buffered candidate.
+#' The buffer pass is chunked (`buffer_chunk_size`) to keep the relate matrix
+#' small.
 #'
-#' **Country-code pass.** Records without coordinates, and records the
-#' spatial pass left unresolved, are retried through `countryCode` mapped to
-#' WGSRPD Level 3 areas by the `Level3maping` table. No geometry is used, so
-#' this pass is nearly free, and buffering is chunked (`buffer_chunk_size`)
-#' to keep the relate matrix small.
+#' **Country-code classification.** [detect_native_country()] matches records
+#' without coordinates through `countryCode` mapped to WGSRPD Level 3 areas
+#' by the `Level3maping` table. No geometry is used, so this pass is nearly
+#' free.
 #'
 #' Every classification records how it was obtained in
 #' `native_status_source` — `spatial` / `spatial_buffered` for spatial
-#' matches (exact and buffered), `country_code` /
-#' `country_code_after_spatial_miss` for country-code matches,
+#' matches (exact and buffered), `country_code` for country-code matches,
 #' `country_code_no_entry` when the country mapped but the taxon has no
 #' distribution entry there, and `unmatched` when no usable key exists — so
 #' the entire decision chain is auditable.
@@ -120,11 +124,11 @@
 #' **Precision without a speed penalty.** Hybrid markers are normalised so
 #' `Alnus x pubescens` matches the `Alnus × pubescens` recorded in the
 #' distributions; and neither the spatial overlay nor the distribution
-#' lookup ever iterates record-by-record in R. The result is a
+#' lookup ever iterates record-by-record in R. Both functions return a
 #' `nativeDetected` table keyed by `gbifID` that retains every column of the
 #' input records and appends `LEVEL3_COD`, `native_status`,
-#' `native_status_source`, and `buffered`, feeding directly into
-#' [export_records()] and [map_records()] without any join back to
+#' `native_status_source`, and `buffered`; the spatial result feeds directly
+#' into [export_records()] and [map_records()] without any join back to
 #' `refined_coordinates`.
 #'
 #' ## Flexible and fluent custom filter system
@@ -202,18 +206,23 @@
 #'   threads = 4
 #' )
 #'
-#' native_detected <- detect_native_status(
+#' native_detected_coord <- detect_native_coord(
 #'   refined_coordinates = refined_coordinates
 #' )
 #'
 #'
+#' native_detected_country <- detect_native_country(
+#'   custom_filtered = filtered
+#' )
+#'
+#'
 #' export_records(
-#'   native_detected = native_detected,
+#'   native_detected_coord = native_detected_coord,
 #'   export_path = getwd()
 #' )
 #'
 #' map_records(
-#'   native_detected = native_detected,
+#'   native_detected_coord = native_detected_coord,
 #'   precision = 3,
 #'   cex = 3
 #' )
@@ -228,8 +237,8 @@
 #'   per-iteration interpretive overhead.
 #' - **Vectorisation over explicit loops**: operations such as issue-flag
 #'   detection in [extract_gbif_issues()] and native-status lookups in
-#'   [detect_native_status()] process entire columns in compiled calls rather
-#'   than iterating in R.
+#'   [detect_native_coord()] and [detect_native_country()] process entire
+#'   columns in compiled calls rather than iterating in R.
 #' - **SIMD exploitation**: vectorised routines in [stringi] and
 #'   [`terra::extract()`][terra::extract] allow the compiler to emit SIMD
 #'   instructions (AVX, AVX-512) that process multiple data elements per CPU
@@ -345,7 +354,7 @@ utils::globalVariables(c(
   ".inst",
   ".otl",
   ".value",
-  # ---- native status (from detect_native_status) ----
+  # ---- native status (from detect_native_coord / detect_native_country) ----
   "LEVEL3_COD",
   "native_status",
   "native_status_source",
@@ -354,7 +363,7 @@ utils::globalVariables(c(
   "location_doubtful",
   "introduced",
   "extinct",
-  # ---- detect_native_status internals ----
+  # ---- native detection internals ----
   "occurrence_id",
   "name_key",
   "taxon_key",

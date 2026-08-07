@@ -1,3 +1,33 @@
+# VasGBIF 3.6.3
+
+Native-status detection is split into two independent functions: `detect_native_coord()` classifies records with validated coordinates through the spatial pass, while `detect_native_country()` classifies records without coordinates through their country code. The previous "retry unresolved records by country code" mechanism is removed, and the downstream consumers (`export_records()`, `map_records()`) now require and validate that their input carries coordinates.
+
+## Breaking Changes
+
+- **`detect_native_status()` is replaced by `detect_native_coord()` and `detect_native_country()`.** The combined two-pass classifier no longer exists; classification is split by whether a record has coordinates.
+  - `detect_native_coord(refined_coordinates, buffer_km = 10, buffer_chunk_size = 2000)` classifies the records with validated coordinates (`refined_coordinates$CoordinateCleaned`) by overlaying them on the WGSRPD Level 3 polygon map. `native_status_source` is `spatial` (exact hit), `spatial_buffered` (geodesic buffer hit), or `unmatched`.
+  - `detect_native_country(custom_filtered)` classifies the records missing longitude or latitude (`custom_filtered$occ_filtered[is.na(decimalLatitude) | is.na(decimalLongitude)]`) through `countryCode` mapped to Level 3 areas by `Level3maping`; records with complete coordinates are not part of the result. `native_status_source` is `country_code`, `country_code_no_entry`, or `unmatched`, and `buffered` is always `FALSE` because no geometry is used.
+  - Both return a `nativeDetected` object keyed by `gbifID`; the two results can be combined with `rbind()` for a full classification.
+- **Records the spatial stage leaves unresolved are no longer retried by country code.** The migration mechanism and its `country_code_after_spatial_miss` source value are gone: a spatial miss stays `unmatched` and is never re-classified through the country code. Coordinateless records are classified separately with `detect_native_country()`.
+- **`export_records()` and `map_records()` now take `native_detected_coord` (renamed from `native_detected`) and require coordinates.** The input must be the output of `detect_native_coord()`: both functions stop with an error if `decimalLongitude` or `decimalLatitude` is missing for any record, so the output of `detect_native_country()` is rejected.
+- **`refine_coordinates()` no longer returns a `Coordinateless` table.** The `CoordinateRefined` object now has three elements (`CoordinateCleaned`, `CoordinateProblematic`, `runtime`). Records missing longitude or latitude are not carried by `refine_coordinates()`; they are classified directly from `custom_filtered` by `detect_native_country()`.
+
+## Bug Fixes
+
+- **`refine_coordinates()` empty-input path no longer errors.** The guard previously referenced an undefined `Coordinateless` variable, failing with "object 'Coordinateless' not found"; it now returns a well-formed `CoordinateRefined` object with empty `CoordinateCleaned` and `CoordinateProblematic` tables.
+- **A blank `countryCode` no longer resolves to Level 3 areas.** The 42 WGSRPD areas whose `L3 ISOcode` is stored as `""` were previously treated as a valid mapping, so a record with an empty country code could be classified from those areas; such records are now `unmatched`.
+
+## Documentation
+
+- Package-level documentation, README, `Example.Rmd`, and `Application.Rmd` rewritten for the two-function split; every `detect_native_status()` reference — including `@seealso` cross-links — has been removed from `R/`, `man/`, README, and the vignettes.
+- Rd files regenerated for the new and updated functions.
+
+## Testing
+
+- `test-detect_native_status.R` replaced by `test-detect_native_coord.R` (spatial classification, buffer passes, hybrid-name normalisation, print method) and `test-detect_native_country.R` (country-code classification, multi-area status adjudication, blank and unknown country codes, empty inputs).
+- `test-export_records.R` and `test-map_records.R` updated for the renamed argument and the new coordinate-presence check; fixtures carry coordinates for every record.
+- `test-refine_coordinates.R` updated for the three-element `CoordinateRefined` contract (`Coordinateless` is no longer returned).
+
 # VasGBIF 3.6.2
 
 ## Breaking Changes

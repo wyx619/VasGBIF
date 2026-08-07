@@ -2,7 +2,7 @@
 
 ## Fast and Easy Compilation of Vascular Plants Occurrence Records from GBIF
 
-[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active) [![codecov.io](https://codecov.io/github/wyx619/VasGBIF/coverage.svg?branch=master)](https://app.codecov.io/github/wyx619/VasGBIF?branch=master) [![R-CMD-check](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml) ![](https://img.shields.io/github/issues/wyx619/VasGBIF?color=F48D73) ![](https://img.shields.io/github/license/wyx619/VasGBIF.svg?logo=github) ![GitHub stars](https://img.shields.io/github/stars/wyx619/VasGBIF.svg?style=social&label=Star&maxAge=2592000) ![](https://img.shields.io/badge/version-3.6.2-blue?logo=R)
+[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active) [![codecov.io](https://codecov.io/github/wyx619/VasGBIF/coverage.svg?branch=master)](https://app.codecov.io/github/wyx619/VasGBIF?branch=master) [![R-CMD-check](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml) ![](https://img.shields.io/github/issues/wyx619/VasGBIF?color=F48D73) ![](https://img.shields.io/github/license/wyx619/VasGBIF.svg?logo=github) ![GitHub stars](https://img.shields.io/github/stars/wyx619/VasGBIF.svg?style=social&label=Star&maxAge=2592000) ![](https://img.shields.io/badge/version-3.6.3-blue?logo=R)
 
 ## Introduction
 
@@ -53,9 +53,9 @@ VasGBIF provides a reproducible, tracheophyte-optimized, and computationally eff
 
 4.  **Custom Filter** (`custom_filter`): Joins the imported records with the resolved taxonomy and the parsed issue flags, then applies the enabled filter rules (country code, coordinate uncertainty, GBIF issue count, event date, collector and identifier fields) to retain only high-quality records. Every rule is independently toggleable, and each step is recorded in a per-rule audit table.
 
-5.  **Refine Coordinates** (`refine_coordinates`): Validates coordinates with [CoordinateCleaner](https://doi.org/10.32614/CRAN.package.CoordinateCleaner) (Zizka et al. 2019) to flag spatial errors such as centroids, capitals, marine coordinates, and zero coordinates, splitting records into cleaned, problematic, and coordinate-less tables. Validation is parallelized across user-specified threads.
+5.  **Refine Coordinates** (`refine_coordinates`): Validates coordinates with [CoordinateCleaner](https://doi.org/10.32614/CRAN.package.CoordinateCleaner) (Zizka et al. 2019) to flag spatial errors such as centroids, capitals, marine coordinates, and zero coordinates, splitting records into cleaned and problematic tables. Validation is parallelized across user-specified threads.
 
-6.  **Detect Native Status** (`detect_native_status`): Matches each record against WCVP distribution data (the internal `Distributions` dataset) via WGSRPD Level 3 areas to classify it as native, introduced, extinct, location_doubtful, or unknown.
+6.  **Detect Native Status** (`detect_native_coord` + `detect_native_country`): Match each record against WCVP distribution data (the internal `Distributions` dataset) via WGSRPD Level 3 areas to classify it as native, introduced, extinct, location_doubtful, or unknown. Records with validated coordinates are matched spatially by `detect_native_coord()`; records without coordinates are matched through their country code by `detect_native_country()`.
 
 7.  **Export Records** (`export_records`): Writes the classified records to disk as two gzip-compressed CSV files: all usable records and the native subset.
 
@@ -69,10 +69,10 @@ Overall, VasGBIF integrates these components into a unified, automated workflow 
 
 ### Precise native-status detection system
 
-`detect_native_status()` is the analytical core of VasGBIF. It assigns a native, introduced, extinct, location_doubtful, or unknown classification to every occurrence by matching the record's identification and position against authoritative WCVP distribution data (the internal `Distributions` dataset) organised by WGSRPD Level 3 areas. Classification runs in two passes so that the most precise available evidence always wins:
+`detect_native_coord()` and `detect_native_country()` are the analytical core of VasGBIF. Together they assign a native, introduced, extinct, location_doubtful, or unknown classification to every occurrence by matching the record's identification and position against authoritative WCVP distribution data (the internal `Distributions` dataset) organised by WGSRPD Level 3 areas. Classification is split across two functions so that the most precise available evidence always wins:
 
-- **Spatial pass.** Records with validated coordinates are overlaid on the WGSRPD Level 3 polygon map with `terra::extract()` — a single vectorised call that assigns every point its area code in compiled code. Each area code is looked up in a distribution table classified from the WCVP flags (`introduced`, `extinct`, `location_doubtful`) with a fixed priority: `location_doubtful` \> `introduced` \> `extinct` \> `native` \> `unknown`. Records falling in several areas receive the most preferred status, never an arbitrary one.
-- **Country-code pass.** Records without coordinates, and records the spatial pass left unresolved, are retried through `countryCode` mapped to WGSRPD Level 3 areas by the `Level3maping` table. No geometry is used, so this pass is nearly free.
+- **Spatial classification** (`detect_native_coord()`). Records with validated coordinates are overlaid on the WGSRPD Level 3 polygon map with `terra::extract()` — a single vectorised call that assigns every point its area code in compiled code. Each area code is looked up in a distribution table classified from the WCVP flags (`introduced`, `extinct`, `location_doubtful`) with a fixed priority: `location_doubtful` \> `introduced` \> `extinct` \> `native` \> `unknown`. Records falling in several areas receive the most preferred status, never an arbitrary one.
+- **Country-code classification** (`detect_native_country()`). Records without coordinates are matched through `countryCode` mapped to WGSRPD Level 3 areas by the `Level3maping` table. No geometry is used, so this pass is nearly free.
 
 The system stays precise without sacrificing speed: coastal points just outside a polygon are still matched through a geodesic buffer (`buffer_km`, applied in metres so its meaning is identical at every latitude), with buffered hits always ranked below exact ones; hybrid markers are normalised so `Alnus x pubescens` matches the `Alnus × pubescens` in the distributions; and every classification records how it was obtained in `native_status_source`, making the whole decision chain auditable.
 
@@ -116,19 +116,23 @@ refined_coordinates <- refine_coordinates(
   threads = 4
 )
 
-native_detected <- detect_native_status(
+native_detected_coord <- detect_native_coord(
   refined_coordinates = refined_coordinates
+)
+
+native_detected_country <- detect_native_country(
+  custom_filtered = filtered
 )
 
 # Export 
 export_records(
-  native_detected = native_detected,
+  native_detected_coord = native_detected_coord,
   export_path = getwd()
 )
 
 # Optional: visualise on an interactive map
 map_records(
-  native_detected = native_detected,
+  native_detected_coord = native_detected_coord,
   precision = 3,
   cex = 3
 )
@@ -139,7 +143,7 @@ map_records(
 VasGBIF achieves outstanding performance through specific technical architectures:
 
 - **C/C++ Backend Integration**: core operations are delegated to `data.table`, `stringi`, and `terra`, implemented in C/C++ that bypass R's per-iteration interpretive overhead
-- **Vectorization Over Explicit Loops**: issue-flag detection in `extract_gbif_issues()` and native-status lookups in `detect_native_status()` process entire columns in compiled calls rather than iterating in R
+- **Vectorization Over Explicit Loops**: issue-flag detection in `extract_gbif_issues()` and native-status lookups in `detect_native_coord()` and `detect_native_country()` process entire columns in compiled calls rather than iterating in R
 - **SIMD Exploitation**: vectorized routines in `stringi` and `terra::extract()` enable compiler-level SIMD auto-vectorization (AVX, AVX-512)
 - **Memory-Efficient Design**: in-place modification (`:=`, `set()`) avoids intermediate copies
 - **Selective Parallelization**: `refine_coordinates()` partitions the dataset into chunks and distributes CoordinateCleaner validation across workers via `foreach` and `doParallel` — vectorized processing within chunks, parallel execution across chunks

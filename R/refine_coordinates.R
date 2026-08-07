@@ -2,21 +2,18 @@
 #' @name refine_coordinates
 #'
 #' @description Validates the coordinates of filtered occurrence records with
-#'   CoordinateCleaner and splits them into coordinate-clean, problematic, and
-#'   coordinate-less tables.
+#'   CoordinateCleaner and splits them into coordinate-clean and problematic
+#'   tables.
 #'
-#' The function works in two steps:
-#'
-#' 1. Splits `custom_filtered$occ_filtered` into records with complete
-#'    coordinates and records missing longitude or latitude (the
-#'    `Coordinateless` table).
-#' 2. Runs [CoordinateCleaner::clean_coordinates] checks in parallel to flag
-#'    common spatial issues such as centroids, capitals, and marine records.
+#' [CoordinateCleaner::clean_coordinates] checks run in parallel to flag
+#' common spatial issues such as centroids, capitals, and marine records.
 #'
 #' Records that pass all requested tests are returned in `CoordinateCleaned`;
 #' records that fail one or more tests are returned in `CoordinateProblematic`.
-#' Native-status classification is a separate step performed by
-#' [detect_native_status()].
+#' Native-status classification is a separate step: [detect_native_coord()]
+#' classifies the records with validated coordinates, and
+#' [detect_native_country()] the coordinate-less records (taken directly from
+#' `custom_filtered`).
 #'
 #' @param custom_filtered A `customFiltered` object returned by
 #'   [custom_filter()].
@@ -52,21 +49,20 @@
 #'
 #' ## Empty input
 #'
-#' If no records have complete coordinates, validation is skipped and all
-#' records are returned in `Coordinateless`, with empty `CoordinateCleaned` and
-#' `CoordinateProblematic` tables.
+#' If no records have complete coordinates, validation is skipped and empty
+#' `CoordinateCleaned` and `CoordinateProblematic` tables are returned.
 #'
-#' @returns A `CoordinateRefined` object (list) with four elements:
+#' @returns A `CoordinateRefined` object (list) with three elements:
 #'
 #' - `CoordinateCleaned`: a `data.table` of records that passed all requested
 #'   coordinate tests
 #' - `CoordinateProblematic`: a `data.table` of records that failed one or more
 #'   tests, retaining the CoordinateCleaner flag columns (e.g. `.summary`) so
 #'   the failing tests can be inspected
-#' - `Coordinateless`: a `data.table` of records missing longitude or latitude
 #' - `runtime`: the elapsed execution time
 #'
-#' Use [detect_native_status()] to classify native status then.
+#' Use [detect_native_coord()] to classify the records with validated
+#' coordinates, and [detect_native_country()] for the coordinate-less records.
 #'
 #' @references
 #'
@@ -82,8 +78,8 @@
 #' @import doParallel
 #' @import rnaturalearthdata
 #' @seealso [`clean_coordinates()`][CoordinateCleaner::clean_coordinates],
-#'   [custom_filter()], [detect_native_status()], [export_records()],
-#'   [print.CoordinateRefined()], [set_threads()]
+#'   [custom_filter()], [detect_native_coord()], [detect_native_country()],
+#'   [export_records()], [print.CoordinateRefined()], [set_threads()]
 #' @examplesIf interactive() && exists("filtered")
 #' refined_coordinates(custom_filtered = filtered, threads = 4)
 #' @export
@@ -144,12 +140,6 @@ refine_coordinates <- function(
     )
   }
 
-  # split by coordinate completeness (both longitude and latitude)
-  Coordinateless <- custom_filtered$occ_filtered[
-    is.na(decimalLatitude) | is.na(decimalLongitude)
-  ] %>%
-    as.data.table()
-
   filtered <- custom_filtered$occ_filtered[
     !is.na(decimalLatitude) & !is.na(decimalLongitude)
   ] %>%
@@ -167,7 +157,6 @@ refine_coordinates <- function(
     refined_coordinates <- list(
       CoordinateCleaned = filtered,
       CoordinateProblematic = data.table(),
-      Coordinateless = Coordinateless,
       runtime = used
     )
     class(refined_coordinates) <- 'CoordinateRefined'
@@ -215,7 +204,7 @@ refine_coordinates <- function(
   CoordinateFlagged <- foreach(
     data = chunks_list,
     .multicombine = TRUE,
-    .errorhandling = "stop",
+    .errorhandling = "remove",
     .packages = c("CoordinateCleaner", "rnaturalearthdata", "dplyr"),
     .inorder = FALSE
   ) %dopar%
@@ -239,7 +228,6 @@ refine_coordinates <- function(
   refined_coordinates <- list(
     CoordinateCleaned = results,
     CoordinateProblematic = CoordinateProblematic,
-    Coordinateless = Coordinateless,
     runtime = used
   )
   class(refined_coordinates) <- 'CoordinateRefined'
@@ -265,9 +253,9 @@ print.CoordinateRefined <- function(x, ...) {
   }
 
   counts <- data.table(
-    table = c("CoordinateCleaned", "CoordinateProblematic", "Coordinateless"),
+    table = c("CoordinateCleaned", "CoordinateProblematic"),
     n = vapply(
-      c("CoordinateCleaned", "CoordinateProblematic", "Coordinateless"),
+      c("CoordinateCleaned", "CoordinateProblematic"),
       count_rows,
       integer(1)
     )

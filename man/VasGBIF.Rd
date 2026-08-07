@@ -52,14 +52,13 @@ custom filter system}).
 \item \strong{Refine Coordinates} — \code{\link[=refine_coordinates]{refine_coordinates()}}: validates coordinates
 with \code{\link[CoordinateCleaner:clean_coordinates]{CoordinateCleaner::clean_coordinates()}} (Zizka et al. 2019) to
 flag spatial errors such as centroids, capitals, marine coordinates, and
-zero coordinates, splitting records into cleaned, problematic, and
-coordinate-less tables. Validation is parallelized across user-specified
-threads.
-\item \strong{Detect Native Status} — \code{\link[=detect_native_status]{detect_native_status()}}: matches each record
-against WCVP distribution data (the internal \code{Distributions} dataset)
-via WGSRPD Level 3 areas to classify it as native, introduced, extinct,
-location_doubtful, or unknown (see \emph{Precise native-status detection
-system}).
+zero coordinates, splitting records into cleaned and problematic tables.
+Validation is parallelized across user-specified threads.
+\item \strong{Detect Native Status} — \code{\link[=detect_native_coord]{detect_native_coord()}} and
+\code{\link[=detect_native_country]{detect_native_country()}}: match each record against WCVP distribution
+data (the internal \code{Distributions} dataset) via WGSRPD Level 3 areas to
+classify it as native, introduced, extinct, location_doubtful, or
+unknown (see \emph{Precise native-status detection system}).
 \item \strong{Export Records} — \code{\link[=export_records]{export_records()}}: writes the classified records
 to disk as two gzip-compressed CSV files: all usable records and the
 native subset.
@@ -73,18 +72,23 @@ Esri World Imagery, and others).
 
 \subsection{Precise native-status detection system}{
 
-\code{\link[=detect_native_status]{detect_native_status()}} is the analytical core of VasGBIF: it assigns a
-native, introduced, extinct, location_doubtful, or unknown classification
-to every occurrence by matching the record's identification and position
-against authoritative WCVP distribution data (the internal \code{Distributions}
-dataset) organised by WGSRPD Level 3 areas. Classification runs in two
-passes so that the most precise available evidence always wins.
+\code{\link[=detect_native_coord]{detect_native_coord()}} and \code{\link[=detect_native_country]{detect_native_country()}} are the analytical
+core of VasGBIF: together they assign a native, introduced, extinct,
+location_doubtful, or unknown classification to every occurrence by
+matching the record's identification and position against authoritative
+WCVP distribution data (the internal \code{Distributions} dataset) organised by
+WGSRPD Level 3 areas. Classification is split across two functions so that
+the most precise available evidence always wins: records with validated
+coordinates are matched spatially by \code{\link[=detect_native_coord]{detect_native_coord()}}, and records
+without coordinates are matched through their country code by
+\code{\link[=detect_native_country]{detect_native_country()}}.
 
-\strong{Spatial pass.} Records with validated coordinates are overlaid on the
-WGSRPD Level 3 polygon map with \code{\link[terra:extract]{terra::extract()}} — a single vectorised
-call that assigns every point its area code in compiled code. Each area
-code is looked up in a distribution table classified from the WCVP flags
-(\code{introduced}, \code{extinct}, \code{location_doubtful}) with a fixed priority:
+\strong{Spatial classification.} \code{\link[=detect_native_coord]{detect_native_coord()}} overlays records with
+validated coordinates on the WGSRPD Level 3 polygon map with
+\code{\link[terra:extract]{terra::extract()}} — a single vectorised call that assigns every point its
+area code in compiled code. Each area code is looked up in a distribution
+table classified from the WCVP flags (\code{introduced}, \code{extinct},
+\code{location_doubtful}) with a fixed priority:
 \enumerate{
 \item \code{location_doubtful} wins over every other flag;
 \item otherwise \code{introduced};
@@ -99,17 +103,17 @@ just outside a polygon are still matched through a geodesic buffer
 (\code{buffer_km}, applied in metres by \code{\link[terra:buffer]{terra::buffer()}} so its meaning is
 identical at every latitude); buffered hits always rank below exact ones,
 so a genuine in-polygon match is never displaced by a buffered candidate.
+The buffer pass is chunked (\code{buffer_chunk_size}) to keep the relate matrix
+small.
 
-\strong{Country-code pass.} Records without coordinates, and records the
-spatial pass left unresolved, are retried through \code{countryCode} mapped to
-WGSRPD Level 3 areas by the \code{Level3maping} table. No geometry is used, so
-this pass is nearly free, and buffering is chunked (\code{buffer_chunk_size})
-to keep the relate matrix small.
+\strong{Country-code classification.} \code{\link[=detect_native_country]{detect_native_country()}} matches records
+without coordinates through \code{countryCode} mapped to WGSRPD Level 3 areas
+by the \code{Level3maping} table. No geometry is used, so this pass is nearly
+free.
 
 Every classification records how it was obtained in
 \code{native_status_source} — \code{spatial} / \code{spatial_buffered} for spatial
-matches (exact and buffered), \code{country_code} /
-\code{country_code_after_spatial_miss} for country-code matches,
+matches (exact and buffered), \code{country_code} for country-code matches,
 \code{country_code_no_entry} when the country mapped but the taxon has no
 distribution entry there, and \code{unmatched} when no usable key exists — so
 the entire decision chain is auditable.
@@ -117,11 +121,11 @@ the entire decision chain is auditable.
 \strong{Precision without a speed penalty.} Hybrid markers are normalised so
 \verb{Alnus x pubescens} matches the \verb{Alnus × pubescens} recorded in the
 distributions; and neither the spatial overlay nor the distribution
-lookup ever iterates record-by-record in R. The result is a
+lookup ever iterates record-by-record in R. Both functions return a
 \code{nativeDetected} table keyed by \code{gbifID} that retains every column of the
 input records and appends \code{LEVEL3_COD}, \code{native_status},
-\code{native_status_source}, and \code{buffered}, feeding directly into
-\code{\link[=export_records]{export_records()}} and \code{\link[=map_records]{map_records()}} without any join back to
+\code{native_status_source}, and \code{buffered}; the spatial result feeds directly
+into \code{\link[=export_records]{export_records()}} and \code{\link[=map_records]{map_records()}} without any join back to
 \code{refined_coordinates}.
 }
 
@@ -200,18 +204,23 @@ refined_coordinates <- refine_coordinates(
   threads = 4
 )
 
-native_detected <- detect_native_status(
+native_detected_coord <- detect_native_coord(
   refined_coordinates = refined_coordinates
 )
 
 
+native_detected_country <- detect_native_country(
+  custom_filtered = filtered
+)
+
+
 export_records(
-  native_detected = native_detected,
+  native_detected_coord = native_detected_coord,
   export_path = getwd()
 )
 
 map_records(
-  native_detected = native_detected,
+  native_detected_coord = native_detected_coord,
   precision = 3,
   cex = 3
 )
@@ -227,8 +236,8 @@ VasGBIF achieves its speed through several architectural choices:
 per-iteration interpretive overhead.
 \item \strong{Vectorisation over explicit loops}: operations such as issue-flag
 detection in \code{\link[=extract_gbif_issues]{extract_gbif_issues()}} and native-status lookups in
-\code{\link[=detect_native_status]{detect_native_status()}} process entire columns in compiled calls rather
-than iterating in R.
+\code{\link[=detect_native_coord]{detect_native_coord()}} and \code{\link[=detect_native_country]{detect_native_country()}} process entire
+columns in compiled calls rather than iterating in R.
 \item \strong{SIMD exploitation}: vectorised routines in \link[stringi:stringi]{stringi} and
 \code{\link[terra:extract]{terra::extract()}} allow the compiler to emit SIMD
 instructions (AVX, AVX-512) that process multiple data elements per CPU

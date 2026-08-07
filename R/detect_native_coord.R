@@ -2,14 +2,13 @@
 #'
 #' @description Assigns a native status classification to each occurrence
 #' record by matching it against WCVP distribution data (the internal
-#' `Distributions` dataset) via WGSRPD Level 3 areas. Classification proceeds
-#' in two stages.
-#'
-#' **Spatial stage.** Records with validated coordinates are overlaid on the
-#' WGSRPD Level 3 polygon map (via [terra::extract()]) to assign an area code
-#' to each record. That area code is looked up in a distribution table
-#' classified from the WCVP flags (`introduced`, `extinct`,
-#' `location_doubtful`) with the following priority:
+#' `Distributions` dataset) via WGSRPD Level 3 areas. Classification uses only
+#' the spatial stage: records with validated coordinates, taken from
+#' `refined_coordinates$CoordinateCleaned`, are overlaid on the WGSRPD Level 3
+#' polygon map (via [terra::extract()]) to assign an area code to each record.
+#' That area code is looked up in a distribution table classified from the
+#' WCVP flags (`introduced`, `extinct`, `location_doubtful`) with the
+#' following priority:
 #'
 #' 1. If `location_doubtful == 1`, the area is classified as
 #'    `"location_doubtful"` regardless of other flags.
@@ -21,13 +20,11 @@
 #' A record that falls in several areas at once is assigned the most preferred
 #' status (`"native"` first). Unresolved records may be buffered (`buffer_km`)
 #' so coastal points just outside a polygon can still be matched; buffered
-#' hits are ranked below exact ones. Records that the spatial stage still
-#' leaves unresolved are retried by country code (see below).
+#' hits are ranked below exact ones.
 #'
-#' **Country-code stage.** Records without coordinates, plus records the
-#' spatial stage left unresolved, are matched through `countryCode` mapped to
-#' WGSRPD Level 3 areas by the `Level3maping` table; no geometry is used. The
-#' same status priority applies.
+#' Records without usable coordinates are **not** classified here; classify
+#' them with [detect_native_country()], which matches records through their
+#' `countryCode` without using geometry.
 #'
 #' @details
 #' **Coordinate reference system.** Both the occurrence points and the
@@ -36,9 +33,11 @@
 #' applied as metres via [terra::buffer()]'s geodesic buffer, so it keeps the
 #' same meaning at every latitude.
 #'
-#' @param refined_coordinates A `CoordinateRefined` object (or a list with the
-#'   same structure) containing `CoordinateCleaned` — records with validated
-#'   coordinates — and `Coordinateless` — records without usable coordinates.
+#' @param refined_coordinates A `CoordinateRefined` object returned by
+#'   [refine_coordinates()], or a list with the same structure. Only the
+#'   `CoordinateCleaned` table — records with validated coordinates — is
+#'   classified; `CoordinateProblematic` and `Coordinateless` records are not
+#'   part of the result.
 #' @param buffer_km Numeric scalar. Width of the spatial buffer in km applied
 #'   to records the exact spatial match left unresolved. `0` disables the
 #'   buffer. Defaults to `10`.
@@ -46,9 +45,9 @@
 #'   in one chunk, keeping the relate matrix small. Defaults to `2000`.
 #'
 #' @returns A `nativeDetected` object — a `data.table` subclass with one row
-#'   per input record (all records from `CoordinateCleaned` and all from
-#'   `Coordinateless`), keyed by `gbifID`. Every column of the input records is
-#'   retained unchanged, with four classification columns appended:
+#'   per input record (every row of `CoordinateCleaned`), keyed by `gbifID`.
+#'   Every column of the input records is retained unchanged, with four
+#'   classification columns appended:
 #'
 #' - `LEVEL3_COD`: the assigned WGSRPD Level 3 area code, or `NA` if the
 #'   record could not be matched
@@ -56,25 +55,22 @@
 #'   `"location_doubtful"`, or `"unknown"`
 #' - `native_status_source`: how the status was inferred. `"spatial"` /
 #'   `"spatial_buffered"` are spatial matches, the latter via the geodesic
-#'   buffer; `"country_code"` / `"country_code_after_spatial_miss"` are
-#'   country-code matches; `"country_code_no_entry"` means the country mapped
-#'   to WGSRPD areas but the taxon had no distribution entry there;
-#'   `"unmatched"` means the record had no usable key at all.
+#'   buffer; `"unmatched"` means the record matched no area.
 #' - `buffered`: `TRUE` when the status came from a buffered spatial hit
 #'
 #' The intermediate matching columns used internally (taxon keys, candidate
 #' areas, match ranks) are not returned. Because the record columns are
 #' carried through, the result holds a second copy of the input data: for large
 #' inputs, `refined_coordinates` can be dropped once the classification is in
-#' hand. `CoordinateProblematic` records are not classified and do not appear
-#' in the result.
+#' hand.
 #'
-#' @seealso [print.nativeDetected()] for a compact summary of the result.
+#' @seealso [detect_native_country()] for records without coordinates,
+#'   [print.nativeDetected()] for a compact summary of the result.
 #'
 #' @import data.table
 #' @importFrom dplyr %>%
 #' @export
-detect_native_status <- function(
+detect_native_coord <- function(
   refined_coordinates = NA,
   buffer_km = 10,
   buffer_chunk_size = 2000
@@ -99,8 +95,32 @@ detect_native_status <- function(
     stop("`buffer_chunk_size` must be a single positive number.", call. = FALSE)
   }
 
+  if (
+    !is.list(refined_coordinates) ||
+      is.null(refined_coordinates$CoordinateCleaned)
+  ) {
+    stop(
+      "`refined_coordinates` must be a `CoordinateRefined` object (or a list ",
+      "with the same structure) containing a `CoordinateCleaned` table.",
+      call. = FALSE
+    )
+  }
   CoordinateCleaned <- refined_coordinates$CoordinateCleaned
-  Coordinateless <- refined_coordinates$Coordinateless
+
+  required_cols <- c(
+    "gbifID",
+    "Accepted_name",
+    "decimalLongitude",
+    "decimalLatitude"
+  )
+  missing_cols <- setdiff(required_cols, names(CoordinateCleaned))
+  if (length(missing_cols) > 0L) {
+    stop(
+      "`refined_coordinates$CoordinateCleaned` is missing required column(s): ",
+      paste(missing_cols, collapse = ", "),
+      call. = FALSE
+    )
+  }
 
   # The input columns are carried into the result, so a name that collides with
   # a classification column would be silently renamed by the final join. This
@@ -111,10 +131,7 @@ detect_native_status <- function(
     "native_status_source",
     "buffered"
   )
-  clashing_cols <- intersect(
-    status_cols,
-    union(names(CoordinateCleaned), names(Coordinateless))
-  )
+  clashing_cols <- intersect(status_cols, names(CoordinateCleaned))
   if (length(clashing_cols) > 0L) {
     stop(
       "`refined_coordinates` already contains the classification column(s): ",
@@ -133,28 +150,7 @@ detect_native_status <- function(
     decimalLatitude
   )]
 
-  # Build the country-code stage records up front: their taxon keys must be
-  # part of the shared lookup so both stages use the same classified table.
-  # The hybrid-name canonicalisation lives in `build_distribution_lookup()`.
-  if (is.null(Coordinateless) || !nrow(Coordinateless)) {
-    coordinateless <- NULL
-  } else {
-    coordinateless <- Coordinateless[, .(
-      gbifID,
-      countryCode = if ("countryCode" %chin% names(Coordinateless)) {
-        countryCode
-      } else {
-        NA_character_
-      },
-      name_key = canonical_taxon_name(Accepted_name),
-      channel = "country_code"
-    )]
-  }
-
-  lookup_keys <- unique(c(
-    occurrences$name_key,
-    if (!is.null(coordinateless)) coordinateless$name_key
-  ))
+  lookup_keys <- unique(occurrences$name_key)
   lookup_keys <- lookup_keys[!is.na(lookup_keys)]
 
   native_distributions <- build_distribution_lookup(lookup_keys)
@@ -229,8 +225,7 @@ detect_native_status <- function(
     source = NA_character_
   )]
 
-  # Attach distribution status to a candidate table by taxon name. `source`
-  # is filled afterwards because the labels differ between stages.
+  # Attach distribution status to a candidate table by taxon name.
   link_status(candidates, "name_key", native_distributions)
   candidates[
     !is.na(native_status),
@@ -350,129 +345,18 @@ detect_native_status <- function(
     )
   ]
 
-  # --- Country-code stage ---
-  # Records without coordinates, plus records the spatial stage left
-  # unresolved, are matched without geometry: `countryCode` is mapped to
-  # WGSRPD Level 3 areas by `Level3maping` and looked up in the same
-  # `native_distributions` table. Resolved rows are labelled
-  # `country_code` / `country_code_after_spatial_miss`; records whose country
-  # mapped but had no distribution hit are `country_code_no_entry`, and records
-  # without a usable country code stay `unmatched`.
-  l3_by_iso <- unique(Level3maping[
-    !is.na(`L3 ISOcode`),
-    .(countryCode = `L3 ISOcode`, candidate_area = `L3 code`)
-  ])
-
-  # A `CoordinateCleaned` without a `countryCode` column is treated as if all
-  # country codes were missing: those records stay `unmatched`, as the
-  # spatial-only version of this function left them.
-  if (!"countryCode" %chin% names(CoordinateCleaned)) {
-    miss_records <- occurrences[
-      native_status_source == "unmatched",
-      .(
-        gbifID,
-        name_key,
-        countryCode = NA_character_
-      )
-    ]
-  } else {
-    miss_records <- occurrences[
-      native_status_source == "unmatched",
-      .(gbifID, name_key)
-    ][
-      CoordinateCleaned[, .(gbifID, countryCode)],
-      on = "gbifID",
-      nomatch = NULL
-    ]
-  }
-  miss_records[, channel := "country_code_after_spatial_miss"]
-
-  stage2 <- rbindlist(
-    list(miss_records, coordinateless),
-    use.names = TRUE,
-    fill = TRUE
-  )
-  stage2[, `:=`(
-    occurrence_id = .I,
-    # `%chin%` never matches NA, so records without a usable country code are
-    # excluded from the candidate expansion below.
-    mapped = countryCode %chin% unique(l3_by_iso$countryCode),
-    LEVEL3_COD = NA_character_,
-    native_status = NA_character_,
-    native_status_source = NA_character_,
-    buffered = FALSE
+  status <- occurrences[, .(
+    gbifID,
+    LEVEL3_COD,
+    native_status,
+    native_status_source,
+    buffered
   )]
-
-  country_candidates <- stage2[mapped == TRUE][
-    l3_by_iso,
-    on = "countryCode",
-    .(occurrence_id, name_key, candidate_area, channel),
-    allow.cartesian = TRUE
-  ]
-  country_candidates[, `:=`(
-    match_type = "exact",
-    native_status = NA_character_,
-    status_rank = NA_integer_,
-    source = NA_character_
-  )]
-
-  link_status(country_candidates, "name_key", native_distributions)
-  country_candidates[
-    !is.na(native_status),
-    source := channel
-  ]
-
-  resolved_country <- adjudicate(country_candidates)
-
-  stage2[
-    resolved_country,
-    `:=`(
-      LEVEL3_COD = i.candidate_area,
-      native_status = i.native_status,
-      native_status_source = i.source,
-      buffered = i.buffered
-    ),
-    on = "occurrence_id"
-  ]
-
-  stage2[
-    is.na(native_status),
-    `:=`(
-      native_status = "unknown",
-      native_status_source = fifelse(mapped, "country_code_no_entry", "unmatched"),
-      buffered = FALSE
-    )
-  ]
-
-  status <- rbindlist(list(
-    occurrences[
-      native_status_source != "unmatched",
-      .(gbifID, LEVEL3_COD, native_status, native_status_source, buffered)
-    ],
-    stage2[, .(
-      gbifID,
-      LEVEL3_COD,
-      native_status,
-      native_status_source,
-      buffered
-    )]
-  ))
 
   # Reattach the record columns. A status is only interpretable next to the
   # record it describes, and every consumer otherwise has to join back to
-  # `refined_coordinates` to recover them. `CoordinateCleaned` and
-  # `Coordinateless` partition the input by `gbifID`, so this is one-to-one --
-  # asserted below, since a duplicated `gbifID` would inflate the result
-  # instead of failing.
-  result <- merge(
-    rbindlist(
-      list(CoordinateCleaned, Coordinateless),
-      use.names = TRUE,
-      fill = TRUE
-    ),
-    status,
-    by = "gbifID"
-  )
+  # `refined_coordinates` to recover them.
+  result <- merge(CoordinateCleaned, status, by = "gbifID")
 
   if (nrow(result) != nrow(status)) {
     stop(
@@ -480,15 +364,14 @@ detect_native_status <- function(
       nrow(status),
       " -> ",
       nrow(result),
-      "); `gbifID` is not unique across `CoordinateCleaned` and ",
-      "`Coordinateless`.",
+      "); `gbifID` is not unique across `CoordinateCleaned`.",
       call. = FALSE
     )
   }
 
-  # The pre-stage-2 output was keyed by `gbifID` (inherited from the keyed
+  # The output was keyed by `gbifID` (inherited from the keyed
   # `CoordinateCleaned` input); restore that contract so the returned table
-  # stays sorted by `gbifID` with `sorted = "gbifID"`, as before.
+  # stays sorted by `gbifID` with `sorted = "gbifID"`.
   setkey(result, gbifID)
   class(result) <- c("nativeDetected", class(result))
   used <- Sys.time() - t1
@@ -649,7 +532,7 @@ adjudicate <- function(cand) {
 #' them.
 #'
 #' @param x An object of class `"nativeDetected"` returned by
-#'   [detect_native_status()].
+#'   [detect_native_coord()] or [detect_native_country()].
 #' @param ... Additional arguments (unused, retained for S3 compatibility).
 #'
 #' @return Invisibly returns `x`.
