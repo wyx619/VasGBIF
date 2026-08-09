@@ -86,7 +86,7 @@ If no records have complete coordinates, validation is skipped and empty
 }
 \examples{
 \dontshow{if (interactive() && exists("filtered")) withAutoprint(\{ # examplesIf}
-refined_coordinates(custom_filtered = filtered, threads = 4)
+refined_coordinates <- refine_coordinates(custom_filtered = filtered, threads = 4)
 \dontshow{\}) # examplesIf}
 }
 \references{

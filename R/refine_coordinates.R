@@ -81,7 +81,7 @@
 #'   [custom_filter()], [detect_native_coord()], [detect_native_country()],
 #'   [export_records()], [print.CoordinateRefined()], [set_threads()]
 #' @examplesIf interactive() && exists("filtered")
-#' refined_coordinates(custom_filtered = filtered, threads = 4)
+#' refined_coordinates <- refine_coordinates(custom_filtered = filtered, threads = 4)
 #' @export
 refine_coordinates <- function(
   custom_filtered = NA,

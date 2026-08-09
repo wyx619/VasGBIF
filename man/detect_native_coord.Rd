@@ -81,6 +81,14 @@ internal \code{WGSRPD3} polygons are assumed to be in longitude/latitude
 applied as metres via \code{\link[terra:buffer]{terra::buffer()}}'s geodesic buffer, so it keeps the
 same meaning at every latitude.
 }
+\examples{
+\dontshow{if (interactive() && exists("refined_coordinates")) withAutoprint(\{ # examplesIf}
+# Classify records with validated coordinates. `refined_coordinates` comes
+# from `refine_coordinates()`, whose example creates it when run first.
+native_coord <- detect_native_coord(refined_coordinates = refined_coordinates)
+native_coord
+\dontshow{\}) # examplesIf}
+}
 \seealso{
 \code{\link[=detect_native_country]{detect_native_country()}} for records without coordinates,
 \code{\link[=print.nativeDetected]{print.nativeDetected()}} for a compact summary of the result.

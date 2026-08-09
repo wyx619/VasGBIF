@@ -63,6 +63,14 @@ Records whose country code is missing or empty, or maps to no Level 3
 area, stay \code{"unmatched"}; records whose country maps to areas but whose
 taxon has no distribution entry there are \code{"country_code_no_entry"}.
 }
+\examples{
+\dontshow{if (interactive() && exists("filtered")) withAutoprint(\{ # examplesIf}
+# Classify the coordinate-less records. `filtered` comes from
+# `custom_filter()`, whose example creates it when run first.
+native_country <- detect_native_country(custom_filtered = filtered)
+native_country
+\dontshow{\}) # examplesIf}
+}
 \seealso{
 \code{\link[=detect_native_coord]{detect_native_coord()}} for records with validated coordinates,
 \code{\link[=print.nativeDetected]{print.nativeDetected()}} for a compact summary of the result.

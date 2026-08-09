@@ -67,6 +67,12 @@
 #' @seealso [detect_native_country()] for records without coordinates,
 #'   [print.nativeDetected()] for a compact summary of the result.
 #'
+#' @examplesIf interactive() && exists("refined_coordinates")
+#' # Classify records with validated coordinates. `refined_coordinates` comes
+#' # from `refine_coordinates()`, whose example creates it when run first.
+#' native_coord <- detect_native_coord(refined_coordinates = refined_coordinates)
+#' native_coord
+#'
 #' @import data.table
 #' @importFrom dplyr %>%
 #' @export

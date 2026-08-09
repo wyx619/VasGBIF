@@ -57,6 +57,12 @@
 #' @seealso [detect_native_coord()] for records with validated coordinates,
 #'   [print.nativeDetected()] for a compact summary of the result.
 #'
+#' @examplesIf interactive() && exists("filtered")
+#' # Classify the coordinate-less records. `filtered` comes from
+#' # `custom_filter()`, whose example creates it when run first.
+#' native_country <- detect_native_country(custom_filtered = filtered)
+#' native_country
+#'
 #' @import data.table
 #' @importFrom dplyr %>%
 #' @export
