@@ -105,3 +105,14 @@ geodesic buffer, so it keeps the same meaning at every latitude.
 for records without coordinates,
 [`print.nativeDetected()`](https://wyx619.github.io/VasGBIF/reference/print.nativeDetected.md)
 for a compact summary of the result.
+
+## Examples
+
+``` r
+if (FALSE) { # interactive() && exists("refined_coordinates")
+# Classify records with validated coordinates. `refined_coordinates` comes
+# from `refine_coordinates()`, whose example creates it when run first.
+native_coord <- detect_native_coord(refined_coordinates = refined_coordinates)
+native_coord
+}
+```

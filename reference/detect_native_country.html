@@ -153,6 +153,16 @@ taxon has no distribution entry there are <code>"country_code_no_entry"</code>.<
 <code><a href="print.nativeDetected.html">print.nativeDetected()</a></code> for a compact summary of the result.</p></div>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># interactive() &amp;&amp; exists("filtered")</span></span></span>
+<span class="r-in"><span><span class="co"># Classify the coordinate-less records. `filtered` comes from</span></span></span>
+<span class="r-in"><span><span class="co"># `custom_filter()`, whose example creates it when run first.</span></span></span>
+<span class="r-in"><span><span class="va">native_country</span> <span class="op">&lt;-</span> <span class="fu">detect_native_country</span><span class="op">(</span>custom_filtered <span class="op">=</span> <span class="va">filtered</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">native_country</span></span></span>
+<span class="r-in"><span><span class="op">}</span></span></span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

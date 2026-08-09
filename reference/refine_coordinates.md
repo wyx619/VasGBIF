@@ -127,6 +127,6 @@ If no records have complete coordinates, validation is skipped and empty
 
 ``` r
 if (FALSE) { # interactive() && exists("filtered")
-refined_coordinates(custom_filtered = filtered, threads = 4)
+refined_coordinates <- refine_coordinates(custom_filtered = filtered, threads = 4)
 }
 ```
