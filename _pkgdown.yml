@@ -59,12 +59,12 @@ reference:
     contents:
       - detect_native_coord
       - detect_native_country
-  - title: "Step 7 — Export Records"
-    contents:
-      - export_records
-  - title: "Step 8 — Map Records"
+  - title: "Step 7 — Map Records"
     contents:
       - map_records
+  - title: "Step 8 — Export Records"
+    contents:
+      - export_records
   - title: "Print methods"
     contents:
       - print.import
