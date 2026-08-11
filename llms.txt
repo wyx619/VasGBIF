@@ -393,15 +393,15 @@ Download [doi:10.15468/dl.nt5exp](https://doi.org/10.15468/dl.nt5exp)
 - [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)
   : Detect native status from country codes
 
-## Step 7 — Export Records
-
-- [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)
-  : Export classified records to compressed CSV files
-
-## Step 8 — Map Records
+## Step 7 — Map Records
 
 - [`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)
   : Visualize refined records on interactive maps
+
+## Step 8 — Export Records
+
+- [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)
+  : Export classified records to compressed CSV files
 
 ## Print methods
 
