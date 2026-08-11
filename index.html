@@ -43,7 +43,7 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
-<li class="nav-item"><a class="nav-link" href="reference/VasGBIF.html">Start</a></li>
+<li class="nav-item"><a class="nav-link" href="reference/VasGBIF.html">QuickStart</a></li>
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Functions</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-manuals" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Manuals</button>
@@ -53,7 +53,7 @@
     <li><a class="dropdown-item" href="articles/Application.html">Full application with letsR</a></li>
   </ul>
 </li>
-<li class="nav-item"><a class="nav-link" href="news/index.html">Changelogs</a></li>
+<li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><form class="form-inline" role="search">
@@ -105,11 +105,18 @@
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"VasGBIF"</span><span class="op">)</span></span></code></pre></div>
 <ol start="2" style="list-style-type: decimal">
-<li>install VasGBIF via GitHub (For dev version)</li>
+<li>install VasGBIF via GitHub (Latest version)</li>
 </ol>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">require</a></span><span class="op">(</span><span class="va"><a href="https://pak.r-lib.org/" class="external-link">pak</a></span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="va">pak</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">require</a></span><span class="op">(</span><span class="va"><a href="https://pak.r-lib.org/" class="external-link">pak</a></span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">'pak'</span><span class="op">)</span></span>
 <span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">'wyx619/VasGBIF@master'</span><span class="op">)</span></span></code></pre></div>
+<ol start="3" style="list-style-type: decimal">
+<li>install via remotes</li>
+</ol>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">require</a></span><span class="op">(</span><span class="va"><a href="https://docs.ropensci.org/git2r/" class="external-link">git2r</a></span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">'git2r'</span><span class="op">)</span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">require</a></span><span class="op">(</span><span class="va"><a href="https://remotes.r-lib.org" class="external-link">remotes</a></span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">'remotes'</span><span class="op">)</span></span>
+<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_git</span><span class="op">(</span><span class="st">'https://gh-proxy.org/https://github.com/wyx619/VasGBIF'</span>,build_vignettes <span class="op">=</span> <span class="cn">T</span>,git <span class="op">=</span> <span class="st">'git2r'</span>,upgrade <span class="op">=</span> <span class="st">'never'</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="wikis--manuals">Wikis &amp; Manuals<a class="anchor" aria-label="anchor" href="#wikis--manuals"></a>
@@ -167,8 +174,10 @@
 <h2 id="minimal-complete-example">Minimal Complete Example<a class="anchor" aria-label="anchor" href="#minimal-complete-example"></a>
 </h2>
 <p>The following code demonstrates the complete VasGBIF workflow from data import to records mapping:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Import (built-in example, or use your own ZIP)</span></span>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/wyx619/VasGBIF" class="external-link">VasGBIF</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Import records (built-in example, or use your own ZIP)</span></span>
 <span><span class="va">gbif_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span></span>
 <span>  <span class="st">"extdata"</span>, <span class="st">"0003386-260721160103020.zip"</span>,</span>
 <span>  package <span class="op">=</span> <span class="st">"VasGBIF"</span></span>
@@ -189,31 +198,31 @@
 <span>  gbif_issue <span class="op">=</span> <span class="va">gbif_issue</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Validate coordinates and annotate native status</span></span>
+<span><span class="co"># Validate coordinates</span></span>
 <span><span class="va">refined_coordinates</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/refine_coordinates.html">refine_coordinates</a></span><span class="op">(</span></span>
 <span>  custom_filtered <span class="op">=</span> <span class="va">filtered</span>,</span>
 <span>  threads <span class="op">=</span> <span class="fl">4</span></span>
 <span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># Annotate native status</span></span>
 <span><span class="va">native_detected_coord</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/detect_native_coord.html">detect_native_coord</a></span><span class="op">(</span></span>
 <span>  refined_coordinates <span class="op">=</span> <span class="va">refined_coordinates</span></span>
 <span><span class="op">)</span></span>
-<span></span>
 <span><span class="va">native_detected_country</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/detect_native_country.html">detect_native_country</a></span><span class="op">(</span></span>
 <span>  custom_filtered <span class="op">=</span> <span class="va">filtered</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Export </span></span>
-<span><span class="fu"><a href="reference/export_records.html">export_records</a></span><span class="op">(</span></span>
-<span>  native_detected_coord <span class="op">=</span> <span class="va">native_detected_coord</span>,</span>
-<span>  export_path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/getwd.html" class="external-link">getwd</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Optional: visualise on an interactive map</span></span>
+<span><span class="co"># Visualise on an interactive map</span></span>
 <span><span class="fu"><a href="reference/map_records.html">map_records</a></span><span class="op">(</span></span>
 <span>  native_detected_coord <span class="op">=</span> <span class="va">native_detected_coord</span>,</span>
 <span>  precision <span class="op">=</span> <span class="fl">3</span>,</span>
 <span>  cex <span class="op">=</span> <span class="fl">3</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Export records</span></span>
+<span><span class="fu"><a href="reference/export_records.html">export_records</a></span><span class="op">(</span></span>
+<span>  native_detected_coord <span class="op">=</span> <span class="va">native_detected_coord</span>,</span>
+<span>  export_path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/getwd.html" class="external-link">getwd</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -228,7 +237,7 @@
 <li>
 <strong>SIMD Exploitation</strong>: vectorized routines in <code>stringi</code> and <code><a href="https://rspatial.github.io/terra/reference/extract.html" class="external-link">terra::extract()</a></code> enable compiler-level SIMD auto-vectorization (AVX, AVX-512)</li>
 <li>
-<strong>Memory-Efficient Design</strong>: in-place modification (<code>:=</code>, <code>set()</code>) avoids intermediate copies</li>
+<strong>Memory-Efficient Design</strong>: in-place modification (<code>:=</code>, <code><a href="https://rdrr.io/pkg/data.table/man/assign.html" class="external-link">set()</a></code>) avoids intermediate copies</li>
 <li>
 <strong>Selective Parallelization</strong>: <code><a href="reference/refine_coordinates.html">refine_coordinates()</a></code> partitions the dataset into chunks and distributes CoordinateCleaner validation across workers via <code>foreach</code> and <code>doParallel</code> — vectorized processing within chunks, parallel execution across chunks</li>
 </ul>
