@@ -15,7 +15,7 @@ navbar:
     right: [search, lightswitch, github]
   components:
     getstart:
-      text: Start
+      text: QuickStart
       href: reference/VasGBIF.html
     reference:
       text: Functions
@@ -30,7 +30,7 @@ navbar:
         - text: Full application with letsR
           href: articles/Application.html
     news:
-      text: Changelogs
+      text: Changelog
       href: news/index.html
     github:
       icon: fa-github

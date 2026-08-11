@@ -28,11 +28,19 @@ One can install VasGBIF by any of the 2 ways below:
 install.packages("VasGBIF")
 ```
 
-2.  install VasGBIF via GitHub (For dev version)
+2.  install VasGBIF via GitHub (Latest version)
 
 ``` r
-if (!require(pak)) install.packages(pak)
+if (!require(pak)) install.packages('pak')
 pak::pak('wyx619/VasGBIF@master')
+```
+
+3.  install via remotes
+
+``` r
+if (!require(git2r)) install.packages('git2r')
+if (!require(remotes)) install.packages('remotes')
+remotes::install_git('https://gh-proxy.org/https://github.com/wyx619/VasGBIF',build_vignettes = T,git = 'git2r',upgrade = 'never')
 ```
 
 ## Wikis & Manuals
@@ -89,7 +97,9 @@ The system stays precise without sacrificing speed: coastal points just outside 
 The following code demonstrates the complete VasGBIF workflow from data import to records mapping:
 
 ``` r
-# Import (built-in example, or use your own ZIP)
+library(VasGBIF)
+
+# Import records (built-in example, or use your own ZIP)
 gbif_file <- system.file(
   "extdata", "0003386-260721160103020.zip",
   package = "VasGBIF"
@@ -110,31 +120,31 @@ filtered <- custom_filter(
   gbif_issue = gbif_issue
 )
 
-# Validate coordinates and annotate native status
+# Validate coordinates
 refined_coordinates <- refine_coordinates(
   custom_filtered = filtered,
   threads = 4
 )
 
+# Annotate native status
 native_detected_coord <- detect_native_coord(
   refined_coordinates = refined_coordinates
 )
-
 native_detected_country <- detect_native_country(
   custom_filtered = filtered
 )
 
-# Export 
-export_records(
-  native_detected_coord = native_detected_coord,
-  export_path = getwd()
-)
-
-# Optional: visualise on an interactive map
+# Visualise on an interactive map
 map_records(
   native_detected_coord = native_detected_coord,
   precision = 3,
   cex = 3
+)
+
+# Export records
+export_records(
+  native_detected_coord = native_detected_coord,
+  export_path = getwd()
 )
 ```
 
