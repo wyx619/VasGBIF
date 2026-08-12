@@ -1,5 +1,53 @@
 # Changelog
 
+## VasGBIF 3.6.4
+
+### Improvements
+
+- **[`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md)
+  default TNRS timeout raised to 20 minutes.** `timeout_minutes` now
+  defaults to `20` (previously `5`), reducing chunk-timeout retries for
+  large downloads under unstable network conditions.
+- **Workflow order adjusted:
+  [`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)
+  now precedes
+  [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md).**
+  The documented workflow — step numbering and example code in the
+  package documentation, README, and vignettes — now visualises the
+  records on the interactive map before writing the classified records
+  to disk.
+- **[`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md)
+  peak memory reduced from 2–3× to about 2× the input size.** The two
+  full-width
+  [`merge()`](https://rspatial.github.io/terra/reference/merge.html)
+  calls were replaced by a single defensive shallow copy of `occ_import`
+  followed by in-place keyed joins (`:=` column addition), and the six
+  filter rules now accumulate into a logical mask applied as a single
+  row subset at the end. The output is exactly equivalent to the
+  previous version — same rows, column order, row order, `gbifID` key,
+  and `summary` — and the defensive copy preserves the contract that the
+  caller’s input is never modified.
+
+### Documentation
+
+- Rd files regenerated for
+  [`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md),
+  [`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md),
+  and `VasGBIF-package`.
+- **Removed remaining non-ASCII characters from Rd-facing
+  documentation** so the PDF manual builds on non-UTF-8 Windows locales
+  (GBK), where the Rd-to-LaTeX conversion previously failed with an
+  `iconv` “embedded nul” error. Em-dashes were replaced with ASCII
+  hyphens, and the accented Spanish/Portuguese keyword list, the
+  hybrid-marker example, and the `Timothée` author name were rewritten
+  in ASCII. Rd files for `Level3maping`,
+  [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md),
+  [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md),
+  [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md),
+  and
+  [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md)
+  were regenerated as part of this change.
+
 ## VasGBIF 3.6.3
 
 Native-status detection is split into two independent functions:

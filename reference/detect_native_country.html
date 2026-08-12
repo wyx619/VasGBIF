@@ -19,8 +19,8 @@ If all three flags are 0, the area is "native".
 Any remaining case defaults to "unknown".
 
 
-Only records missing longitude or latitude —
-custom_filtered$occ_filtered[is.na(decimalLatitude) | is.na(decimalLongitude)] — are classified. Records with complete
+Only records missing longitude or latitude -
+custom_filtered$occ_filtered[is.na(decimalLatitude) | is.na(decimalLongitude)] - are classified. Records with complete
 coordinates are not part of the result; classify them with
 detect_native_coord() instead.'><meta property="og:description" content='Assigns a native status classification to occurrence records
 that lack usable coordinates by matching their countryCode against WCVP
@@ -36,8 +36,8 @@ If all three flags are 0, the area is "native".
 Any remaining case defaults to "unknown".
 
 
-Only records missing longitude or latitude —
-custom_filtered$occ_filtered[is.na(decimalLatitude) | is.na(decimalLongitude)] — are classified. Records with complete
+Only records missing longitude or latitude -
+custom_filtered$occ_filtered[is.na(decimalLatitude) | is.na(decimalLongitude)] - are classified. Records with complete
 coordinates are not part of the result; classify them with
 detect_native_coord() instead.'><meta property="og:image" content="https://wyx619.github.io/VasGBIF/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -47,7 +47,7 @@ detect_native_coord() instead.'><meta property="og:image" content="https://wyx61
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -97,8 +97,8 @@ areas. <code>countryCode</code> is mapped to candidate Level 3 areas by the
 <li><p>Otherwise, if <code>extinct == 1</code>, the area is <code>"extinct"</code>.</p></li>
 <li><p>If all three flags are <code>0</code>, the area is <code>"native"</code>.</p></li>
 <li><p>Any remaining case defaults to <code>"unknown"</code>.</p></li>
-</ol><p>Only records missing longitude <strong>or</strong> latitude —
-<code>custom_filtered$occ_filtered[is.na(decimalLatitude) | is.na(decimalLongitude)]</code> — are classified. Records with complete
+</ol><p>Only records missing longitude <strong>or</strong> latitude -
+<code>custom_filtered$occ_filtered[is.na(decimalLatitude) | is.na(decimalLongitude)]</code> - are classified. Records with complete
 coordinates are not part of the result; classify them with
 <code><a href="detect_native_coord.html">detect_native_coord()</a></code> instead.</p>
     </div>
@@ -121,7 +121,7 @@ result.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A <code>nativeDetected</code> object — a <code>data.table</code> subclass with one row
+    <p>A <code>nativeDetected</code> object - a <code>data.table</code> subclass with one row
 per coordinateless record (every row of
 <code>custom_filtered$occ_filtered[is.na(decimalLatitude) | is.na(decimalLongitude)]</code>), keyed by <code>gbifID</code>. Every column of the input
 records is retained unchanged, with four classification columns appended:</p><ul><li><p><code>LEVEL3_COD</code>: the assigned WGSRPD Level 3 area code, or <code>NA</code> if the

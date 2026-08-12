@@ -31,7 +31,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -85,7 +85,7 @@ Wang</h4>
 University<br><a class="author_email" href="mailto:#"></a><a href="mailto:wyx1743@gmail.com" class="email">wyx1743@gmail.com</a>
       </address>
                   
-            <h4 data-toc-skip class="date">2026-08-11</h4>
+            <h4 data-toc-skip class="date">2026-08-12</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/wyx619/VasGBIF/blob/master/vignettes/Example.Rmd" class="external-link"><code>vignettes/Example.Rmd</code></a></small>
       <div class="d-none name"><code>Example.Rmd</code></div>
@@ -187,8 +187,8 @@ match quality</li>
 <p><code><a href="../reference/custom_filter.html">custom_filter()</a></code> joins the imported records with the
 resolved taxonomy and the parsed issue flags, then applies the enabled
 filter rules to retain only high-quality records. By default the
-<code>countryCode</code>, <code>coordinateUncertainty</code> (≤ 10,000
-m), and <code>gbif_issues_max</code> (≤ 5) rules are enabled;
+<code>countryCode</code>, <code>coordinateUncertainty</code> (&lt;=
+10,000 m), and <code>gbif_issues_max</code> (&lt;= 5) rules are enabled;
 <code>date</code>, <code>identifiedBy</code>, and
 <code>recordedBy</code> are opt-in. Every step is recorded in the
 per-rule <code>summary</code> table.</p>
@@ -276,6 +276,19 @@ for every record and can be passed straight to
 joining back to <code>refined_coordinates</code>.</p>
 </div>
 <div class="section level2">
+<h2 id="map-records">Map Records<a class="anchor" aria-label="anchor" href="#map-records"></a>
+</h2>
+<p><code><a href="../reference/map_records.html">map_records()</a></code> renders the records on an interactive map
+via <code>mapview</code>, with geohash-based decluttering and
+colour-coding by native status.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/map_records.html">map_records</a></span><span class="op">(</span></span>
+<span>  native_detected_coord <span class="op">=</span> <span class="va">native_detected_coord</span>,</span>
+<span>  precision <span class="op">=</span> <span class="fl">3</span>,</span>
+<span>  cex <span class="op">=</span> <span class="fl">3</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
 <h2 id="export-records">Export Records<a class="anchor" aria-label="anchor" href="#export-records"></a>
 </h2>
 <p><code><a href="../reference/export_records.html">export_records()</a></code> writes the classified records to disk
@@ -288,23 +301,10 @@ validated coordinates, with their native status</li>
 <code>native_records.csv.gz</code>: the subset classified as
 native</li>
 </ul>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/export_records.html">export_records</a></span><span class="op">(</span></span>
 <span>  native_detected_coord <span class="op">=</span> <span class="va">native_detected_coord</span>,</span>
 <span>  export_path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/getwd.html" class="external-link">getwd</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="map-records">Map Records<a class="anchor" aria-label="anchor" href="#map-records"></a>
-</h2>
-<p><code><a href="../reference/map_records.html">map_records()</a></code> renders the records on an interactive map
-via <code>mapview</code>, with geohash-based decluttering and
-colour-coding by native status.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/map_records.html">map_records</a></span><span class="op">(</span></span>
-<span>  native_detected_coord <span class="op">=</span> <span class="va">native_detected_coord</span>,</span>
-<span>  precision <span class="op">=</span> <span class="fl">3</span>,</span>
-<span>  cex <span class="op">=</span> <span class="fl">3</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">

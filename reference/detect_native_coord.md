@@ -49,8 +49,8 @@ detect_native_coord(
 
   A `CoordinateRefined` object returned by
   [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md),
-  or a list with the same structure. Only the `CoordinateCleaned` table
-  — records with validated coordinates — is classified;
+  or a list with the same structure. Only the `CoordinateCleaned`
+  table - records with validated coordinates - is classified;
   `CoordinateProblematic` and `Coordinateless` records are not part of
   the result.
 
@@ -67,7 +67,7 @@ detect_native_coord(
 
 ## Value
 
-A `nativeDetected` object — a `data.table` subclass with one row per
+A `nativeDetected` object - a `data.table` subclass with one row per
 input record (every row of `CoordinateCleaned`), keyed by `gbifID`.
 Every column of the input records is retained unchanged, with four
 classification columns appended:

@@ -59,7 +59,7 @@ countryCode without using geometry.'><meta property="og:image" content="https://
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -137,7 +137,7 @@ them with <code><a href="detect_native_country.html">detect_native_country()</a>
 <dl><dt id="arg-refined-coordinates">refined_coordinates<a class="anchor" aria-label="anchor" href="#arg-refined-coordinates"></a></dt>
 <dd><p>A <code>CoordinateRefined</code> object returned by
 <code><a href="refine_coordinates.html">refine_coordinates()</a></code>, or a list with the same structure. Only the
-<code>CoordinateCleaned</code> table — records with validated coordinates — is
+<code>CoordinateCleaned</code> table - records with validated coordinates - is
 classified; <code>CoordinateProblematic</code> and <code>Coordinateless</code> records are not
 part of the result.</p></dd>
 
@@ -155,7 +155,7 @@ in one chunk, keeping the relate matrix small. Defaults to <code>2000</code>.</p
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A <code>nativeDetected</code> object — a <code>data.table</code> subclass with one row
+    <p>A <code>nativeDetected</code> object - a <code>data.table</code> subclass with one row
 per input record (every row of <code>CoordinateCleaned</code>), keyed by <code>gbifID</code>.
 Every column of the input records is retained unchanged, with four
 classification columns appended:</p><ul><li><p><code>LEVEL3_COD</code>: the assigned WGSRPD Level 3 area code, or <code>NA</code> if the

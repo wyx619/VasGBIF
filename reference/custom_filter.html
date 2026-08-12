@@ -17,7 +17,7 @@ records according to a user-selected set of quality rules."><meta property="og:i
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -106,7 +106,7 @@ or a country code are kept.</p></dd>
 <dd><p>Non-negative numeric scalar. Removes
 records whose <code>coordinateUncertaintyInMeters</code> is strictly greater than the
 threshold. Defaults to <code>10000</code>. Records with <code>NA</code> or empty
-<code>coordinateUncertaintyInMeters</code> are always kept — they do not
+<code>coordinateUncertaintyInMeters</code> are always kept - they do not
 participate in this rule. Pass <code>NULL</code>, <code>NA</code>, or <code>''</code> to disable the
 rule.</p></dd>
 
@@ -154,16 +154,23 @@ and the per-rule summary.</p>
 <h3 id="joining-the-inputs">Joining the inputs<a class="anchor" aria-label="anchor" href="#joining-the-inputs"></a></h3>
 
 
-<p>The three inputs are joined by <code>gbifID</code> with <strong>inner joins</strong>.</p>
+<p>The three inputs are joined by <code>gbifID</code>. For memory efficiency the joins
+are performed <strong>in place</strong> on a single defensive copy of <code>occ_import</code>:
+<code><a href="https://rdrr.io/pkg/data.table/man/copy.html" class="external-link">copy()</a></code> is made once and each join adds columns via <code>:=</code>, instead of
+materialising a fresh full-width table per join. The caller's <code>occ_import</code>
+is never modified. Rows are not deleted during the join or the rules; every
+criterion accumulates into a logical mask and a single row subset is
+applied at the end. Peak memory is therefore close to the input plus one
+working copy, regardless of how many rules are enabled.</p>
 <p><code><a href="check_taxon.html">check_taxon()</a></code> already removes records that fail the <code>accuracy</code> threshold,
 whose <code>Taxonomic_status</code> is neither <code>"Accepted"</code> nor <code>"Synonym"</code>, or that
 resolve to a genus-level or unranked accepted name, so <code>occ_taxa_checked</code>
-contains only fully resolved records. Joining it with an inner
-join therefore drops unresolved records at this point instead of carrying
-<code>NA</code> taxonomy through the rest of the pipeline. The number removed is
-recorded in <code>summary</code> under the rule name <code>taxon_resolved</code>.</p>
+contains only fully resolved records. Rows absent from <code>occ_taxa_checked</code>
+are dropped via the keep mask instead of carrying <code>NA</code> taxonomy through the
+rest of the pipeline. The number removed is recorded in <code>summary</code> under the
+rule name <code>taxon_resolved</code>.</p>
 <p><code><a href="extract_gbif_issues.html">extract_gbif_issues()</a></code> returns exactly one row per imported record, so the
-second join is one-to-one and cannot change the row count. The function
+issue join is one-to-one and cannot change the row count. The function
 verifies this and stops if any record lacks an issue count. The raw <code>issue</code>
 column is removed from <code>occ_import</code> and replaced by <code>gbif_issues</code>, the
 per-record issue count computed by <code><a href="extract_gbif_issues.html">extract_gbif_issues()</a></code>.</p>
@@ -194,12 +201,13 @@ no record is exempt from this rule.</p></li>
 
 
 <p>The <code>identifiedBy</code> and <code>recordedBy</code> rules are identical in strictness. A
-value is treated as junk — and the record removed — when it is missing or
+value is treated as junk - and the record removed - when it is missing or
 empty, or when it matches a curated set of "no named person" patterns while
 containing <strong>no name separator</strong>.</p>
 <p>The keyword list covers English (<code>unknown</code>, <code>anonymous</code>, <code>unnamed</code>,
 <code>unidentified</code>, <code>unrecorded</code>, <code>incognito</code>), other languages
-(<code>desconocido</code>, <code>desconhecido</code>, <code>anonimo</code>, <code>anónimo</code>, <code>anônimo</code>,
+(<code>desconocido</code>, <code>desconhecido</code>, <code>anonimo</code> and its accented Spanish and
+Portuguese variants,
 <code>sin nombre</code>, <code>sem nome</code>, <code>inconnu</code>, <code>anonyme</code>, <code>unbekannt</code>, <code>anonym</code>,
 and four Chinese terms meaning "unknown", "unnamed", "anonymous" and
 "no details"), and whole-value patterns such as <code>s.n.</code>, <code>n/a</code>, <code>et al.</code>,

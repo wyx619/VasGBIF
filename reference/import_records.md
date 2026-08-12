@@ -78,7 +78,7 @@ The function performs the following steps:
 - Coerces `gbifID` to character.
 
 No records are filtered, corrected, or removed at this stage. All
-diagnostic fields — including the raw `issue` column — are preserved so
+diagnostic fields - including the raw `issue` column - are preserved so
 that
 [`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md)
 can parse them in the next step.

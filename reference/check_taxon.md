@@ -17,7 +17,7 @@ check_taxon(
   occ_import = NA,
   accuracy = 0.85,
   sources = "wcvp",
-  timeout_minutes = 5
+  timeout_minutes = 20
 )
 ```
 
@@ -51,7 +51,8 @@ check_taxon(
 - timeout_minutes:
 
   Numeric scalar. Timeout per 'TNRS' chunk attempt in minutes. Defaults
-  to `5`. If an attempt exceeds the timeout it is abandoned and retried.
+  to `20`. If an attempt exceeds the timeout it is abandoned and
+  retried.
 
 ## Value
 

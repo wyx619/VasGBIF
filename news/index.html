@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,6 +50,24 @@
       <small>Source: <a href="https://github.com/wyx619/VasGBIF/blob/master/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="3.6.4" id="vasgbif-364">VasGBIF 3.6.4<a class="anchor" aria-label="anchor" href="#vasgbif-364"></a></h2>
+<div class="section level3">
+<h3 id="improvements-3-6-4">Improvements<a class="anchor" aria-label="anchor" href="#improvements-3-6-4"></a></h3>
+<ul><li>
+<strong><code><a href="../reference/check_taxon.html">check_taxon()</a></code> default TNRS timeout raised to 20 minutes.</strong> <code>timeout_minutes</code> now defaults to <code>20</code> (previously <code>5</code>), reducing chunk-timeout retries for large downloads under unstable network conditions.</li>
+<li>
+<strong>Workflow order adjusted: <code><a href="../reference/map_records.html">map_records()</a></code> now precedes <code><a href="../reference/export_records.html">export_records()</a></code>.</strong> The documented workflow — step numbering and example code in the package documentation, README, and vignettes — now visualises the records on the interactive map before writing the classified records to disk.</li>
+<li>
+<strong><code><a href="../reference/custom_filter.html">custom_filter()</a></code> peak memory reduced from 2–3× to about 2× the input size.</strong> The two full-width <code><a href="https://rspatial.github.io/terra/reference/merge.html" class="external-link">merge()</a></code> calls were replaced by a single defensive shallow copy of <code>occ_import</code> followed by in-place keyed joins (<code>:=</code> column addition), and the six filter rules now accumulate into a logical mask applied as a single row subset at the end. The output is exactly equivalent to the previous version — same rows, column order, row order, <code>gbifID</code> key, and <code>summary</code> — and the defensive copy preserves the contract that the caller’s input is never modified.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="documentation-3-6-4">Documentation<a class="anchor" aria-label="anchor" href="#documentation-3-6-4"></a></h3>
+<ul><li>Rd files regenerated for <code><a href="../reference/check_taxon.html">check_taxon()</a></code>, <code><a href="../reference/custom_filter.html">custom_filter()</a></code>, and <code>VasGBIF-package</code>.</li>
+<li>
+<strong>Removed remaining non-ASCII characters from Rd-facing documentation</strong> so the PDF manual builds on non-UTF-8 Windows locales (GBK), where the Rd-to-LaTeX conversion previously failed with an <code>iconv</code> “embedded nul” error. Em-dashes were replaced with ASCII hyphens, and the accented Spanish/Portuguese keyword list, the hybrid-marker example, and the <code>Timothée</code> author name were rewritten in ASCII. Rd files for <code>Level3maping</code>, <code><a href="../reference/detect_native_coord.html">detect_native_coord()</a></code>, <code><a href="../reference/detect_native_country.html">detect_native_country()</a></code>, <code><a href="../reference/export_records.html">export_records()</a></code>, and <code><a href="../reference/import_records.html">import_records()</a></code> were regenerated as part of this change.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="3.6.3" id="vasgbif-363">VasGBIF 3.6.3<a class="anchor" aria-label="anchor" href="#vasgbif-363"></a></h2>
 <p>Native-status detection is split into two independent functions: <code><a href="../reference/detect_native_coord.html">detect_native_coord()</a></code> classifies records with validated coordinates through the spatial pass, while <code><a href="../reference/detect_native_country.html">detect_native_country()</a></code> classifies records without coordinates through their country code. The previous “retry unresolved records by country code” mechanism is removed, and the downstream consumers (<code><a href="../reference/export_records.html">export_records()</a></code>, <code><a href="../reference/map_records.html">map_records()</a></code>) now require and validate that their input carries coordinates.</p>

@@ -17,7 +17,7 @@ and the native subset."><meta property="og:image" content="https://wyx619.github
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -94,7 +94,7 @@ no join is performed here: <code>all_records.csv.gz</code> is written straight f
 <p><code>native_detected_coord</code> must carry coordinates for every record: it is the
 spatial output of <code><a href="detect_native_coord.html">detect_native_coord()</a></code>, which only classifies records
 with validated coordinates. The function stops if <code>decimalLongitude</code> or
-<code>decimalLatitude</code> is missing for any record — the output of
+<code>decimalLatitude</code> is missing for any record - the output of
 <code><a href="detect_native_country.html">detect_native_country()</a></code> would be rejected this way. Records without
 coordinates are classified separately by <code><a href="detect_native_country.html">detect_native_country()</a></code>; to
 export both sets together, bind the two results before calling this

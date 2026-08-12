@@ -40,13 +40,13 @@ is known. The VasGBIF pipeline delivers that in eight sequential steps:
     **[`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)**
     classify each record as `native`, `introduced`, `extinct`,
     `location_doubtful`, or `unknown`
-7.  **Export Records** —
-    **[`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)**
-    writes the classified records to two gzip-compressed CSV files
-8.  **Map Records** —
+7.  **Map Records** —
     **[`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)**
     renders the records on an interactive map with geohash-based
     decluttering
+8.  **Export Records** —
+    **[`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)**
+    writes the classified records to two gzip-compressed CSV files
 
 Here we use the *Saxifraga* records (see
 <https://doi.org/10.15468/dl.4ty3ap>) as example. Substitute your own

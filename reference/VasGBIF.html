@@ -33,7 +33,7 @@ laptop in under 15 minutes without specialised hardware."><meta property="og:ima
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -96,47 +96,47 @@ laptop in under 15 minutes without specialised hardware.</p>
 <p>VasGBIF provides a reproducible workflow organised into eight sequential
 steps. Each step progressively filters records through taxonomic, quality,
 and coordinate checks, transforming GBIF occurrence records into
-analysis-ready datasets.</p><ol><li><p><strong>Import Records</strong> — <code><a href="import_records.html">import_records()</a></code>: reads a GBIF occurrence
+analysis-ready datasets.</p><ol><li><p><strong>Import Records</strong> - <code><a href="import_records.html">import_records()</a></code>: reads a GBIF occurrence
 download ZIP ('SIMPLE_CSV' or Darwin Core Archive), extracts the
 occurrence table, and returns an <code>"import"</code> data.table of the fields
-required by the workflow. No records are filtered at this step — all
+required by the workflow. No records are filtered at this step - all
 diagnostic flags are preserved for later quality scoring.</p></li>
-<li><p><strong>Extract GBIF Issues</strong> — <code><a href="extract_gbif_issues.html">extract_gbif_issues()</a></code>: expands the raw
+<li><p><strong>Extract GBIF Issues</strong> - <code><a href="extract_gbif_issues.html">extract_gbif_issues()</a></code>: expands the raw
 pipe-separated <code>issue</code> column into one logical indicator column per GBIF
 issue code, plus a companion summary ranking issues by how many records
 they flag.</p></li>
-<li><p><strong>Check Taxon Name</strong> — <code><a href="check_taxon.html">check_taxon()</a></code>: submits species- and
+<li><p><strong>Check Taxon Name</strong> - <code><a href="check_taxon.html">check_taxon()</a></code>: submits species- and
 infraspecific-rank names to the Taxonomic Name Resolution Service (TNRS;
 Boyle et al. 2013) for resolution against the World Checklist of
 Vascular Plants (WCVP) or World Flora Online (WFO). Synonyms are
 resolved to accepted names; records that fail the match-score threshold
 or lack an accepted/synonym status are excluded from the downstream
 table and reported in the <code>summary</code> for manual review.</p></li>
-<li><p><strong>Custom Filter</strong> — <code><a href="custom_filter.html">custom_filter()</a></code>: joins the imported records with
+<li><p><strong>Custom Filter</strong> - <code><a href="custom_filter.html">custom_filter()</a></code>: joins the imported records with
 the resolved taxonomy and the parsed issue flags, then applies the
 enabled filter rules (country code, coordinate uncertainty, GBIF issue
 count, event date, collector and identifier fields) to retain only
 high-quality records. Every rule is independently toggleable, and each
 step is recorded in a per-rule audit table (see <em>Flexible and fluent
 custom filter system</em>).</p></li>
-<li><p><strong>Refine Coordinates</strong> — <code><a href="refine_coordinates.html">refine_coordinates()</a></code>: validates coordinates
+<li><p><strong>Refine Coordinates</strong> - <code><a href="refine_coordinates.html">refine_coordinates()</a></code>: validates coordinates
 with <code><a href="https://ropensci.github.io/CoordinateCleaner/reference/clean_coordinates.html" class="external-link">CoordinateCleaner::clean_coordinates()</a></code> (Zizka et al. 2019) to
 flag spatial errors such as centroids, capitals, marine coordinates, and
 zero coordinates, splitting records into cleaned and problematic tables.
 Validation is parallelized across user-specified threads.</p></li>
-<li><p><strong>Detect Native Status</strong> — <code><a href="detect_native_coord.html">detect_native_coord()</a></code> and
+<li><p><strong>Detect Native Status</strong> - <code><a href="detect_native_coord.html">detect_native_coord()</a></code> and
 <code><a href="detect_native_country.html">detect_native_country()</a></code>: match each record against WCVP distribution
 data (the internal <code>Distributions</code> dataset) via WGSRPD Level 3 areas to
 classify it as native, introduced, extinct, location_doubtful, or
 unknown (see <em>Precise native-status detection system</em>).</p></li>
-<li><p><strong>Export Records</strong> — <code><a href="export_records.html">export_records()</a></code>: writes the classified records
-to disk as two gzip-compressed CSV files: all usable records and the
-native subset.</p></li>
-<li><p><strong>Map Records</strong> — <code><a href="map_records.html">map_records()</a></code>: renders refined records on
+<li><p><strong>Map Records</strong> - <code><a href="map_records.html">map_records()</a></code>: renders refined records on
 interactive maps via <code><a href="https://r-spatial.github.io/mapview/reference/mapView.html" class="external-link">mapView()</a></code>, with geohash-based
 decluttering to reduce visual overlap. Records are colour-coded by
 native status, and multiple basemap layers are supported (OpenStreetMap,
 Esri World Imagery, and others).</p></li>
+<li><p><strong>Export Records</strong> - <code><a href="export_records.html">export_records()</a></code>: writes the classified records
+to disk as two gzip-compressed CSV files: all usable records and the
+native subset.</p></li>
 </ol></div>
 
 <div class="section">
@@ -155,7 +155,7 @@ without coordinates are matched through their country code by
 <code><a href="detect_native_country.html">detect_native_country()</a></code>.</p>
 <p><strong>Spatial classification.</strong> <code><a href="detect_native_coord.html">detect_native_coord()</a></code> overlays records with
 validated coordinates on the WGSRPD Level 3 polygon map with
-<code><a href="https://rspatial.github.io/terra/reference/extract.html" class="external-link">terra::extract()</a></code> — a single vectorised call that assigns every point its
+<code><a href="https://rspatial.github.io/terra/reference/extract.html" class="external-link">terra::extract()</a></code> - a single vectorised call that assigns every point its
 area code in compiled code. Each area code is looked up in a distribution
 table classified from the WCVP flags (<code>introduced</code>, <code>extinct</code>,
 <code>location_doubtful</code>) with a fixed priority:</p><ol><li><p><code>location_doubtful</code> wins over every other flag;</p></li>
@@ -176,13 +176,13 @@ without coordinates through <code>countryCode</code> mapped to WGSRPD Level 3 ar
 by the <code>Level3maping</code> table. No geometry is used, so this pass is nearly
 free.</p>
 <p>Every classification records how it was obtained in
-<code>native_status_source</code> — <code>spatial</code> / <code>spatial_buffered</code> for spatial
+<code>native_status_source</code> - <code>spatial</code> / <code>spatial_buffered</code> for spatial
 matches (exact and buffered), <code>country_code</code> for country-code matches,
 <code>country_code_no_entry</code> when the country mapped but the taxon has no
-distribution entry there, and <code>unmatched</code> when no usable key exists — so
+distribution entry there, and <code>unmatched</code> when no usable key exists - so
 the entire decision chain is auditable.</p>
 <p><strong>Precision without a speed penalty.</strong> Hybrid markers are normalised so
-<code>Alnus x pubescens</code> matches the <code>Alnus × pubescens</code> recorded in the
+<code>Alnus x pubescens</code> matches the multiplication-sign variant recorded in the
 distributions; and neither the spatial overlay nor the distribution
 lookup ever iterates record-by-record in R. Both functions return a
 <code>nativeDetected</code> table keyed by <code>gbifID</code> that retains every column of the
@@ -199,18 +199,18 @@ into <code><a href="export_records.html">export_records()</a></code> and <code><
 <p><code><a href="custom_filter.html">custom_filter()</a></code> turns the raw download into an analysis-ready
 occurrence table. It joins the three preceding outputs (<code>occ_import</code>,
 <code>taxa_checked</code>, <code>gbif_issue</code>) into one table, then walks a user-selected
-set of quality rules — one vectorised <a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a> pass per rule — with
+set of quality rules - one vectorised <a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a> pass per rule - with
 every step audited.</p>
 <p><strong>Fluent rule control.</strong> Each rule is an independently toggleable
 argument. Three rules are on by default (<code>countryCode</code>,
 <code>coordinateUncertainty &lt;= 10000</code> m, <code>gbif_issues_max &lt;= 5</code>), giving
 sensible out-of-the-box behaviour; <code>date</code>, <code>identifiedBy</code>, and
 <code>recordedBy</code> are opt-in, so no information is discarded without an
-explicit choice. Numeric thresholds share one uniform "off" convention —
-<code>NULL</code>, <code>NA</code>, or <code>''</code> — so any rule can be disabled without restructuring
+explicit choice. Numeric thresholds share one uniform "off" convention -
+<code>NULL</code>, <code>NA</code>, or <code>''</code> - so any rule can be disabled without restructuring
 the call.</p>
-<p><strong>Auditable pipeline.</strong> Every step — the <code>taxon_resolved</code> join as well as
-each enabled rule — is logged in the returned <code>summary</code> table (<code>rule</code>,
+<p><strong>Auditable pipeline.</strong> Every step - the <code>taxon_resolved</code> join as well as
+each enabled rule - is logged in the returned <code>summary</code> table (<code>rule</code>,
 <code>dropped</code>, <code>remaining</code>), making the effect of each decision visible and
 reproducible. The joins are deliberately strict: the taxonomic join drops
 unresolved names instead of carrying <code>NA</code> taxonomy forward, and the
@@ -224,7 +224,7 @@ missing or empty values, a curated multilingual keyword list (<code>unknown</cod
 patterns such as <code>s.n.</code> and <code>n/a</code>. Name separators (<code>,</code>, <code>;</code>, <code>&amp;</code>, <code>+</code>,
 <code>and</code>, and their full-width CJK equivalents) protect values that mix a
 keyword with a real name, and word-boundary matching keeps the CJK
-keywords from splitting genuine names — deliberately conservative so
+keywords from splitting genuine names - deliberately conservative so
 that real records are never dropped.</p>
 <p>The output <code>customFiltered</code> object carries every downstream column in
 <code>occ_filtered</code> and a per-rule <code>summary</code> that exposes the whole filtering
@@ -275,17 +275,17 @@ GBIF download:</p>
 <span>  custom_filtered <span class="op">=</span> <span class="va">filtered</span></span>
 <span><span class="op">)</span></span>
 <span></span>
+<span><span class="fu"><a href="../reference/map_records.html">map_records</a></span><span class="op">(</span></span>
+<span>  native_detected_coord <span class="op">=</span> <span class="va">native_detected_coord</span>,</span>
+<span>  precision <span class="op">=</span> <span class="fl">3</span>,</span>
+<span>  cex <span class="op">=</span> <span class="fl">3</span></span>
+<span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/export_records.html">export_records</a></span><span class="op">(</span></span>
 <span>  native_detected_coord <span class="op">=</span> <span class="va">native_detected_coord</span>,</span>
 <span>  export_path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/getwd.html" class="external-link">getwd</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/map_records.html">map_records</a></span><span class="op">(</span></span>
-<span>  native_detected_coord <span class="op">=</span> <span class="va">native_detected_coord</span>,</span>
-<span>  precision <span class="op">=</span> <span class="fl">3</span>,</span>
-<span>  cex <span class="op">=</span> <span class="fl">3</span></span>
-<span><span class="op">)</span></span></code></pre><p></p></div>
+<span></span></code></pre><p></p></div>
 </div>
 
 <div class="section">
@@ -293,7 +293,7 @@ GBIF download:</p>
 
 
 <p>VasGBIF achieves its speed through several architectural choices:</p><ul><li><p><strong>C/C++ backends</strong>: core operations are delegated to <a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a>,
-<a href="https://rdrr.io/pkg/stringi/man/stringi-package.html" class="external-link">stringi</a>, and <a href="https://rspatial.github.io/terra/reference/terra-package.html" class="external-link">terra</a> — packages written in C/C++ that bypass R's
+<a href="https://rdrr.io/pkg/stringi/man/stringi-package.html" class="external-link">stringi</a>, and <a href="https://rspatial.github.io/terra/reference/terra-package.html" class="external-link">terra</a> - packages written in C/C++ that bypass R's
 per-iteration interpretive overhead.</p></li>
 <li><p><strong>Vectorisation over explicit loops</strong>: operations such as issue-flag
 detection in <code><a href="extract_gbif_issues.html">extract_gbif_issues()</a></code> and native-status lookups in
@@ -340,7 +340,7 @@ Biological Collection Databases." Edited by Tiago Quental.
 <a href="https://doi.org/10.1111/2041-210X.13152" class="external-link">doi:10.1111/2041-210X.13152</a>
 .</p></li>
 <li><p>Vilela, Bruno, and Fabricio Villalobos. 2015. "letsR: A New R Package
-for Data Handling and Analysis in Macroecology." Edited by Timothée
+for Data Handling and Analysis in Macroecology." Edited by Timothee
 Poisot. <em>Methods in Ecology and Evolution</em> 6 (10): 1229-34.
 <a href="https://doi.org/10.1111/2041-210x.12401" class="external-link">doi:10.1111/2041-210x.12401</a>
 .</p></li>

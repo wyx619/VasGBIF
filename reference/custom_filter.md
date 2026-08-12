@@ -52,7 +52,7 @@ custom_filter(
   Non-negative numeric scalar. Removes records whose
   `coordinateUncertaintyInMeters` is strictly greater than the
   threshold. Defaults to `10000`. Records with `NA` or empty
-  `coordinateUncertaintyInMeters` are always kept — they do not
+  `coordinateUncertaintyInMeters` are always kept - they do not
   participate in this rule. Pass `NULL`, `NA`, or `''` to disable the
   rule.
 
@@ -99,19 +99,27 @@ A [`print()`](https://rdrr.io/r/base/print.html) method for class
 
 ### Joining the inputs
 
-The three inputs are joined by `gbifID` with **inner joins**.
+The three inputs are joined by `gbifID`. For memory efficiency the joins
+are performed **in place** on a single defensive copy of `occ_import`:
+[`copy()`](https://rdrr.io/pkg/data.table/man/copy.html) is made once
+and each join adds columns via `:=`, instead of materialising a fresh
+full-width table per join. The caller's `occ_import` is never modified.
+Rows are not deleted during the join or the rules; every criterion
+accumulates into a logical mask and a single row subset is applied at
+the end. Peak memory is therefore close to the input plus one working
+copy, regardless of how many rules are enabled.
 
 [`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md)
 already removes records that fail the `accuracy` threshold, whose
 `Taxonomic_status` is neither `"Accepted"` nor `"Synonym"`, or that
 resolve to a genus-level or unranked accepted name, so
-`occ_taxa_checked` contains only fully resolved records. Joining it with
-an inner join therefore drops unresolved records at this point instead
-of carrying `NA` taxonomy through the rest of the pipeline. The number
+`occ_taxa_checked` contains only fully resolved records. Rows absent
+from `occ_taxa_checked` are dropped via the keep mask instead of
+carrying `NA` taxonomy through the rest of the pipeline. The number
 removed is recorded in `summary` under the rule name `taxon_resolved`.
 
 [`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md)
-returns exactly one row per imported record, so the second join is
+returns exactly one row per imported record, so the issue join is
 one-to-one and cannot change the row count. The function verifies this
 and stops if any record lacks an issue count. The raw `issue` column is
 removed from `occ_import` and replaced by `gbif_issues`, the per-record
@@ -144,17 +152,17 @@ Enabled rules are applied in sequence. By default `countryCode`,
 ### Collector junk detection
 
 The `identifiedBy` and `recordedBy` rules are identical in strictness. A
-value is treated as junk — and the record removed — when it is missing
+value is treated as junk - and the record removed - when it is missing
 or empty, or when it matches a curated set of "no named person" patterns
 while containing **no name separator**.
 
 The keyword list covers English (`unknown`, `anonymous`, `unnamed`,
 `unidentified`, `unrecorded`, `incognito`), other languages
-(`desconocido`, `desconhecido`, `anonimo`, `anónimo`, `anônimo`,
-`sin nombre`, `sem nome`, `inconnu`, `anonyme`, `unbekannt`, `anonym`,
-and four Chinese terms meaning "unknown", "unnamed", "anonymous" and "no
-details"), and whole-value patterns such as `s.n.`, `n/a`, `et al.`, and
-`no collector`.
+(`desconocido`, `desconhecido`, `anonimo` and its accented Spanish and
+Portuguese variants, `sin nombre`, `sem nome`, `inconnu`, `anonyme`,
+`unbekannt`, `anonym`, and four Chinese terms meaning "unknown",
+"unnamed", "anonymous" and "no details"), and whole-value patterns such
+as `s.n.`, `n/a`, `et al.`, and `no collector`.
 
 Name separators (`,`, `;`, `&`, `+`, `and`, plus the full-width comma,
 full-width semicolon, and ideographic enumeration comma used in CJK

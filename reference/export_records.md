@@ -46,7 +46,7 @@ the spatial output of
 [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md),
 which only classifies records with validated coordinates. The function
 stops if `decimalLongitude` or `decimalLatitude` is missing for any
-record — the output of
+record - the output of
 [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)
 would be rejected this way. Records without coordinates are classified
 separately by

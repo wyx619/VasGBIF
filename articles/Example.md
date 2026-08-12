@@ -98,9 +98,9 @@ The `occ_taxa` object contains:
 joins the imported records with the resolved taxonomy and the parsed
 issue flags, then applies the enabled filter rules to retain only
 high-quality records. By default the `countryCode`,
-`coordinateUncertainty` (≤ 10,000 m), and `gbif_issues_max` (≤ 5) rules
-are enabled; `date`, `identifiedBy`, and `recordedBy` are opt-in. Every
-step is recorded in the per-rule `summary` table.
+`coordinateUncertainty` (\<= 10,000 m), and `gbif_issues_max` (\<= 5)
+rules are enabled; `date`, `identifiedBy`, and `recordedBy` are opt-in.
+Every step is recorded in the per-rule `summary` table.
 
 ``` r
 
@@ -190,6 +190,21 @@ and
 [`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)
 without joining back to `refined_coordinates`.
 
+## Map Records
+
+[`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)
+renders the records on an interactive map via `mapview`, with
+geohash-based decluttering and colour-coding by native status.
+
+``` r
+
+map_records(
+  native_detected_coord = native_detected_coord,
+  precision = 3,
+  cex = 3
+)
+```
+
 ## Export Records
 
 [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)
@@ -204,21 +219,6 @@ writes the classified records to disk as two gzip-compressed CSV files:
 export_records(
   native_detected_coord = native_detected_coord,
   export_path = getwd()
-)
-```
-
-## Map Records
-
-[`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)
-renders the records on an interactive map via `mapview`, with
-geohash-based decluttering and colour-coding by native status.
-
-``` r
-
-map_records(
-  native_detected_coord = native_detected_coord,
-  precision = 3,
-  cex = 3
 )
 ```
 

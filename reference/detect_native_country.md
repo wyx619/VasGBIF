@@ -19,9 +19,9 @@ applies:
 
 5.  Any remaining case defaults to `"unknown"`.
 
-Only records missing longitude **or** latitude —
-`custom_filtered$occ_filtered[is.na(decimalLatitude) | is.na(decimalLongitude)]`
-— are classified. Records with complete coordinates are not part of the
+Only records missing longitude **or** latitude -
+`custom_filtered$occ_filtered[is.na(decimalLatitude) | is.na(decimalLongitude)]` -
+are classified. Records with complete coordinates are not part of the
 result; classify them with
 [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)
 instead.
@@ -43,7 +43,7 @@ detect_native_country(custom_filtered = NA)
 
 ## Value
 
-A `nativeDetected` object — a `data.table` subclass with one row per
+A `nativeDetected` object - a `data.table` subclass with one row per
 coordinateless record (every row of
 `custom_filtered$occ_filtered[is.na(decimalLatitude) | is.na(decimalLongitude)]`),
 keyed by `gbifID`. Every column of the input records is retained
