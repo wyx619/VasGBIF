@@ -34,7 +34,7 @@ or a country code are kept.}
 \item{filter_coordinateUncertainty}{Non-negative numeric scalar. Removes
 records whose \code{coordinateUncertaintyInMeters} is strictly greater than the
 threshold. Defaults to \code{10000}. Records with \code{NA} or empty
-\code{coordinateUncertaintyInMeters} are always kept — they do not
+\code{coordinateUncertaintyInMeters} are always kept - they do not
 participate in this rule. Pass \code{NULL}, \code{NA}, or \code{''} to disable the
 rule.}
 
@@ -77,18 +77,25 @@ records according to a user-selected set of quality rules.
 \details{
 \subsection{Joining the inputs}{
 
-The three inputs are joined by \code{gbifID} with \strong{inner joins}.
+The three inputs are joined by \code{gbifID}. For memory efficiency the joins
+are performed \strong{in place} on a single defensive copy of \code{occ_import}:
+\code{copy()} is made once and each join adds columns via \verb{:=}, instead of
+materialising a fresh full-width table per join. The caller's \code{occ_import}
+is never modified. Rows are not deleted during the join or the rules; every
+criterion accumulates into a logical mask and a single row subset is
+applied at the end. Peak memory is therefore close to the input plus one
+working copy, regardless of how many rules are enabled.
 
 \code{\link[=check_taxon]{check_taxon()}} already removes records that fail the \code{accuracy} threshold,
 whose \code{Taxonomic_status} is neither \code{"Accepted"} nor \code{"Synonym"}, or that
 resolve to a genus-level or unranked accepted name, so \code{occ_taxa_checked}
-contains only fully resolved records. Joining it with an inner
-join therefore drops unresolved records at this point instead of carrying
-\code{NA} taxonomy through the rest of the pipeline. The number removed is
-recorded in \code{summary} under the rule name \code{taxon_resolved}.
+contains only fully resolved records. Rows absent from \code{occ_taxa_checked}
+are dropped via the keep mask instead of carrying \code{NA} taxonomy through the
+rest of the pipeline. The number removed is recorded in \code{summary} under the
+rule name \code{taxon_resolved}.
 
 \code{\link[=extract_gbif_issues]{extract_gbif_issues()}} returns exactly one row per imported record, so the
-second join is one-to-one and cannot change the row count. The function
+issue join is one-to-one and cannot change the row count. The function
 verifies this and stops if any record lacks an issue count. The raw \code{issue}
 column is removed from \code{occ_import} and replaced by \code{gbif_issues}, the
 per-record issue count computed by \code{\link[=extract_gbif_issues]{extract_gbif_issues()}}.
@@ -118,13 +125,14 @@ no record is exempt from this rule.
 \subsection{Collector junk detection}{
 
 The \code{identifiedBy} and \code{recordedBy} rules are identical in strictness. A
-value is treated as junk — and the record removed — when it is missing or
+value is treated as junk - and the record removed - when it is missing or
 empty, or when it matches a curated set of "no named person" patterns while
 containing \strong{no name separator}.
 
 The keyword list covers English (\code{unknown}, \code{anonymous}, \code{unnamed},
 \code{unidentified}, \code{unrecorded}, \code{incognito}), other languages
-(\code{desconocido}, \code{desconhecido}, \code{anonimo}, \code{anónimo}, \code{anônimo},
+(\code{desconocido}, \code{desconhecido}, \code{anonimo} and its accented Spanish and
+Portuguese variants,
 \verb{sin nombre}, \verb{sem nome}, \code{inconnu}, \code{anonyme}, \code{unbekannt}, \code{anonym},
 and four Chinese terms meaning "unknown", "unnamed", "anonymous" and
 "no details"), and whole-value patterns such as \code{s.n.}, \code{n/a}, \verb{et al.},

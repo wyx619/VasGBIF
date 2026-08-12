@@ -35,7 +35,7 @@
 #'
 #' @param refined_coordinates A `CoordinateRefined` object returned by
 #'   [refine_coordinates()], or a list with the same structure. Only the
-#'   `CoordinateCleaned` table — records with validated coordinates — is
+#'   `CoordinateCleaned` table - records with validated coordinates - is
 #'   classified; `CoordinateProblematic` and `Coordinateless` records are not
 #'   part of the result.
 #' @param buffer_km Numeric scalar. Width of the spatial buffer in km applied
@@ -44,7 +44,7 @@
 #' @param buffer_chunk_size Numeric scalar. Maximum number of records buffered
 #'   in one chunk, keeping the relate matrix small. Defaults to `2000`.
 #'
-#' @returns A `nativeDetected` object — a `data.table` subclass with one row
+#' @returns A `nativeDetected` object - a `data.table` subclass with one row
 #'   per input record (every row of `CoordinateCleaned`), keyed by `gbifID`.
 #'   Every column of the input records is retained unchanged, with four
 #'   classification columns appended:

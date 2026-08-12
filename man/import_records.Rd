@@ -65,7 +65,7 @@ file which is extracted by name, while a 'DWCA' holds several members
 }
 
 No records are filtered, corrected, or removed at this stage. All diagnostic
-fields — including the raw \code{issue} column — are preserved so that
+fields - including the raw \code{issue} column - are preserved so that
 \code{\link[=extract_gbif_issues]{extract_gbif_issues()}} can parse them in the next step.
 }
 \examples{

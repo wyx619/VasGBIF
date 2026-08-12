@@ -2,7 +2,7 @@
 
 ## Fast and Easy Compilation of Vascular Plants Occurrence Records from GBIF
 
-[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active) [![codecov.io](https://codecov.io/github/wyx619/VasGBIF/coverage.svg?branch=master)](https://app.codecov.io/github/wyx619/VasGBIF?branch=master) [![R-CMD-check](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml) ![](https://img.shields.io/github/issues/wyx619/VasGBIF?color=F48D73) ![](https://img.shields.io/github/license/wyx619/VasGBIF.svg?logo=github) ![GitHub stars](https://img.shields.io/github/stars/wyx619/VasGBIF.svg?style=social&label=Star&maxAge=2592000) ![](https://img.shields.io/badge/version-3.6.3-blue?logo=R)
+[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active) [![codecov.io](https://codecov.io/github/wyx619/VasGBIF/coverage.svg?branch=master)](https://app.codecov.io/github/wyx619/VasGBIF?branch=master) [![R-CMD-check](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml) ![](https://img.shields.io/github/issues/wyx619/VasGBIF?color=F48D73) ![](https://img.shields.io/github/license/wyx619/VasGBIF.svg?logo=github) ![GitHub stars](https://img.shields.io/github/stars/wyx619/VasGBIF.svg?style=social&label=Star&maxAge=2592000) ![](https://img.shields.io/badge/version-3.6.4-blue?logo=R)
 
 ## Introduction
 
@@ -65,9 +65,9 @@ VasGBIF provides a reproducible, tracheophyte-optimized, and computationally eff
 
 6.  **Detect Native Status** (`detect_native_coord` + `detect_native_country`): Match each record against WCVP distribution data (the internal `Distributions` dataset) via WGSRPD Level 3 areas to classify it as native, introduced, extinct, location_doubtful, or unknown. Records with validated coordinates are matched spatially by `detect_native_coord()`; records without coordinates are matched through their country code by `detect_native_country()`.
 
-7.  **Export Records** (`export_records`): Writes the classified records to disk as two gzip-compressed CSV files: all usable records and the native subset.
+7.  **Map Records** (`map_records`): Renders the refined records on an interactive map via [mapview](https://CRAN.R-project.org/package=mapview), with geohash-based decluttering to reduce visual overlap. Records are colour-coded by native status, and multiple basemap layers are supported (OpenStreetMap, Esri World Imagery, and others).
 
-8.  **Map Records** (`map_records`): Renders the refined records on an interactive map via [mapview](https://CRAN.R-project.org/package=mapview), with geohash-based decluttering to reduce visual overlap. Records are colour-coded by native status, and multiple basemap layers are supported (OpenStreetMap, Esri World Imagery, and others).
+8.  **Export Records** (`export_records`): Writes the classified records to disk as two gzip-compressed CSV files: all usable records and the native subset.
 
 Focused exclusively on GBIF plant occurrence records, VasGBIF can compile one million records within 15 minutes on a laptop without high memory usage.
 

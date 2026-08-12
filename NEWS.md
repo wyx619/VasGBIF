@@ -1,3 +1,16 @@
+# VasGBIF 3.6.4
+
+## Improvements
+
+- **`check_taxon()` default TNRS timeout raised to 20 minutes.** `timeout_minutes` now defaults to `20` (previously `5`), reducing chunk-timeout retries for large downloads under unstable network conditions.
+- **Workflow order adjusted: `map_records()` now precedes `export_records()`.** The documented workflow — step numbering and example code in the package documentation, README, and vignettes — now visualises the records on the interactive map before writing the classified records to disk.
+- **`custom_filter()` peak memory reduced from 2–3× to about 2× the input size.** The two full-width `merge()` calls were replaced by a single defensive shallow copy of `occ_import` followed by in-place keyed joins (`:=` column addition), and the six filter rules now accumulate into a logical mask applied as a single row subset at the end. The output is exactly equivalent to the previous version — same rows, column order, row order, `gbifID` key, and `summary` — and the defensive copy preserves the contract that the caller's input is never modified.
+
+## Documentation
+
+- Rd files regenerated for `check_taxon()`, `custom_filter()`, and `VasGBIF-package`.
+- **Removed remaining non-ASCII characters from Rd-facing documentation** so the PDF manual builds on non-UTF-8 Windows locales (GBK), where the Rd-to-LaTeX conversion previously failed with an `iconv` "embedded nul" error. Em-dashes were replaced with ASCII hyphens, and the accented Spanish/Portuguese keyword list, the hybrid-marker example, and the `Timothée` author name were rewritten in ASCII. Rd files for `Level3maping`, `detect_native_coord()`, `detect_native_country()`, `export_records()`, and `import_records()` were regenerated as part of this change.
+
 # VasGBIF 3.6.3
 
 Native-status detection is split into two independent functions: `detect_native_coord()` classifies records with validated coordinates through the spatial pass, while `detect_native_country()` classifies records without coordinates through their country code. The previous "retry unresolved records by country code" mechanism is removed, and the downstream consumers (`export_records()`, `map_records()`) now require and validate that their input carries coordinates.

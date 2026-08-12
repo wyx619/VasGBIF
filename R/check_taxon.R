@@ -23,7 +23,7 @@
 #'   returns the best match across all selected sources and the `Source`
 #'   column records which source provided it. Passed directly to [TNRS::TNRS()].
 #' @param timeout_minutes Numeric scalar. Timeout per 'TNRS' chunk attempt in
-#'   minutes. Defaults to `5`. If an attempt exceeds the timeout it is
+#'   minutes. Defaults to `20`. If an attempt exceeds the timeout it is
 #'   abandoned and retried.
 #'
 #' @details
@@ -133,7 +133,7 @@ check_taxon <- function(
   occ_import = NA,
   accuracy = 0.85,
   sources = "wcvp",
-  timeout_minutes = 5
+  timeout_minutes = 20
 ) {
   if (!inherits(occ_import, "import")) {
     stop(
@@ -336,12 +336,21 @@ check_taxon <- function(
 #'
 #' @export
 print.occ_taxa <- function(x, ...) {
-  checked_tbl <- if (is.data.frame(x$occ_taxa_checked)) as.data.table(x$occ_taxa_checked) else NULL
+  checked_tbl <- if (is.data.frame(x$occ_taxa_checked)) {
+    as.data.table(x$occ_taxa_checked)
+  } else {
+    NULL
+  }
   n_checked <- if (is.null(checked_tbl)) 0L else nrow(checked_tbl)
 
   cat("<occ_taxa> ", n_checked, " records", sep = "")
   if (!is.null(checked_tbl) && "scientificName" %chin% names(checked_tbl)) {
-    cat(" | ", uniqueN(checked_tbl$scientificName), " unique scientificName", sep = "")
+    cat(
+      " | ",
+      uniqueN(checked_tbl$scientificName),
+      " unique scientificName",
+      sep = ""
+    )
   }
   cat("\n")
 
@@ -356,7 +365,11 @@ print.occ_taxa <- function(x, ...) {
   if (all(name_cols %chin% names(checked_tbl))) {
     distinct_counts <- data.table(
       column = name_cols,
-      n = vapply(name_cols, function(col) uniqueN(checked_tbl[[col]]), integer(1))
+      n = vapply(
+        name_cols,
+        function(col) uniqueN(checked_tbl[[col]]),
+        integer(1)
+      )
     )
     cat("\nDistinct names in occ_taxa_checked:\n")
     print(distinct_counts)
@@ -369,7 +382,10 @@ print.occ_taxa <- function(x, ...) {
   }
 
   if ("Accepted_name" %chin% names(checked_tbl)) {
-    top_name <- checked_tbl[, .N, by = Accepted_name][order(-N)][seq_len(min(3, .N))]
+    top_name <- checked_tbl[, .N, by = Accepted_name][order(-N)][seq_len(min(
+      3,
+      .N
+    ))]
     setnames(top_name, "N", "records")
     cat("\nTop 3 Accepted_name by records:\n")
     print(top_name)

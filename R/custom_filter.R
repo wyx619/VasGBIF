@@ -18,7 +18,7 @@
 #' @param filter_coordinateUncertainty Non-negative numeric scalar. Removes
 #'   records whose `coordinateUncertaintyInMeters` is strictly greater than the
 #'   threshold. Defaults to `10000`. Records with `NA` or empty
-#'   `coordinateUncertaintyInMeters` are always kept — they do not
+#'   `coordinateUncertaintyInMeters` are always kept - they do not
 #'   participate in this rule. Pass `NULL`, `NA`, or `''` to disable the
 #'   rule.
 #' @param filter_date Logical scalar. If `TRUE`, removes records for which all
@@ -38,18 +38,25 @@
 #' @details
 #' ## Joining the inputs
 #'
-#' The three inputs are joined by `gbifID` with **inner joins**.
+#' The three inputs are joined by `gbifID`. For memory efficiency the joins
+#' are performed **in place** on a single defensive copy of `occ_import`:
+#' `copy()` is made once and each join adds columns via `:=`, instead of
+#' materialising a fresh full-width table per join. The caller's `occ_import`
+#' is never modified. Rows are not deleted during the join or the rules; every
+#' criterion accumulates into a logical mask and a single row subset is
+#' applied at the end. Peak memory is therefore close to the input plus one
+#' working copy, regardless of how many rules are enabled.
 #'
 #' [check_taxon()] already removes records that fail the `accuracy` threshold,
 #' whose `Taxonomic_status` is neither `"Accepted"` nor `"Synonym"`, or that
 #' resolve to a genus-level or unranked accepted name, so `occ_taxa_checked`
-#' contains only fully resolved records. Joining it with an inner
-#' join therefore drops unresolved records at this point instead of carrying
-#' `NA` taxonomy through the rest of the pipeline. The number removed is
-#' recorded in `summary` under the rule name `taxon_resolved`.
+#' contains only fully resolved records. Rows absent from `occ_taxa_checked`
+#' are dropped via the keep mask instead of carrying `NA` taxonomy through the
+#' rest of the pipeline. The number removed is recorded in `summary` under the
+#' rule name `taxon_resolved`.
 #'
 #' [extract_gbif_issues()] returns exactly one row per imported record, so the
-#' second join is one-to-one and cannot change the row count. The function
+#' issue join is one-to-one and cannot change the row count. The function
 #' verifies this and stops if any record lacks an issue count. The raw `issue`
 #' column is removed from `occ_import` and replaced by `gbif_issues`, the
 #' per-record issue count computed by [extract_gbif_issues()].
@@ -76,13 +83,14 @@
 #' ## Collector junk detection
 #'
 #' The `identifiedBy` and `recordedBy` rules are identical in strictness. A
-#' value is treated as junk — and the record removed — when it is missing or
+#' value is treated as junk - and the record removed - when it is missing or
 #' empty, or when it matches a curated set of "no named person" patterns while
 #' containing **no name separator**.
 #'
 #' The keyword list covers English (`unknown`, `anonymous`, `unnamed`,
 #' `unidentified`, `unrecorded`, `incognito`), other languages
-#' (`desconocido`, `desconhecido`, `anonimo`, `anónimo`, `anônimo`,
+#' (`desconocido`, `desconhecido`, `anonimo` and its accented Spanish and
+#' Portuguese variants,
 #' `sin nombre`, `sem nome`, `inconnu`, `anonyme`, `unbekannt`, `anonym`,
 #' and four Chinese terms meaning "unknown", "unnamed", "anonymous" and
 #' "no details"), and whole-value patterns such as `s.n.`, `n/a`, `et al.`,
@@ -246,8 +254,8 @@ custom_filter <- function(
       summary,
       data.table(
         rule = rule,
-        dropped = before - nrow(occ),
-        remaining = nrow(occ)
+        dropped = before - sum(keep),
+        remaining = sum(keep)
       )
     )
   }
@@ -257,37 +265,43 @@ custom_filter <- function(
     is.null(x) || (length(x) == 1L && (is.na(x) || identical(x, '')))
   }
 
-  # ---- join inputs by gbifID (inner joins) ----
-  # `occ_taxa_checked` holds only records that passed the accuracy and status
-  # thresholds, so an inner join drops unresolved records here rather than
-  # carrying NA taxonomy downstream.
+  # ---- join inputs by gbifID (in place on a defensive copy) ----
+  # `occ_import` is copied once and the two joins add columns in place via
+  # `:=`, so no full-width table is materialised per join. Rows are only
+  # deleted at the end, through the `keep` mask.
   before <- nrow(occ_import)
-  occ <- merge(
-    occ_import[, -"issue"],
-    taxa_checked$occ_taxa_checked[, .(
-      gbifID,
-      Taxonomic_status,
-      Accepted_name,
-      Accepted_species,
-      Accepted_name_id,
-      Source
-    )],
-    by = "gbifID"
-  )
+  occ <- copy(occ_import)
+  occ[, issue := NULL]
+
+  # `occ_taxa_checked` holds only records that passed the accuracy and status
+  # thresholds; rows absent from it get NA here and are dropped via `keep`
+  # (recorded as the taxon_resolved rule).
+  occ[
+    taxa_checked$occ_taxa_checked,
+    on = "gbifID",
+    `:=`(
+      Taxonomic_status = i.Taxonomic_status,
+      Accepted_name = i.Accepted_name,
+      Accepted_species = i.Accepted_species,
+      Accepted_name_id = i.Accepted_name_id,
+      Source = i.Source
+    )
+  ]
+  keep <- !is.na(occ[["Accepted_name"]])
   summary <- log_step(summary, "taxon_resolved", before)
 
   # `occ_issue` carries one row per imported record, so this join is 1:1 and
-  # must not change the row count; enforce that contract rather than trust it.
-  before <- nrow(occ)
-  occ <- merge(
-    occ,
-    gbif_issue$occ_issue[, .(gbifID, gbif_issues = issue_count)],
-    by = "gbifID"
-  )
-  if (nrow(occ) != before) {
+  # must not change the row count; enforce that contract rather than trust it
+  # (any unmatched row would receive NA).
+  occ[
+    gbif_issue$occ_issue,
+    on = "gbifID",
+    gbif_issues := i.issue_count
+  ]
+  if (anyNA(occ[["gbif_issues"]])) {
     stop(
       "`gbif_issue$occ_issue` does not cover every record in `occ_import`: ",
-      before - nrow(occ),
+      sum(is.na(occ[["gbif_issues"]])),
       " record(s) have no issue count.",
       call. = FALSE
     )
@@ -295,10 +309,11 @@ custom_filter <- function(
 
   # ---- countryCode ----
   if (filter_countryCode) {
-    before <- nrow(occ)
-    occ <- occ[
-      !(is.na(decimalLatitude) & (is.na(countryCode) | countryCode == ''))
-    ]
+    before <- sum(keep)
+    keep <- keep & !(
+      is.na(occ[["decimalLatitude"]]) &
+        (is.na(occ[["countryCode"]]) | occ[["countryCode"]] == '')
+    )
     summary <- log_step(summary, "countryCode", before)
   }
 
@@ -314,38 +329,38 @@ custom_filter <- function(
         "or NULL/NA/'' to disable the rule."
       )
     }
-    before <- nrow(occ)
+    before <- sum(keep)
     uncertainty <- suppressWarnings(
       as.numeric(occ[["coordinateUncertaintyInMeters"]])
     )
     # NA and '' stay: only values strictly above the threshold are removed
-    occ <- occ[is.na(uncertainty) | uncertainty <= filter_coordinateUncertainty]
+    keep <- keep & (is.na(uncertainty) | uncertainty <= filter_coordinateUncertainty)
     summary <- log_step(summary, "coordinateUncertainty", before)
   }
 
   # ---- Date ----
   if (filter_date) {
-    before <- nrow(occ)
-    occ <- occ[
-      !((is.na(eventDate) | eventDate == '') &
-        (is.na(month) | month == '') &
-        (is.na(year) | year == '') &
-        (is.na(day) | day == ''))
-    ]
+    before <- sum(keep)
+    keep <- keep & !(
+      (is.na(occ[["eventDate"]]) | occ[["eventDate"]] == '') &
+        (is.na(occ[["month"]]) | occ[["month"]] == '') &
+        (is.na(occ[["year"]]) | occ[["year"]] == '') &
+        (is.na(occ[["day"]]) | occ[["day"]] == '')
+    )
     summary <- log_step(summary, "date", before)
   }
 
   # ---- identifiedBy ----
   if (filter_identifiedBy) {
-    before <- nrow(occ)
-    occ <- occ[!is_junk_name(identifiedBy)]
+    before <- sum(keep)
+    keep <- keep & !is_junk_name(occ[["identifiedBy"]])
     summary <- log_step(summary, "identifiedBy", before)
   }
 
   # ---- recordedBy ----
   if (filter_recordedBy) {
-    before <- nrow(occ)
-    occ <- occ[!is_junk_name(recordedBy)]
+    before <- sum(keep)
+    keep <- keep & !is_junk_name(occ[["recordedBy"]])
     summary <- log_step(summary, "recordedBy", before)
   }
 
@@ -361,11 +376,28 @@ custom_filter <- function(
         "or NULL/NA/'' to disable the rule."
       )
     }
-    before <- nrow(occ)
+    before <- sum(keep)
     # Defensive only: the 1:1 issue join above rules out NA gbif_issues
-    occ <- occ[is.na(gbif_issues) | gbif_issues <= filter_gbif_issues_max]
+    keep <- keep & (is.na(occ[["gbif_issues"]]) | occ[["gbif_issues"]] <= filter_gbif_issues_max)
     summary <- log_step(summary, "gbif_issues_max", before)
   }
+  # apply the accumulated mask once: a single row subset instead of one per rule
+  occ <- occ[keep]
+
+  # keep the occurrence columns in import order, then the joined columns,
+  # matching the output column order of the previous merge-based version
+  setcolorder(
+    occ,
+    c(
+      "gbifID",
+      setdiff(names(occ_import), c("gbifID", "issue")),
+      "Taxonomic_status", "Accepted_name", "Accepted_species",
+      "Accepted_name_id", "Source",
+      "gbif_issues"
+    )
+  )
+  # key and sort by gbifID, matching the merge-based output (merge keys on `by`)
+  setkey(occ, gbifID)
 
   result <- list(
     occ_filtered = occ,

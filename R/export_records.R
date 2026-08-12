@@ -24,7 +24,7 @@
 #' `native_detected_coord` must carry coordinates for every record: it is the
 #' spatial output of [detect_native_coord()], which only classifies records
 #' with validated coordinates. The function stops if `decimalLongitude` or
-#' `decimalLatitude` is missing for any record — the output of
+#' `decimalLatitude` is missing for any record - the output of
 #' [detect_native_country()] would be rejected this way. Records without
 #' coordinates are classified separately by [detect_native_country()]; to
 #' export both sets together, bind the two results before calling this
@@ -89,7 +89,7 @@ export_records <- function(
   }
 
   if (dir.exists(export_path)) {
-    # directory already exists — proceed
+    # directory already exists - proceed
   } else if (file.exists(export_path)) {
     stop("export_path exists but is a file, not a directory: ", export_path)
   } else {

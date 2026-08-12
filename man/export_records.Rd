@@ -35,7 +35,7 @@ no join is performed here: \code{all_records.csv.gz} is written straight from it
 \code{native_detected_coord} must carry coordinates for every record: it is the
 spatial output of \code{\link[=detect_native_coord]{detect_native_coord()}}, which only classifies records
 with validated coordinates. The function stops if \code{decimalLongitude} or
-\code{decimalLatitude} is missing for any record — the output of
+\code{decimalLatitude} is missing for any record - the output of
 \code{\link[=detect_native_country]{detect_native_country()}} would be rejected this way. Records without
 coordinates are classified separately by \code{\link[=detect_native_country]{detect_native_country()}}; to
 export both sets together, bind the two results before calling this

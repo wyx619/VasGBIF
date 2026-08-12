@@ -50,8 +50,8 @@ A presence-absence matrix is only as good as the records behind it, so downstrea
 4.  **Custom Filter** — **`custom_filter()`** joins the three outputs by `gbifID` and drops records rule by rule, logging every step
 5.  **Refine Coordinates** — **`refine_coordinates()`** runs CoordinateCleaner tests in parallel, splitting records into coordinate-clean and coordinate-problematic tables
 6.  **Detect Native Status** — **`detect_native_coord()`** and **`detect_native_country()`** classify each record as `native`, `introduced`, `extinct`, `location_doubtful`, or `unknown`
-7.  **Export Records** — **`export_records()`** writes the classified records to two gzip-compressed CSV files
-8.  **Map Records** — **`map_records()`** renders the records on an interactive map with geohash-based decluttering
+7.  **Map Records** — **`map_records()`** renders the records on an interactive map with geohash-based decluttering
+8.  **Export Records** — **`export_records()`** writes the classified records to two gzip-compressed CSV files
 
 Here we use the *Saxifraga* records (see <https://doi.org/10.15468/dl.4ty3ap>) as example. Substitute your own GBIF ZIP for real analyses (see the **GetRecords** vignette for download instructions).
 

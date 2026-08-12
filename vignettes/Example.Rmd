@@ -93,7 +93,7 @@ The `occ_taxa` object contains:
 
 ## Custom Filter
 
-`custom_filter()` joins the imported records with the resolved taxonomy and the parsed issue flags, then applies the enabled filter rules to retain only high-quality records. By default the `countryCode`, `coordinateUncertainty` (≤ 10,000 m), and `gbif_issues_max` (≤ 5) rules are enabled; `date`, `identifiedBy`, and `recordedBy` are opt-in. Every step is recorded in the per-rule `summary` table.
+`custom_filter()` joins the imported records with the resolved taxonomy and the parsed issue flags, then applies the enabled filter rules to retain only high-quality records. By default the `countryCode`, `coordinateUncertainty` (\<= 10,000 m), and `gbif_issues_max` (\<= 5) rules are enabled; `date`, `identifiedBy`, and `recordedBy` are opt-in. Every step is recorded in the per-rule `summary` table.
 
 ```{r custom_filter}
 filtered <- custom_filter(
@@ -156,6 +156,18 @@ print(native_detected)
 
 The `nativeDetected` objects are `data.table`s keyed by `gbifID`. Each retains every column of the input records and appends `LEVEL3_COD`, `native_status`, `native_status_source`, and `buffered`. The spatial result (`native_detected_coord`) carries coordinates for every record and can be passed straight to `export_records()` and `map_records()` without joining back to `refined_coordinates`.
 
+## Map Records
+
+`map_records()` renders the records on an interactive map via `mapview`, with geohash-based decluttering and colour-coding by native status.
+
+```{r map_records, eval=FALSE}
+map_records(
+  native_detected_coord = native_detected_coord,
+  precision = 3,
+  cex = 3
+)
+```
+
 ## Export Records
 
 `export_records()` writes the classified records to disk as two gzip-compressed CSV files:
@@ -167,18 +179,6 @@ The `nativeDetected` objects are `data.table`s keyed by `gbifID`. Each retains e
 export_records(
   native_detected_coord = native_detected_coord,
   export_path = getwd()
-)
-```
-
-## Map Records
-
-`map_records()` renders the records on an interactive map via `mapview`, with geohash-based decluttering and colour-coding by native status.
-
-```{r map_records, eval=FALSE}
-map_records(
-  native_detected_coord = native_detected_coord,
-  precision = 3,
-  cex = 3
 )
 ```
 

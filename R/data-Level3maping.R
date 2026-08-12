@@ -3,7 +3,7 @@
 #' The tabular component of the Biodiversity Information Standards (TDWG) World
 #' Geographical Scheme for Recording Plant Distributions (WGSRPD): one row per
 #' Level 3 unit ("Botanical Country"), giving its code, name, parent Level 2
-#' region, and — where the source standard supplies one — the ISO 3166-1
+#' region, and - where the source standard supplies one - the ISO 3166-1
 #' alpha-2 code of the country it belongs to.
 #'
 #' Level 3 is the level at which the World Checklist of Vascular Plants records

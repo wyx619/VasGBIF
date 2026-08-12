@@ -8,7 +8,7 @@ check_taxon(
   occ_import = NA,
   accuracy = 0.85,
   sources = "wcvp",
-  timeout_minutes = 5
+  timeout_minutes = 20
 )
 }
 \arguments{
@@ -29,7 +29,7 @@ returns the best match across all selected sources and the \code{Source}
 column records which source provided it. Passed directly to \code{\link[TNRS:TNRS]{TNRS::TNRS()}}.}
 
 \item{timeout_minutes}{Numeric scalar. Timeout per 'TNRS' chunk attempt in
-minutes. Defaults to \code{5}. If an attempt exceeds the timeout it is
+minutes. Defaults to \code{20}. If an attempt exceeds the timeout it is
 abandoned and retried.}
 }
 \value{

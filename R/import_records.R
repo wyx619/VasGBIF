@@ -46,7 +46,7 @@
 #' * Coerces `gbifID` to character.
 #'
 #' No records are filtered, corrected, or removed at this stage. All diagnostic
-#' fields — including the raw `issue` column — are preserved so that
+#' fields - including the raw `issue` column - are preserved so that
 #' [extract_gbif_issues()] can parse them in the next step.
 #'
 #' @returns

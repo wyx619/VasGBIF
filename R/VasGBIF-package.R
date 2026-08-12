@@ -25,18 +25,18 @@
 #' and coordinate checks, transforming GBIF occurrence records into
 #' analysis-ready datasets.
 #'
-#' 1. **Import Records** — [import_records()]: reads a GBIF occurrence
+#' 1. **Import Records** - [import_records()]: reads a GBIF occurrence
 #'    download ZIP ('SIMPLE_CSV' or Darwin Core Archive), extracts the
 #'    occurrence table, and returns an `"import"` data.table of the fields
-#'    required by the workflow. No records are filtered at this step — all
+#'    required by the workflow. No records are filtered at this step - all
 #'    diagnostic flags are preserved for later quality scoring.
 #'
-#' 2. **Extract GBIF Issues** — [extract_gbif_issues()]: expands the raw
+#' 2. **Extract GBIF Issues** - [extract_gbif_issues()]: expands the raw
 #'    pipe-separated `issue` column into one logical indicator column per GBIF
 #'    issue code, plus a companion summary ranking issues by how many records
 #'    they flag.
 #'
-#' 3. **Check Taxon Name** — [check_taxon()]: submits species- and
+#' 3. **Check Taxon Name** - [check_taxon()]: submits species- and
 #'    infraspecific-rank names to the Taxonomic Name Resolution Service (TNRS;
 #'    Boyle et al. 2013) for resolution against the World Checklist of
 #'    Vascular Plants (WCVP) or World Flora Online (WFO). Synonyms are
@@ -44,7 +44,7 @@
 #'    or lack an accepted/synonym status are excluded from the downstream
 #'    table and reported in the `summary` for manual review.
 #'
-#' 4. **Custom Filter** — [custom_filter()]: joins the imported records with
+#' 4. **Custom Filter** - [custom_filter()]: joins the imported records with
 #'    the resolved taxonomy and the parsed issue flags, then applies the
 #'    enabled filter rules (country code, coordinate uncertainty, GBIF issue
 #'    count, event date, collector and identifier fields) to retain only
@@ -52,27 +52,27 @@
 #'    step is recorded in a per-rule audit table (see *Flexible and fluent
 #'    custom filter system*).
 #'
-#' 5. **Refine Coordinates** — [refine_coordinates()]: validates coordinates
+#' 5. **Refine Coordinates** - [refine_coordinates()]: validates coordinates
 #'    with [CoordinateCleaner::clean_coordinates()] (Zizka et al. 2019) to
 #'    flag spatial errors such as centroids, capitals, marine coordinates, and
 #'    zero coordinates, splitting records into cleaned and problematic tables.
 #'    Validation is parallelized across user-specified threads.
 #'
-#' 6. **Detect Native Status** — [detect_native_coord()] and
+#' 6. **Detect Native Status** - [detect_native_coord()] and
 #'    [detect_native_country()]: match each record against WCVP distribution
 #'    data (the internal `Distributions` dataset) via WGSRPD Level 3 areas to
 #'    classify it as native, introduced, extinct, location_doubtful, or
 #'    unknown (see *Precise native-status detection system*).
 #'
-#' 7. **Export Records** — [export_records()]: writes the classified records
-#'    to disk as two gzip-compressed CSV files: all usable records and the
-#'    native subset.
-#'
-#' 8. **Map Records** — [map_records()]: renders refined records on
+#' 7. **Map Records** - [map_records()]: renders refined records on
 #'    interactive maps via [`mapView()`][mapview::mapView], with geohash-based
 #'    decluttering to reduce visual overlap. Records are colour-coded by
 #'    native status, and multiple basemap layers are supported (OpenStreetMap,
 #'    Esri World Imagery, and others).
+#'
+#' 8. **Export Records** - [export_records()]: writes the classified records
+#'    to disk as two gzip-compressed CSV files: all usable records and the
+#'    native subset.
 #'
 #' ## Precise native-status detection system
 #'
@@ -89,7 +89,7 @@
 #'
 #' **Spatial classification.** [detect_native_coord()] overlays records with
 #' validated coordinates on the WGSRPD Level 3 polygon map with
-#' [terra::extract()] — a single vectorised call that assigns every point its
+#' [terra::extract()] - a single vectorised call that assigns every point its
 #' area code in compiled code. Each area code is looked up in a distribution
 #' table classified from the WCVP flags (`introduced`, `extinct`,
 #' `location_doubtful`) with a fixed priority:
@@ -115,14 +115,14 @@
 #' free.
 #'
 #' Every classification records how it was obtained in
-#' `native_status_source` — `spatial` / `spatial_buffered` for spatial
+#' `native_status_source` - `spatial` / `spatial_buffered` for spatial
 #' matches (exact and buffered), `country_code` for country-code matches,
 #' `country_code_no_entry` when the country mapped but the taxon has no
-#' distribution entry there, and `unmatched` when no usable key exists — so
+#' distribution entry there, and `unmatched` when no usable key exists - so
 #' the entire decision chain is auditable.
 #'
 #' **Precision without a speed penalty.** Hybrid markers are normalised so
-#' `Alnus x pubescens` matches the `Alnus × pubescens` recorded in the
+#' `Alnus x pubescens` matches the multiplication-sign variant recorded in the
 #' distributions; and neither the spatial overlay nor the distribution
 #' lookup ever iterates record-by-record in R. Both functions return a
 #' `nativeDetected` table keyed by `gbifID` that retains every column of the
@@ -136,7 +136,7 @@
 #' [custom_filter()] turns the raw download into an analysis-ready
 #' occurrence table. It joins the three preceding outputs (`occ_import`,
 #' `taxa_checked`, `gbif_issue`) into one table, then walks a user-selected
-#' set of quality rules — one vectorised [data.table] pass per rule — with
+#' set of quality rules - one vectorised [data.table] pass per rule - with
 #' every step audited.
 #'
 #' **Fluent rule control.** Each rule is an independently toggleable
@@ -144,12 +144,12 @@
 #' `coordinateUncertainty <= 10000` m, `gbif_issues_max <= 5`), giving
 #' sensible out-of-the-box behaviour; `date`, `identifiedBy`, and
 #' `recordedBy` are opt-in, so no information is discarded without an
-#' explicit choice. Numeric thresholds share one uniform "off" convention —
-#' `NULL`, `NA`, or `''` — so any rule can be disabled without restructuring
+#' explicit choice. Numeric thresholds share one uniform "off" convention -
+#' `NULL`, `NA`, or `''` - so any rule can be disabled without restructuring
 #' the call.
 #'
-#' **Auditable pipeline.** Every step — the `taxon_resolved` join as well as
-#' each enabled rule — is logged in the returned `summary` table (`rule`,
+#' **Auditable pipeline.** Every step - the `taxon_resolved` join as well as
+#' each enabled rule - is logged in the returned `summary` table (`rule`,
 #' `dropped`, `remaining`), making the effect of each decision visible and
 #' reproducible. The joins are deliberately strict: the taxonomic join drops
 #' unresolved names instead of carrying `NA` taxonomy forward, and the
@@ -164,7 +164,7 @@
 #' patterns such as `s.n.` and `n/a`. Name separators (`,`, `;`, `&`, `+`,
 #' `and`, and their full-width CJK equivalents) protect values that mix a
 #' keyword with a real name, and word-boundary matching keeps the CJK
-#' keywords from splitting genuine names — deliberately conservative so
+#' keywords from splitting genuine names - deliberately conservative so
 #' that real records are never dropped.
 #'
 #' The output `customFiltered` object carries every downstream column in
@@ -215,17 +215,17 @@
 #'   custom_filtered = filtered
 #' )
 #'
+#' map_records(
+#'   native_detected_coord = native_detected_coord,
+#'   precision = 3,
+#'   cex = 3
+#' )
 #'
 #' export_records(
 #'   native_detected_coord = native_detected_coord,
 #'   export_path = getwd()
 #' )
 #'
-#' map_records(
-#'   native_detected_coord = native_detected_coord,
-#'   precision = 3,
-#'   cex = 3
-#' )
 #' ```
 #'
 #' ## Performance
@@ -233,7 +233,7 @@
 #' VasGBIF achieves its speed through several architectural choices:
 #'
 #' - **C/C++ backends**: core operations are delegated to [data.table],
-#'   [stringi], and [terra] — packages written in C/C++ that bypass R's
+#'   [stringi], and [terra] - packages written in C/C++ that bypass R's
 #'   per-iteration interpretive overhead.
 #' - **Vectorisation over explicit loops**: operations such as issue-flag
 #'   detection in [extract_gbif_issues()] and native-status lookups in
@@ -287,7 +287,7 @@
 #'    \doi{10.1111/2041-210X.13152}.
 #'
 #' 6. Vilela, Bruno, and Fabricio Villalobos. 2015. "letsR: A New R Package
-#'    for Data Handling and Analysis in Macroecology." Edited by Timothée
+#'    for Data Handling and Analysis in Macroecology." Edited by Timothee
 #'    Poisot. *Methods in Ecology and Evolution* 6 (10): 1229-34.
 #'    \doi{10.1111/2041-210x.12401}.
 #'
@@ -393,5 +393,11 @@ utils::globalVariables(c(
   "WGSRPD3",
   "WorldLandMap",
   # ---- utils::data suggestion (used in package doc examples) ----
-  "data"
+  "data",
+  'i.Accepted_name',
+  'i.Accepted_name_id',
+  'i.Accepted_species',
+  'i.Source',
+  'i.Taxonomic_status',
+  'i.issue_count'
 ))

@@ -14,9 +14,9 @@
 #' 4. If all three flags are `0`, the area is `"native"`.
 #' 5. Any remaining case defaults to `"unknown"`.
 #'
-#' Only records missing longitude **or** latitude —
+#' Only records missing longitude **or** latitude -
 #' `custom_filtered$occ_filtered[is.na(decimalLatitude) |
-#' is.na(decimalLongitude)]` — are classified. Records with complete
+#' is.na(decimalLongitude)]` - are classified. Records with complete
 #' coordinates are not part of the result; classify them with
 #' [detect_native_coord()] instead.
 #'
@@ -35,7 +35,7 @@
 #'   classified; records with complete coordinates are dropped from the
 #'   result.
 #'
-#' @returns A `nativeDetected` object — a `data.table` subclass with one row
+#' @returns A `nativeDetected` object - a `data.table` subclass with one row
 #'   per coordinateless record (every row of
 #'   `custom_filtered$occ_filtered[is.na(decimalLatitude) |
 #'   is.na(decimalLongitude)]`), keyed by `gbifID`. Every column of the input

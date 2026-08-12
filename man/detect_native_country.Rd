@@ -13,7 +13,7 @@ classified; records with complete coordinates are dropped from the
 result.}
 }
 \value{
-A \code{nativeDetected} object — a \code{data.table} subclass with one row
+A \code{nativeDetected} object - a \code{data.table} subclass with one row
 per coordinateless record (every row of
 \code{custom_filtered$occ_filtered[is.na(decimalLatitude) | is.na(decimalLongitude)]}), keyed by \code{gbifID}. Every column of the input
 records is retained unchanged, with four classification columns appended:
@@ -48,8 +48,8 @@ areas. \code{countryCode} is mapped to candidate Level 3 areas by the
 \item Any remaining case defaults to \code{"unknown"}.
 }
 
-Only records missing longitude \strong{or} latitude —
-\code{custom_filtered$occ_filtered[is.na(decimalLatitude) | is.na(decimalLongitude)]} — are classified. Records with complete
+Only records missing longitude \strong{or} latitude -
+\code{custom_filtered$occ_filtered[is.na(decimalLatitude) | is.na(decimalLongitude)]} - are classified. Records with complete
 coordinates are not part of the result; classify them with
 \code{\link[=detect_native_coord]{detect_native_coord()}} instead.
 }

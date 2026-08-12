@@ -13,7 +13,7 @@ detect_native_coord(
 \arguments{
 \item{refined_coordinates}{A \code{CoordinateRefined} object returned by
 \code{\link[=refine_coordinates]{refine_coordinates()}}, or a list with the same structure. Only the
-\code{CoordinateCleaned} table — records with validated coordinates — is
+\code{CoordinateCleaned} table - records with validated coordinates - is
 classified; \code{CoordinateProblematic} and \code{Coordinateless} records are not
 part of the result.}
 
@@ -25,7 +25,7 @@ buffer. Defaults to \code{10}.}
 in one chunk, keeping the relate matrix small. Defaults to \code{2000}.}
 }
 \value{
-A \code{nativeDetected} object — a \code{data.table} subclass with one row
+A \code{nativeDetected} object - a \code{data.table} subclass with one row
 per input record (every row of \code{CoordinateCleaned}), keyed by \code{gbifID}.
 Every column of the input records is retained unchanged, with four
 classification columns appended:
