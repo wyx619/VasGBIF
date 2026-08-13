@@ -10,7 +10,7 @@ WGSRPD3
 
 ## Format
 
-An 'sf' object with 20 rows and 5 variables:
+An 'sf' object with 369 rows and 5 variables:
 
 - LEVEL3_NAM:
 

@@ -16,6 +16,14 @@ A simple features object
 
   Land area
 
+- scalerank:
+
+  Scale rank of the land feature
+
+- min_zoom:
+
+  Minimum zoom level at which the feature is displayed
+
 - geometry:
 
   Geometry unit

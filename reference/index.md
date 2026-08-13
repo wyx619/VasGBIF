@@ -90,7 +90,7 @@
 - [`Distributions`](https://wyx619.github.io/VasGBIF/reference/Distributions.md)
   : The World Checklist of Vascular Plants Distributions
 - [`EnumOccurrenceIssue`](https://wyx619.github.io/VasGBIF/reference/EnumOccurrenceIssue.md)
-  : Enumeration GBIF issue
+  : Enumeration of GBIF occurrence issues
 - [`Level3maping`](https://wyx619.github.io/VasGBIF/reference/Level3maping.md)
   : WGSRPD Level 3 area codes, names and country concordance
 - [`WGSRPD3`](https://wyx619.github.io/VasGBIF/reference/wgsrpd3.md) :

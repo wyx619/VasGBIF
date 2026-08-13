@@ -193,13 +193,13 @@ resolutions) are present in <code>summary</code> for manual review but absent fr
 <div class="section">
 <h3 id="retry-logic">Retry logic<a class="anchor" aria-label="anchor" href="#retry-logic"></a></h3>
 
-<ul><li><p><code>occ_taxa_checked</code>: a <code>data.table</code> of occurrence records that passed the
-<code>accuracy</code> threshold, have an <code>"Accepted"</code> or <code>"Synonym"</code>
-<code>Taxonomic_status</code>, and whose <code>Accepted_name_rank</code> is neither empty nor
-<code>"genus"</code>. Columns from <code>occ_import</code> (<code>gbifID</code>,t, guarding
-against transient network failures. If all attempts fail for a chunk, the
-function stops with an informative error.</p></li>
-</ul></div>
+
+<p>Each chunk is attempted up to three times. An attempt that exceeds
+<code>timeout_minutes</code> or that returns no rows is abandoned and retried, with a
+five-second pause between attempts, guarding against transient network
+failures. If all attempts fail for a chunk, the function stops with an
+informative error.</p>
+</div>
 
     </div>
     <div class="section level2">
