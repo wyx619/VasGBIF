@@ -65,6 +65,7 @@
 #'   for the difference between 'SIMPLE_CSV' and 'DWCA' downloads.
 #'
 #' @import data.table
+#' @importFrom dplyr %>%
 #' @importFrom utils unzip
 #' @importFrom tools file_ext
 #'

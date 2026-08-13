@@ -5,6 +5,8 @@
 #' @format A simple features object
 #' \describe{
 #'   \item{featurecla}{Land area}
+#'   \item{scalerank}{Scale rank of the land feature}
+#'   \item{min_zoom}{Minimum zoom level at which the feature is displayed}
 #'   \item{geometry}{Geometry unit}
 #' }
 #' @importFrom utils data

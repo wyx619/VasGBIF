@@ -73,12 +73,12 @@
 #' `occ_taxa_checked`.
 #'
 #' ## Retry logic
-#' * `occ_taxa_checked`: a `data.table` of occurrence records that passed the
-#'   `accuracy` threshold, have an `"Accepted"` or `"Synonym"`
-#'   `Taxonomic_status`, and whose `Accepted_name_rank` is neither empty nor
-#'   `"genus"`. Columns from `occ_import` (`gbifID`,t, guarding
-#' against transient network failures. If all attempts fail for a chunk, the
-#' function stops with an informative error.
+#'
+#' Each chunk is attempted up to three times. An attempt that exceeds
+#' `timeout_minutes` or that returns no rows is abandoned and retried, with a
+#' five-second pause between attempts, guarding against transient network
+#' failures. If all attempts fail for a chunk, the function stops with an
+#' informative error.
 #'
 #' @returns An object of class `"occ_taxa"`, implemented as a named list with
 #'   three elements:
@@ -247,7 +247,7 @@ check_taxon <- function(
 
     if (nrow(chunk_result) == 0) {
       stop(
-        "Network error: TNRS API is unreachable for chunk",
+        "Network error: TNRS API is unreachable for chunk ",
         i,
         ". Please try again later."
       )

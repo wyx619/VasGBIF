@@ -2,7 +2,7 @@
 #'
 #' Spatial data for WGSRPD Level 3
 #'
-#' @format An 'sf' object with 20 rows and 5 variables:
+#' @format An 'sf' object with 369 rows and 5 variables:
 #' \describe{
 #'   \item{LEVEL3_NAM}{Region name}
 #'   \item{LEVEL3_COD}{Region code}

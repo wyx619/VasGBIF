@@ -5,7 +5,7 @@
 \alias{WGSRPD3}
 \title{Biodiversity Information Standards (TDWG) World Geographical Scheme for Recording Plant Distributions (WGSRPD)}
 \format{
-An 'sf' object with 20 rows and 5 variables:
+An 'sf' object with 369 rows and 5 variables:
 \describe{
 \item{LEVEL3_NAM}{Region name}
 \item{LEVEL3_COD}{Region code}

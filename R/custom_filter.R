@@ -126,6 +126,7 @@
 #'
 #' @import data.table
 #' @import stringi
+#' @importFrom dplyr %>%
 #'
 #' @examplesIf interactive()
 #' gbif_file <- system.file(

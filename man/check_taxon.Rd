@@ -112,14 +112,12 @@ resolutions) are present in \code{summary} for manual review but absent from
 }
 
 \subsection{Retry logic}{
-\itemize{
-\item \code{occ_taxa_checked}: a \code{data.table} of occurrence records that passed the
-\code{accuracy} threshold, have an \code{"Accepted"} or \code{"Synonym"}
-\code{Taxonomic_status}, and whose \code{Accepted_name_rank} is neither empty nor
-\code{"genus"}. Columns from \code{occ_import} (\code{gbifID},t, guarding
-against transient network failures. If all attempts fail for a chunk, the
-function stops with an informative error.
-}
+
+Each chunk is attempted up to three times. An attempt that exceeds
+\code{timeout_minutes} or that returns no rows is abandoned and retried, with a
+five-second pause between attempts, guarding against transient network
+failures. If all attempts fail for a chunk, the function stops with an
+informative error.
 }
 }
 \examples{
