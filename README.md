@@ -51,7 +51,9 @@ Online wikis and manuals are available on <https://wyx619.github.io/VasGBIF/>.
 
 ***Architecture*** ***of VasGBIF.** Each step progressively filters records through taxonomic, quality, and coordinate checks. After all, more than half of the initial records are retained as high-quality and non-redundant data.*![Workflow](man/figures/workflow.png "VasGBIF workflow")
 
-VasGBIF provides a reproducible, tracheophyte-optimized, and computationally efficient framework for transforming GBIF records into analysis-ready datasets. The package functions are organized into 8 steps.
+VasGBIF provides a reproducible, vascular plants optimized, and computationally efficient framework for transforming GBIF records into analysis-ready datasets. The package functions are organized into four modules and eight steps.
+
+***Data Preparation Module***
 
 1.  **Import Records** (`import_records`): Reads a GBIF occurrence download ZIP ('SIMPLE_CSV' or Darwin Core Archive), extracts the occurrence table, and returns an `"import"` data.table of the fields required by the workflow. No records are filtered at this stage — all diagnostic flags are preserved for later quality scoring.
 
@@ -59,11 +61,17 @@ VasGBIF provides a reproducible, tracheophyte-optimized, and computationally eff
 
 3.  **Check Taxon Name** (`check_taxon`): Submits species- and infraspecific-rank names to the [Taxonomic Name Resolution Service](https://doi.org/10.32614/CRAN.package.TNRS) (TNRS; Boyle et al. 2013) for resolution against the World Checklist of Vascular Plants (WCVP) or World Flora Online (WFO). Synonyms are resolved to accepted names; records that fail the match-score threshold or lack an accepted/synonym status are excluded from the downstream table and reported in the `summary` for manual review.
 
+***Filter & Refine Module***
+
 4.  **Custom Filter** (`custom_filter`): Joins the imported records with the resolved taxonomy and the parsed issue flags, then applies the enabled filter rules (country code, coordinate uncertainty, GBIF issue count, event date, collector and identifier fields) to retain only high-quality records. Every rule is independently toggleable, and each step is recorded in a per-rule audit table.
 
 5.  **Refine Coordinates** (`refine_coordinates`): Validates coordinates with [CoordinateCleaner](https://doi.org/10.32614/CRAN.package.CoordinateCleaner) (Zizka et al. 2019) to flag spatial errors such as centroids, capitals, marine coordinates, and zero coordinates, splitting records into cleaned and problematic tables. Validation is parallelized across user-specified threads.
 
+***Native Status Detection Module***
+
 6.  **Detect Native Status** (`detect_native_coord` + `detect_native_country`): Match each record against WCVP distribution data (the internal `Distributions` dataset) via WGSRPD Level 3 areas to classify it as native, introduced, extinct, location_doubtful, or unknown. Records with validated coordinates are matched spatially by `detect_native_coord()`; records without coordinates are matched through their country code by `detect_native_country()`.
+
+***Plot & Export Module***
 
 7.  **Map Records** (`map_records`): Renders the refined records on an interactive map via [mapview](https://CRAN.R-project.org/package=mapview), with geohash-based decluttering to reduce visual overlap. Records are colour-coded by native status, and multiple basemap layers are supported (OpenStreetMap, Esri World Imagery, and others).
 
