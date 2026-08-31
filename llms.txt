@@ -89,10 +89,12 @@ more than half of the initial records are retained as high-quality and
 non-redundant
 data.*![Workflow](reference/figures/workflow.png "VasGBIF workflow")
 
-VasGBIF provides a reproducible, tracheophyte-optimized, and
+VasGBIF provides a reproducible, vascular plants optimized, and
 computationally efficient framework for transforming GBIF records into
-analysis-ready datasets. The package functions are organized into 8
-steps.
+analysis-ready datasets. The package functions are organized into four
+modules and eight steps.
+
+***Data Preparation Module***
 
 1.  **Import Records** (`import_records`): Reads a GBIF occurrence
     download ZIP (‘SIMPLE_CSV’ or Darwin Core Archive), extracts the
@@ -114,6 +116,8 @@ steps.
     an accepted/synonym status are excluded from the downstream table
     and reported in the `summary` for manual review.
 
+***Filter & Refine Module***
+
 4.  **Custom Filter** (`custom_filter`): Joins the imported records with
     the resolved taxonomy and the parsed issue flags, then applies the
     enabled filter rules (country code, coordinate uncertainty, GBIF
@@ -129,6 +133,8 @@ steps.
     records into cleaned and problematic tables. Validation is
     parallelized across user-specified threads.
 
+***Native Status Detection Module***
+
 6.  **Detect Native Status** (`detect_native_coord` +
     `detect_native_country`): Match each record against WCVP
     distribution data (the internal `Distributions` dataset) via WGSRPD
@@ -139,6 +145,8 @@ steps.
     records without coordinates are matched through their country code
     by
     [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md).
+
+***Plot & Export Module***
 
 7.  **Map Records** (`map_records`): Renders the refined records on an
     interactive map via

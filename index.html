@@ -127,14 +127,25 @@
 <h2 id="typical-workflow">Typical Workflow<a class="anchor" aria-label="anchor" href="#typical-workflow"></a>
 </h2>
 <p><strong><em>Architecture</em></strong> <em><strong>of VasGBIF.</strong> Each step progressively filters records through taxonomic, quality, and coordinate checks. After all, more than half of the initial records are retained as high-quality and non-redundant data.</em><img src="reference/figures/workflow.png" title="VasGBIF workflow" alt="Workflow"></p>
-<p>VasGBIF provides a reproducible, tracheophyte-optimized, and computationally efficient framework for transforming GBIF records into analysis-ready datasets. The package functions are organized into 8 steps.</p>
+<p>VasGBIF provides a reproducible, vascular plants optimized, and computationally efficient framework for transforming GBIF records into analysis-ready datasets. The package functions are organized into four modules and eight steps.</p>
+<p><strong><em>Data Preparation Module</em></strong></p>
 <ol style="list-style-type: decimal">
 <li><p><strong>Import Records</strong> (<code>import_records</code>): Reads a GBIF occurrence download ZIP (‘SIMPLE_CSV’ or Darwin Core Archive), extracts the occurrence table, and returns an <code>"import"</code> data.table of the fields required by the workflow. No records are filtered at this stage — all diagnostic flags are preserved for later quality scoring.</p></li>
 <li><p><strong>Extract GBIF Issues</strong> (<code>extract_gbif_issues</code>): Expands the raw pipe-separated <code>issue</code> column into one logical indicator column per GBIF issue code, plus a companion summary ranking issues by how many records they flag.</p></li>
 <li><p><strong>Check Taxon Name</strong> (<code>check_taxon</code>): Submits species- and infraspecific-rank names to the <a href="https://doi.org/10.32614/CRAN.package.TNRS" class="external-link">Taxonomic Name Resolution Service</a> (TNRS; Boyle et al. 2013) for resolution against the World Checklist of Vascular Plants (WCVP) or World Flora Online (WFO). Synonyms are resolved to accepted names; records that fail the match-score threshold or lack an accepted/synonym status are excluded from the downstream table and reported in the <code>summary</code> for manual review.</p></li>
+</ol>
+<p><strong><em>Filter &amp; Refine Module</em></strong></p>
+<ol start="4" style="list-style-type: decimal">
 <li><p><strong>Custom Filter</strong> (<code>custom_filter</code>): Joins the imported records with the resolved taxonomy and the parsed issue flags, then applies the enabled filter rules (country code, coordinate uncertainty, GBIF issue count, event date, collector and identifier fields) to retain only high-quality records. Every rule is independently toggleable, and each step is recorded in a per-rule audit table.</p></li>
 <li><p><strong>Refine Coordinates</strong> (<code>refine_coordinates</code>): Validates coordinates with <a href="https://doi.org/10.32614/CRAN.package.CoordinateCleaner" class="external-link">CoordinateCleaner</a> (Zizka et al. 2019) to flag spatial errors such as centroids, capitals, marine coordinates, and zero coordinates, splitting records into cleaned and problematic tables. Validation is parallelized across user-specified threads.</p></li>
-<li><p><strong>Detect Native Status</strong> (<code>detect_native_coord</code> + <code>detect_native_country</code>): Match each record against WCVP distribution data (the internal <code>Distributions</code> dataset) via WGSRPD Level 3 areas to classify it as native, introduced, extinct, location_doubtful, or unknown. Records with validated coordinates are matched spatially by <code><a href="reference/detect_native_coord.html">detect_native_coord()</a></code>; records without coordinates are matched through their country code by <code><a href="reference/detect_native_country.html">detect_native_country()</a></code>.</p></li>
+</ol>
+<p><strong><em>Native Status Detection Module</em></strong></p>
+<ol start="6" style="list-style-type: decimal">
+<li>
+<strong>Detect Native Status</strong> (<code>detect_native_coord</code> + <code>detect_native_country</code>): Match each record against WCVP distribution data (the internal <code>Distributions</code> dataset) via WGSRPD Level 3 areas to classify it as native, introduced, extinct, location_doubtful, or unknown. Records with validated coordinates are matched spatially by <code><a href="reference/detect_native_coord.html">detect_native_coord()</a></code>; records without coordinates are matched through their country code by <code><a href="reference/detect_native_country.html">detect_native_country()</a></code>.</li>
+</ol>
+<p><strong><em>Plot &amp; Export Module</em></strong></p>
+<ol start="7" style="list-style-type: decimal">
 <li><p><strong>Map Records</strong> (<code>map_records</code>): Renders the refined records on an interactive map via <a href="https://CRAN.R-project.org/package=mapview" class="external-link">mapview</a>, with geohash-based decluttering to reduce visual overlap. Records are colour-coded by native status, and multiple basemap layers are supported (OpenStreetMap, Esri World Imagery, and others).</p></li>
 <li><p><strong>Export Records</strong> (<code>export_records</code>): Writes the classified records to disk as two gzip-compressed CSV files: all usable records and the native subset.</p></li>
 </ol>
