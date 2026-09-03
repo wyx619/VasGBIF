@@ -48,7 +48,7 @@ into analysis-ready datasets.
     manual review.
 
 4.  **Custom Filter** -
-    [`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md):
+    [`customized_filter()`](https://wyx619.github.io/VasGBIF/reference/customized_filter.md):
     joins the imported records with the resolved taxonomy and the parsed
     issue flags, then applies the enabled filter rules (country code,
     coordinate uncertainty, GBIF issue count, event date, collector and
@@ -57,12 +57,14 @@ into analysis-ready datasets.
     audit table (see *Flexible and fluent custom filter system*).
 
 5.  **Refine Coordinates** -
-    [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md):
+    [`clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/clean_coordinates.md):
     validates coordinates with
     [`CoordinateCleaner::clean_coordinates()`](https://ropensci.github.io/CoordinateCleaner/reference/clean_coordinates.html)
     (Zizka et al. 2019) to flag spatial errors such as centroids,
     capitals, marine coordinates, and zero coordinates, splitting
-    records into cleaned and problematic tables. Validation is
+    records into cleaned and problematic tables. Records that pass all
+    tests go to `CoordinateCleaned`; those that fail any test or lack
+    complete coordinates go to `CoordinateProblematic`. Validation is
     parallelized across user-specified threads.
 
 6.  **Detect Native Status** -
@@ -71,8 +73,14 @@ into analysis-ready datasets.
     [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md):
     match each record against WCVP distribution data (the internal
     `Distributions` dataset) via WGSRPD Level 3 areas to classify it as
-    native, introduced, extinct, location_doubtful, or unknown (see
-    *Precise native-status detection system*).
+    native, introduced, extinct, location_doubtful, or unknown.
+    [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)
+    processes records from `CoordinateCleaned` (those with validated
+    coordinates);
+    [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)
+    processes all records from `CoordinateProblematic` (both
+    coordinateless records and those that failed validation) using
+    country codes (see *Precise native-status detection system*).
 
 7.  **Map Records** -
     [`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md):
@@ -98,11 +106,11 @@ every occurrence by matching the record's identification and position
 against authoritative WCVP distribution data (the internal
 `Distributions` dataset) organised by WGSRPD Level 3 areas.
 Classification is split across two functions so that the most precise
-available evidence always wins: records with validated coordinates are
-matched spatially by
+available evidence always wins: records from `CoordinateCleaned` (those
+with validated coordinates) are matched spatially by
 [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md),
-and records without coordinates are matched through their country code
-by
+and records from `CoordinateProblematic` (coordinateless records and
+those that failed validation) are matched through their country code by
 [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md).
 
 **Spatial classification.**
@@ -137,9 +145,10 @@ by a buffered candidate. The buffer pass is chunked
 
 **Country-code classification.**
 [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)
-matches records without coordinates through `countryCode` mapped to
-WGSRPD Level 3 areas by the `Level3maping` table. No geometry is used,
-so this pass is nearly free.
+matches records from `CoordinateProblematic` through `countryCode`
+mapped to WGSRPD Level 3 areas by the `Level3maping` table. This
+includes both coordinateless records and records that failed coordinate
+validation tests. No geometry is used, so this pass is nearly free.
 
 Every classification records how it was obtained in
 `native_status_source` - `spatial` / `spatial_buffered` for spatial
@@ -159,11 +168,11 @@ directly into
 [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)
 and
 [`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)
-without any join back to `refined_coordinates`.
+without any join back to `cleaned_coordinates`.
 
 ### Flexible and fluent custom filter system
 
-[`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md)
+[`customized_filter()`](https://wyx619.github.io/VasGBIF/reference/customized_filter.md)
 turns the raw download into an analysis-ready occurrence table. It joins
 the three preceding outputs (`occ_import`, `taxa_checked`, `gbif_issue`)
 into one table, then walks a user-selected set of quality rules - one
@@ -225,25 +234,25 @@ GBIF download:
     taxa_checked <- check_taxon(occ_import = occ_import, accuracy = 0.85)
 
 
-    filtered <- custom_filter(
+    filtered <- customized_filter(
       occ_import = occ_import,
       taxa_checked = taxa_checked,
       gbif_issue = gbif_issue
     )
 
 
-    refined_coordinates <- refine_coordinates(
-      custom_filtered = filtered,
+    cleaned_coordinates <- clean_coordinates(
+      customized_filtered = filtered,
       threads = 4
     )
 
     native_detected_coord <- detect_native_coord(
-      refined_coordinates = refined_coordinates
+      cleaned_coordinates = cleaned_coordinates
     )
 
 
     native_detected_country <- detect_native_country(
-      custom_filtered = filtered
+      cleaned_coordinates = cleaned_coordinates
     )
 
     map_records(
@@ -289,7 +298,7 @@ VasGBIF achieves its speed through several architectural choices:
   memory access patterns improve CPU cache utilisation.
 
 - **Selective parallelisation**:
-  [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
+  [`clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/clean_coordinates.md)
   partitions the dataset into chunks and distributes
   [CoordinateCleaner](https://ropensci.github.io/CoordinateCleaner/reference/CoordinateCleaner-package.html)
   validation across workers via

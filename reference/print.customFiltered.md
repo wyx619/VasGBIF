@@ -15,7 +15,7 @@ print(x, ...)
 - x:
 
   An object of class `"customFiltered"` returned by
-  [`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md).
+  [`customized_filter()`](https://wyx619.github.io/VasGBIF/reference/customized_filter.md).
 
 - ...:
 

@@ -9,7 +9,7 @@
 record by matching it against WCVP distribution data (the internal
 Distributions dataset) via WGSRPD Level 3 areas. Classification uses only
 the spatial stage: records with validated coordinates, taken from
-refined_coordinates$CoordinateCleaned, are overlaid on the WGSRPD Level 3
+cleaned_coordinates$CoordinateCleaned, are overlaid on the WGSRPD Level 3
 polygon map (via terra::extract()) to assign an area code to each record.
 That area code is looked up in a distribution table classified from the
 WCVP flags (introduced, extinct, location_doubtful) with the
@@ -32,7 +32,7 @@ countryCode without using geometry.'><meta property="og:description" content='As
 record by matching it against WCVP distribution data (the internal
 Distributions dataset) via WGSRPD Level 3 areas. Classification uses only
 the spatial stage: records with validated coordinates, taken from
-refined_coordinates$CoordinateCleaned, are overlaid on the WGSRPD Level 3
+cleaned_coordinates$CoordinateCleaned, are overlaid on the WGSRPD Level 3
 polygon map (via terra::extract()) to assign an area code to each record.
 That area code is looked up in a distribution table classified from the
 WCVP flags (introduced, extinct, location_doubtful) with the
@@ -59,7 +59,7 @@ countryCode without using geometry.'><meta property="og:image" content="https://
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -102,7 +102,7 @@ countryCode without using geometry.'><meta property="og:image" content="https://
 record by matching it against WCVP distribution data (the internal
 <code>Distributions</code> dataset) via WGSRPD Level 3 areas. Classification uses only
 the spatial stage: records with validated coordinates, taken from
-<code>refined_coordinates$CoordinateCleaned</code>, are overlaid on the WGSRPD Level 3
+<code>cleaned_coordinates$CoordinateCleaned</code>, are overlaid on the WGSRPD Level 3
 polygon map (via <code><a href="https://rspatial.github.io/terra/reference/extract.html" class="external-link">terra::extract()</a></code>) to assign an area code to each record.
 That area code is looked up in a distribution table classified from the
 WCVP flags (<code>introduced</code>, <code>extinct</code>, <code>location_doubtful</code>) with the
@@ -124,7 +124,7 @@ them with <code><a href="detect_native_country.html">detect_native_country()</a>
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">detect_native_coord</span><span class="op">(</span></span>
-<span>  refined_coordinates <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  cleaned_coordinates <span class="op">=</span> <span class="cn">NA</span>,</span>
 <span>  buffer_km <span class="op">=</span> <span class="fl">10</span>,</span>
 <span>  buffer_chunk_size <span class="op">=</span> <span class="fl">2000</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -134,9 +134,9 @@ them with <code><a href="detect_native_country.html">detect_native_country()</a>
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
 
 
-<dl><dt id="arg-refined-coordinates">refined_coordinates<a class="anchor" aria-label="anchor" href="#arg-refined-coordinates"></a></dt>
+<dl><dt id="arg-cleaned-coordinates">cleaned_coordinates<a class="anchor" aria-label="anchor" href="#arg-cleaned-coordinates"></a></dt>
 <dd><p>A <code>CoordinateRefined</code> object returned by
-<code><a href="refine_coordinates.html">refine_coordinates()</a></code>, or a list with the same structure. Only the
+<code><a href="clean_coordinates.html">clean_coordinates()</a></code>, or a list with the same structure. Only the
 <code>CoordinateCleaned</code> table - records with validated coordinates - is
 classified; <code>CoordinateProblematic</code> and <code>Coordinateless</code> records are not
 part of the result.</p></dd>
@@ -169,7 +169,7 @@ buffer; <code>"unmatched"</code> means the record matched no area.</p></li>
 </ul><p>The intermediate matching columns used internally (taxon keys, candidate
 areas, match ranks) are not returned. Because the record columns are
 carried through, the result holds a second copy of the input data: for large
-inputs, <code>refined_coordinates</code> can be dropped once the classification is in
+inputs, <code>cleaned_coordinates</code> can be dropped once the classification is in
 hand.</p>
     </div>
     <div class="section level2">
@@ -188,10 +188,10 @@ same meaning at every latitude.</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># interactive() &amp;&amp; exists("refined_coordinates")</span></span></span>
-<span class="r-in"><span><span class="co"># Classify records with validated coordinates. `refined_coordinates` comes</span></span></span>
-<span class="r-in"><span><span class="co"># from `refine_coordinates()`, whose example creates it when run first.</span></span></span>
-<span class="r-in"><span><span class="va">native_coord</span> <span class="op">&lt;-</span> <span class="fu">detect_native_coord</span><span class="op">(</span>refined_coordinates <span class="op">=</span> <span class="va">refined_coordinates</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># interactive() &amp;&amp; exists("cleaned_coordinates")</span></span></span>
+<span class="r-in"><span><span class="co"># Classify records with validated coordinates. `cleaned_coordinates` comes</span></span></span>
+<span class="r-in"><span><span class="co"># from `clean_coordinates()`, whose example creates it when run first.</span></span></span>
+<span class="r-in"><span><span class="va">native_coord</span> <span class="op">&lt;-</span> <span class="fu">detect_native_coord</span><span class="op">(</span>cleaned_coordinates <span class="op">=</span> <span class="va">cleaned_coordinates</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">native_coord</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 </code></pre></div>

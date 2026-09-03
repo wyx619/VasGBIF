@@ -18,7 +18,7 @@ print(x, ...)
 - x:
 
   An object of class `"CoordinateRefined"` returned by
-  [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md).
+  [`clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/clean_coordinates.md).
 
 - ...:
 

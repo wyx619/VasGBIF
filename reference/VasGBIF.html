@@ -33,7 +33,7 @@ laptop in under 15 minutes without specialised hardware."><meta property="og:ima
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -112,23 +112,30 @@ Vascular Plants (WCVP) or World Flora Online (WFO). Synonyms are
 resolved to accepted names; records that fail the match-score threshold
 or lack an accepted/synonym status are excluded from the downstream
 table and reported in the <code>summary</code> for manual review.</p></li>
-<li><p><strong>Custom Filter</strong> - <code><a href="custom_filter.html">custom_filter()</a></code>: joins the imported records with
+<li><p><strong>Custom Filter</strong> - <code><a href="customized_filter.html">customized_filter()</a></code>: joins the imported records with
 the resolved taxonomy and the parsed issue flags, then applies the
 enabled filter rules (country code, coordinate uncertainty, GBIF issue
 count, event date, collector and identifier fields) to retain only
 high-quality records. Every rule is independently toggleable, and each
 step is recorded in a per-rule audit table (see <em>Flexible and fluent
 custom filter system</em>).</p></li>
-<li><p><strong>Refine Coordinates</strong> - <code><a href="refine_coordinates.html">refine_coordinates()</a></code>: validates coordinates
+<li><p><strong>Refine Coordinates</strong> - <code><a href="clean_coordinates.html">clean_coordinates()</a></code>: validates coordinates
 with <code><a href="https://ropensci.github.io/CoordinateCleaner/reference/clean_coordinates.html" class="external-link">CoordinateCleaner::clean_coordinates()</a></code> (Zizka et al. 2019) to
 flag spatial errors such as centroids, capitals, marine coordinates, and
 zero coordinates, splitting records into cleaned and problematic tables.
+Records that pass all tests go to <code>CoordinateCleaned</code>; those that fail
+any test or lack complete coordinates go to <code>CoordinateProblematic</code>.
 Validation is parallelized across user-specified threads.</p></li>
 <li><p><strong>Detect Native Status</strong> - <code><a href="detect_native_coord.html">detect_native_coord()</a></code> and
 <code><a href="detect_native_country.html">detect_native_country()</a></code>: match each record against WCVP distribution
 data (the internal <code>Distributions</code> dataset) via WGSRPD Level 3 areas to
 classify it as native, introduced, extinct, location_doubtful, or
-unknown (see <em>Precise native-status detection system</em>).</p></li>
+unknown. <code><a href="detect_native_coord.html">detect_native_coord()</a></code> processes records from
+<code>CoordinateCleaned</code> (those with validated coordinates);
+<code><a href="detect_native_country.html">detect_native_country()</a></code> processes all records from
+<code>CoordinateProblematic</code> (both coordinateless records and those that
+failed validation) using country codes (see <em>Precise native-status
+detection system</em>).</p></li>
 <li><p><strong>Map Records</strong> - <code><a href="map_records.html">map_records()</a></code>: renders refined records on
 interactive maps via <code><a href="https://r-spatial.github.io/mapview/reference/mapView.html" class="external-link">mapView()</a></code>, with geohash-based
 decluttering to reduce visual overlap. Records are colour-coded by
@@ -149,9 +156,11 @@ location_doubtful, or unknown classification to every occurrence by
 matching the record's identification and position against authoritative
 WCVP distribution data (the internal <code>Distributions</code> dataset) organised by
 WGSRPD Level 3 areas. Classification is split across two functions so that
-the most precise available evidence always wins: records with validated
-coordinates are matched spatially by <code><a href="detect_native_coord.html">detect_native_coord()</a></code>, and records
-without coordinates are matched through their country code by
+the most precise available evidence always wins: records from
+<code>CoordinateCleaned</code> (those with validated coordinates) are matched
+spatially by <code><a href="detect_native_coord.html">detect_native_coord()</a></code>, and records from
+<code>CoordinateProblematic</code> (coordinateless records and those that failed
+validation) are matched through their country code by
 <code><a href="detect_native_country.html">detect_native_country()</a></code>.</p>
 <p><strong>Spatial classification.</strong> <code><a href="detect_native_coord.html">detect_native_coord()</a></code> overlays records with
 validated coordinates on the WGSRPD Level 3 polygon map with
@@ -172,9 +181,10 @@ so a genuine in-polygon match is never displaced by a buffered candidate.
 The buffer pass is chunked (<code>buffer_chunk_size</code>) to keep the relate matrix
 small.</p>
 <p><strong>Country-code classification.</strong> <code><a href="detect_native_country.html">detect_native_country()</a></code> matches records
-without coordinates through <code>countryCode</code> mapped to WGSRPD Level 3 areas
-by the <code>Level3maping</code> table. No geometry is used, so this pass is nearly
-free.</p>
+from <code>CoordinateProblematic</code> through <code>countryCode</code> mapped to WGSRPD Level 3
+areas by the <code>Level3maping</code> table. This includes both coordinateless
+records and records that failed coordinate validation tests. No geometry is
+used, so this pass is nearly free.</p>
 <p>Every classification records how it was obtained in
 <code>native_status_source</code> - <code>spatial</code> / <code>spatial_buffered</code> for spatial
 matches (exact and buffered), <code>country_code</code> for country-code matches,
@@ -189,14 +199,14 @@ lookup ever iterates record-by-record in R. Both functions return a
 input records and appends <code>LEVEL3_COD</code>, <code>native_status</code>,
 <code>native_status_source</code>, and <code>buffered</code>; the spatial result feeds directly
 into <code><a href="export_records.html">export_records()</a></code> and <code><a href="map_records.html">map_records()</a></code> without any join back to
-<code>refined_coordinates</code>.</p>
+<code>cleaned_coordinates</code>.</p>
 </div>
 
 <div class="section">
 <h3 id="flexible-and-fluent-custom-filter-system">Flexible and fluent custom filter system<a class="anchor" aria-label="anchor" href="#flexible-and-fluent-custom-filter-system"></a></h3>
 
 
-<p><code><a href="custom_filter.html">custom_filter()</a></code> turns the raw download into an analysis-ready
+<p><code><a href="customized_filter.html">customized_filter()</a></code> turns the raw download into an analysis-ready
 occurrence table. It joins the three preceding outputs (<code>occ_import</code>,
 <code>taxa_checked</code>, <code>gbif_issue</code>) into one table, then walks a user-selected
 set of quality rules - one vectorised <a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a> pass per rule - with
@@ -254,25 +264,25 @@ GBIF download:</p>
 <span><span class="va">taxa_checked</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/check_taxon.html">check_taxon</a></span><span class="op">(</span>occ_import <span class="op">=</span> <span class="va">occ_import</span>, accuracy <span class="op">=</span> <span class="fl">0.85</span><span class="op">)</span></span>
 <span></span>
 <span></span>
-<span><span class="va">filtered</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/custom_filter.html">custom_filter</a></span><span class="op">(</span></span>
+<span><span class="va">filtered</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/customized_filter.html">customized_filter</a></span><span class="op">(</span></span>
 <span>  occ_import <span class="op">=</span> <span class="va">occ_import</span>,</span>
 <span>  taxa_checked <span class="op">=</span> <span class="va">taxa_checked</span>,</span>
 <span>  gbif_issue <span class="op">=</span> <span class="va">gbif_issue</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span></span>
-<span><span class="va">refined_coordinates</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/refine_coordinates.html">refine_coordinates</a></span><span class="op">(</span></span>
-<span>  custom_filtered <span class="op">=</span> <span class="va">filtered</span>,</span>
+<span><span class="va">cleaned_coordinates</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/clean_coordinates.html">clean_coordinates</a></span><span class="op">(</span></span>
+<span>  customized_filtered <span class="op">=</span> <span class="va">filtered</span>,</span>
 <span>  threads <span class="op">=</span> <span class="fl">4</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">native_detected_coord</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_native_coord.html">detect_native_coord</a></span><span class="op">(</span></span>
-<span>  refined_coordinates <span class="op">=</span> <span class="va">refined_coordinates</span></span>
+<span>  cleaned_coordinates <span class="op">=</span> <span class="va">cleaned_coordinates</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span></span>
 <span><span class="va">native_detected_country</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_native_country.html">detect_native_country</a></span><span class="op">(</span></span>
-<span>  custom_filtered <span class="op">=</span> <span class="va">filtered</span></span>
+<span>  cleaned_coordinates <span class="op">=</span> <span class="va">cleaned_coordinates</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/map_records.html">map_records</a></span><span class="op">(</span></span>
@@ -306,7 +316,7 @@ cycle.</p></li>
 <li><p><strong>Memory-efficient design</strong>: <a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a>'s in-place modification <code>:=</code>
 avoids unnecessary copies, and contiguous memory access patterns improve
 CPU cache utilisation.</p></li>
-<li><p><strong>Selective parallelisation</strong>: <code><a href="refine_coordinates.html">refine_coordinates()</a></code> partitions the
+<li><p><strong>Selective parallelisation</strong>: <code><a href="clean_coordinates.html">clean_coordinates()</a></code> partitions the
 dataset into chunks and distributes <a href="https://ropensci.github.io/CoordinateCleaner/reference/CoordinateCleaner-package.html" class="external-link">CoordinateCleaner</a> validation
 across workers via <a href="https://rdrr.io/pkg/foreach/man/foreach.html" class="external-link">foreach</a> and <a href="https://rdrr.io/pkg/doParallel/man/doParallel-package.html" class="external-link">doParallel</a>, combining vectorised
 processing within each chunk with parallel execution across chunks.</p></li>

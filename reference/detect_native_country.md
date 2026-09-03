@@ -19,35 +19,38 @@ applies:
 
 5.  Any remaining case defaults to `"unknown"`.
 
-Only records missing longitude **or** latitude -
-`custom_filtered$occ_filtered[is.na(decimalLatitude) | is.na(decimalLongitude)]` -
-are classified. Records with complete coordinates are not part of the
-result; classify them with
+All records from `CoordinateProblematic` are classified, including both
+records that lack coordinates (missing longitude or latitude) and
+records with complete coordinates that failed validation tests. Records
+from `CoordinateCleaned` (those that passed validation) should be
+classified using
 [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)
 instead.
 
 ## Usage
 
 ``` r
-detect_native_country(custom_filtered = NA)
+detect_native_country(cleaned_coordinates = NA)
 ```
 
 ## Arguments
 
-- custom_filtered:
+- cleaned_coordinates:
 
-  A `customFiltered` object returned by
-  [`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md).
-  Only records missing longitude or latitude are classified; records
-  with complete coordinates are dropped from the result.
+  A `CoordinateRefined` object returned by
+  [`clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/clean_coordinates.md).
+  All records from `CoordinateProblematic` are classified, including
+  both coordinateless records and records that failed coordinate
+  validation tests.
 
 ## Value
 
+A `nativeDetected` object - a `data.table` subclass with one row
+
 A `nativeDetected` object - a `data.table` subclass with one row per
-coordinateless record (every row of
-`custom_filtered$occ_filtered[is.na(decimalLatitude) | is.na(decimalLongitude)]`),
-keyed by `gbifID`. Every column of the input records is retained
-unchanged, with four classification columns appended:
+record from `CoordinateProblematic`
+(`cleaned_coordinates$CoordinateProblematic`), keyed by `gbifID`. Every
+column of the input:
 
 - `LEVEL3_COD`: the assigned WGSRPD Level 3 area code, or `NA` if the
   record could not be matched
@@ -87,10 +90,11 @@ for a compact summary of the result.
 ## Examples
 
 ``` r
-if (FALSE) { # interactive() && exists("filtered")
-# Classify the coordinate-less records. `filtered` comes from
-# `custom_filter()`, whose example creates it when run first.
-native_country <- detect_native_country(custom_filtered = filtered)
+if (FALSE) { # interactive() && exists("cleaned_coordinates")
+# Classify the coordinate-less records. `cleaned_coordinates` comes from
+# `clean_coordinates()`, whose example creates it when run first.
+native_country <- detect_native_country(cleaned_coordinates = cleaned_coordinates)
+native_country <- detect_native_country(customized_filtered = filtered)
 native_country
 }
 ```

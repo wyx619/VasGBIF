@@ -4,7 +4,7 @@ Assigns a native status classification to each occurrence record by
 matching it against WCVP distribution data (the internal `Distributions`
 dataset) via WGSRPD Level 3 areas. Classification uses only the spatial
 stage: records with validated coordinates, taken from
-`refined_coordinates$CoordinateCleaned`, are overlaid on the WGSRPD
+`cleaned_coordinates$CoordinateCleaned`, are overlaid on the WGSRPD
 Level 3 polygon map (via
 [`terra::extract()`](https://rspatial.github.io/terra/reference/extract.html))
 to assign an area code to each record. That area code is looked up in a
@@ -37,7 +37,7 @@ geometry.
 
 ``` r
 detect_native_coord(
-  refined_coordinates = NA,
+  cleaned_coordinates = NA,
   buffer_km = 10,
   buffer_chunk_size = 2000
 )
@@ -45,10 +45,10 @@ detect_native_coord(
 
 ## Arguments
 
-- refined_coordinates:
+- cleaned_coordinates:
 
   A `CoordinateRefined` object returned by
-  [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md),
+  [`clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/clean_coordinates.md),
   or a list with the same structure. Only the `CoordinateCleaned`
   table - records with validated coordinates - is classified;
   `CoordinateProblematic` and `Coordinateless` records are not part of
@@ -87,7 +87,7 @@ classification columns appended:
 The intermediate matching columns used internally (taxon keys, candidate
 areas, match ranks) are not returned. Because the record columns are
 carried through, the result holds a second copy of the input data: for
-large inputs, `refined_coordinates` can be dropped once the
+large inputs, `cleaned_coordinates` can be dropped once the
 classification is in hand.
 
 ## Details
@@ -109,10 +109,10 @@ for a compact summary of the result.
 ## Examples
 
 ``` r
-if (FALSE) { # interactive() && exists("refined_coordinates")
-# Classify records with validated coordinates. `refined_coordinates` comes
-# from `refine_coordinates()`, whose example creates it when run first.
-native_coord <- detect_native_coord(refined_coordinates = refined_coordinates)
+if (FALSE) { # interactive() && exists("cleaned_coordinates")
+# Classify records with validated coordinates. `cleaned_coordinates` comes
+# from `clean_coordinates()`, whose example creates it when run first.
+native_coord <- detect_native_coord(cleaned_coordinates = cleaned_coordinates)
 native_coord
 }
 ```

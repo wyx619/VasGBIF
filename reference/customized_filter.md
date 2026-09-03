@@ -7,7 +7,7 @@ removes records according to a user-selected set of quality rules.
 ## Usage
 
 ``` r
-custom_filter(
+customized_filter(
   occ_import = NA,
   taxa_checked = NA,
   gbif_issue = NA,
@@ -196,7 +196,7 @@ occ <- import_records(path = gbif_file)
 gbif_issue <- extract_gbif_issues(occ)
 taxa_checked <- check_taxon(occ_import = occ, accuracy = 0.85)
 
-filtered <- custom_filter(
+filtered <- customized_filter(
   occ_import = occ,
   taxa_checked = taxa_checked,
   gbif_issue = gbif_issue,
@@ -207,7 +207,7 @@ filtered <- custom_filter(
 filtered
 
 # Disable the coordinate-uncertainty rule (NULL / NA / '' all work):
-filtered_loose <- custom_filter(
+filtered_loose <- customized_filter(
   occ_import = occ,
   taxa_checked = taxa_checked,
   gbif_issue = gbif_issue,

@@ -14,7 +14,8 @@
 <url><loc>https://wyx619.github.io/VasGBIF/reference/VasGBIF.html</loc></url>
 <url><loc>https://wyx619.github.io/VasGBIF/reference/WorldLandMap.html</loc></url>
 <url><loc>https://wyx619.github.io/VasGBIF/reference/check_taxon.html</loc></url>
-<url><loc>https://wyx619.github.io/VasGBIF/reference/custom_filter.html</loc></url>
+<url><loc>https://wyx619.github.io/VasGBIF/reference/clean_coordinates.html</loc></url>
+<url><loc>https://wyx619.github.io/VasGBIF/reference/customized_filter.html</loc></url>
 <url><loc>https://wyx619.github.io/VasGBIF/reference/detect_native_coord.html</loc></url>
 <url><loc>https://wyx619.github.io/VasGBIF/reference/detect_native_country.html</loc></url>
 <url><loc>https://wyx619.github.io/VasGBIF/reference/export_records.html</loc></url>
@@ -28,7 +29,6 @@
 <url><loc>https://wyx619.github.io/VasGBIF/reference/print.issue.html</loc></url>
 <url><loc>https://wyx619.github.io/VasGBIF/reference/print.nativeDetected.html</loc></url>
 <url><loc>https://wyx619.github.io/VasGBIF/reference/print.occ_taxa.html</loc></url>
-<url><loc>https://wyx619.github.io/VasGBIF/reference/refine_coordinates.html</loc></url>
 <url><loc>https://wyx619.github.io/VasGBIF/reference/set_threads.html</loc></url>
 <url><loc>https://wyx619.github.io/VasGBIF/reference/wgsrpd3.html</loc></url>
 </urlset>

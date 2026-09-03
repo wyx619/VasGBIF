@@ -31,7 +31,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -85,7 +85,7 @@ Wang</h4>
 University<br><a class="author_email" href="mailto:#"></a><a href="mailto:wyx1743@gmail.com" class="email">wyx1743@gmail.com</a>
       </address>
                   
-            <h4 data-toc-skip class="date">2026-08-31</h4>
+            <h4 data-toc-skip class="date">2026-09-03</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/wyx619/VasGBIF/blob/master/vignettes/Application.Rmd" class="external-link"><code>vignettes/Application.Rmd</code></a></small>
       <div class="d-none name"><code>Application.Rmd</code></div>
@@ -125,22 +125,20 @@ per-record issue count</li>
 against WCVP through TNRS, keeping matches that clear the
 <code>accuracy</code> threshold and resolve below genus level</li>
 <li>
-<strong>Custom Filter</strong> —
-<strong><code><a href="../reference/custom_filter.html">custom_filter()</a></code></strong> joins the three outputs by
-<code>gbifID</code> and drops records rule by rule, logging every
-step</li>
+<strong>Customized Filter</strong> —
+<strong><code><a href="../reference/customized_filter.html">customized_filter()</a></code></strong> joins the three
+outputs by <code>gbifID</code> and drops records rule by rule, logging
+every step</li>
 <li>
-<strong>Refine Coordinates</strong> —
-<strong><code><a href="../reference/refine_coordinates.html">refine_coordinates()</a></code></strong> runs
-CoordinateCleaner tests in parallel, splitting records into
-coordinate-clean and coordinate-problematic tables</li>
+<strong>Clean Coordinates</strong> —
+<strong><code><a href="../reference/clean_coordinates.html">clean_coordinates()</a></code></strong> runs CoordinateCleaner
+tests in parallel, splitting records into coordinate-clean and
+coordinate-problematic tables</li>
 <li>
 <strong>Detect Native Status</strong> —
-<strong><code><a href="../reference/detect_native_coord.html">detect_native_coord()</a></code></strong> and
-<strong><code><a href="../reference/detect_native_country.html">detect_native_country()</a></code></strong> classify each
-record as <code>native</code>, <code>introduced</code>,
-<code>extinct</code>, <code>location_doubtful</code>, or
-<code>unknown</code>
+<strong><code><a href="../reference/detect_native_coord.html">detect_native_coord()</a></code></strong> classify each record
+as <code>native</code>, <code>introduced</code>, <code>extinct</code>,
+<code>location_doubtful</code>, or <code>unknown</code>
 </li>
 <li>
 <strong>Map Records</strong> —
@@ -174,32 +172,28 @@ Substitute your own GBIF ZIP for real analyses (see the
 <span><span class="va">taxa_checked</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/check_taxon.html">check_taxon</a></span><span class="op">(</span>occ_import <span class="op">=</span> <span class="va">occ_import</span>, accuracy <span class="op">=</span> <span class="fl">0.85</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Step 4: Filter records by quality rules</span></span>
-<span><span class="va">filtered</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/custom_filter.html">custom_filter</a></span><span class="op">(</span></span>
+<span><span class="va">filtered</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/customized_filter.html">customized_filter</a></span><span class="op">(</span></span>
 <span>  occ_import <span class="op">=</span> <span class="va">occ_import</span>,</span>
 <span>  taxa_checked <span class="op">=</span> <span class="va">taxa_checked</span>,</span>
 <span>  gbif_issue <span class="op">=</span> <span class="va">gbif_issue</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Step 5: Validate coordinates</span></span>
-<span><span class="va">refined_coordinates</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/refine_coordinates.html">refine_coordinates</a></span><span class="op">(</span></span>
-<span>  custom_filtered <span class="op">=</span> <span class="va">filtered</span>,</span>
+<span><span class="va">cleaned_coordinates</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/clean_coordinates.html">clean_coordinates</a></span><span class="op">(</span></span>
+<span>  customized_filtered <span class="op">=</span> <span class="va">filtered</span>,</span>
 <span>  threads <span class="op">=</span> <span class="fl">4</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Step 6: Annotate native status</span></span>
 <span><span class="va">native_detected_coord</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_native_coord.html">detect_native_coord</a></span><span class="op">(</span></span>
-<span>  refined_coordinates <span class="op">=</span> <span class="va">refined_coordinates</span></span>
-<span><span class="op">)</span></span>
-<span><span class="va">native_detected_country</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_native_country.html">detect_native_country</a></span><span class="op">(</span></span>
-<span>  custom_filtered <span class="op">=</span> <span class="va">filtered</span></span>
+<span>  cleaned_coordinates <span class="op">=</span> <span class="va">cleaned_coordinates</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>Every object prints a summary, so <code>filtered$summary</code> shows
 how many records each rule removed, and
-<code>native_detected_coord</code> /
-<code>native_detected_country</code> report the status breakdown — both
+<code>native_detected_coord</code> report the status breakdown — both
 worth inspecting before committing to a matrix.</p>
 <p>Two objects carry forward.
-<code>refined_coordinates$CoordinateCleaned</code> holds the records
+<code>cleaned_coordinates$CoordinateCleaned</code> holds the records
 that passed every coordinate test, and
 <code>native_detected_coord</code> holds one row per record with its
 <code>native_status</code>. Because <code><a href="../reference/detect_native_coord.html">detect_native_coord()</a></code>

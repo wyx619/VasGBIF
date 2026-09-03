@@ -1,5 +1,71 @@
 # Changelog
 
+## VasGBIF 3.7.0
+
+### Breaking Changes
+
+- **[`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)
+  now requires a `CoordinateRefined` object.** The function signature
+  has changed from `detect_native_country(customized_filtered)` to
+  `detect_native_country(cleaned_coordinates)`. It now takes the output
+  of
+  [`clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/clean_coordinates.md)
+  instead of
+  [`customized_filter()`](https://wyx619.github.io/VasGBIF/reference/customized_filter.md),
+  processing all records from `CoordinateProblematic` (both
+  coordinateless records and those that failed coordinate validation
+  tests).
+
+### Improvements
+
+- **[`clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/clean_coordinates.md)
+  now includes coordinateless records in `CoordinateProblematic`.**
+  Records missing longitude or latitude are no longer silently excluded
+  but are added to `CoordinateProblematic` alongside records that failed
+  coordinate validation tests. This ensures all problematic records are
+  captured in one place for downstream processing.
+- **[`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)
+  processes all `CoordinateProblematic` records.** The function now
+  classifies both coordinateless records and records with coordinates
+  that failed validation tests, providing comprehensive
+  country-code-based classification for all records that cannot be
+  spatially matched.
+
+### Documentation
+
+- **Pipeline workflow updated in package documentation.** The step 6
+  description in `VasGBIF-package.R` now accurately reflects that
+  [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)
+  processes `CoordinateCleaned` while
+  [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)
+  processes all `CoordinateProblematic` records. The “Precise
+  native-status detection system” section has been revised to clarify
+  the division of labor between the two functions.
+- **Example code updated.** Quick start examples in package
+  documentation now correctly pass `cleaned_coordinates` to
+  [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)
+  instead of the previous `customized_filtered` argument.
+- **Function names corrected throughout.** All references to
+  `custom_filter()` and `refine_coordinates()` have been updated to
+  [`customized_filter()`](https://wyx619.github.io/VasGBIF/reference/customized_filter.md)
+  and
+  [`clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/clean_coordinates.md)
+  respectively across package documentation, ensuring consistency with
+  actual function names.
+
+### Testing
+
+- **`test-detect_native_country.R` updated for new input type.** All 40
+  tests rewritten to create `CoordinateRefined` objects instead of
+  `customFiltered` objects. New tests verify that records with complete
+  coordinates (those that failed validation) are correctly processed
+  alongside coordinateless records.
+- **`test-refine_coordinates.R` updated for `CoordinateProblematic`
+  behavior.** All 32 tests updated to reflect that
+  `CoordinateProblematic` now includes both validation-failed records
+  and coordinateless records, with tests confirming the correct
+  categorization of each record type.
+
 ## VasGBIF 3.6.4
 
 ### Improvements
@@ -16,9 +82,8 @@
   package documentation, README, and vignettes — now visualises the
   records on the interactive map before writing the classified records
   to disk.
-- **[`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md)
-  peak memory reduced from 2–3× to about 2× the input size.** The two
-  full-width
+- **`custom_filter()` peak memory reduced from 2–3× to about 2× the
+  input size.** The two full-width
   [`merge()`](https://rspatial.github.io/terra/reference/merge.html)
   calls were replaced by a single defensive shallow copy of `occ_import`
   followed by in-place keyed joins (`:=` column addition), and the six
@@ -32,8 +97,7 @@
 
 - Rd files regenerated for
   [`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md),
-  [`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md),
-  and `VasGBIF-package`.
+  `custom_filter()`, and `VasGBIF-package`.
 - **Removed remaining non-ASCII characters from Rd-facing
   documentation** so the PDF manual builds on non-UTF-8 Windows locales
   (GBK), where the Rd-to-LaTeX conversion previously failed with an
@@ -104,23 +168,21 @@ now require and validate that their input carries coordinates.
   `decimalLatitude` is missing for any record, so the output of
   [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)
   is rejected.
-- **[`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
-  no longer returns a `Coordinateless` table.** The `CoordinateRefined`
-  object now has three elements (`CoordinateCleaned`,
-  `CoordinateProblematic`, `runtime`). Records missing longitude or
-  latitude are not carried by
-  [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md);
-  they are classified directly from `custom_filtered` by
+- **`refine_coordinates()` no longer returns a `Coordinateless` table.**
+  The `CoordinateRefined` object now has three elements
+  (`CoordinateCleaned`, `CoordinateProblematic`, `runtime`). Records
+  missing longitude or latitude are not carried by
+  `refine_coordinates()`; they are classified directly from
+  `custom_filtered` by
   [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md).
 
 ### Bug Fixes
 
-- **[`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
-  empty-input path no longer errors.** The guard previously referenced
-  an undefined `Coordinateless` variable, failing with “object
-  ‘Coordinateless’ not found”; it now returns a well-formed
-  `CoordinateRefined` object with empty `CoordinateCleaned` and
-  `CoordinateProblematic` tables.
+- **`refine_coordinates()` empty-input path no longer errors.** The
+  guard previously referenced an undefined `Coordinateless` variable,
+  failing with “object ‘Coordinateless’ not found”; it now returns a
+  well-formed `CoordinateRefined` object with empty `CoordinateCleaned`
+  and `CoordinateProblematic` tables.
 - **A blank `countryCode` no longer resolves to Level 3 areas.** The 42
   WGSRPD areas whose `L3 ISOcode` is stored as `""` were previously
   treated as a valid mapping, so a record with an empty country code
@@ -202,9 +264,7 @@ no longer need a separate `refined_coordinates` object.*
   `CoordinateProblematic_records.csv.gz` file is no longer written — two
   files are produced (`all_records.csv.gz`, `native_records.csv.gz`).
   Records that failed coordinate validation are never classified and are
-  inspected through
-  [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
-  instead.
+  inspected through `refine_coordinates()` instead.
 - **[`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)
   signature simplified to
   `map_records(native_detected, precision = 3, cex = 3)`.** The
@@ -217,13 +277,10 @@ no longer need a separate `refined_coordinates` object.*
 - **Runtime reporting across the pipeline.**
   [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md),
   [`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md),
-  and
-  [`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md)
-  now print the elapsed time in a `used` message when they finish,
-  matching the timing already reported by
+  and `custom_filter()` now print the elapsed time in a `used` message
+  when they finish, matching the timing already reported by
   [`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md)
-  and
-  [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md).
+  and `refine_coordinates()`.
 - **Column-clash guard in `detect_native_status()`.** Passing an
   already-classified table back in (one that already contains
   `LEVEL3_COD`, `native_status`, `native_status_source`, or `buffered`)
@@ -288,11 +345,8 @@ The workflow is now:
 [`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md)
 →
 [`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md)
+→ `custom_filter()` → `refine_coordinates()` → `detect_native_status()`
 →
-[`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md)
-→
-[`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
-→ `detect_native_status()` →
 [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)
 /
 [`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)
@@ -307,11 +361,9 @@ The workflow is now:
   `moreInformativeRecord`, the `usable` / `duplicate` / `unusable`
   classification, and the `VasGBIF_dataset_result` column no longer
   exist. Records are now selected by explicit, individually auditable
-  quality rules in
-  [`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md)
-  instead of by an implicit voucher-quality ranking.
-- **`refine_records()` has been replaced by
-  [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md).**
+  quality rules in `custom_filter()` instead of by an implicit
+  voucher-quality ranking.
+- **`refine_records()` has been replaced by `refine_coordinates()`.**
   The old function bundled three unrelated jobs — metadata restoration,
   coordinate validation, and native-status detection — behind one call.
   Coordinate validation and native-status detection are now separate,
@@ -527,9 +579,8 @@ and
   native-status detection and custom filter systems.
 - **`Example.Rmd` completely rewritten** against the current pipeline,
   reporting per-stage record counts from a real 228,494-record download:
-  205,527 after TNRS resolution, 145,366 after
-  [`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md),
-  then 65,081 coordinate-clean, 8,554 coordinate-problematic, and 71,731
+  205,527 after TNRS resolution, 145,366 after `custom_filter()`, then
+  65,081 coordinate-clean, 8,554 coordinate-problematic, and 71,731
   coordinateless records, ending at 110,706 native, 354 introduced, 81
   extinct, 2 location_doubtful, and 25,669 unknown. The description of
   the bundled example dataset has also been corrected.
@@ -546,11 +597,10 @@ and
   been deleted, along with the stale
   [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md)
   snapshots.
-- New and rewritten suites cover
-  [`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md),
+- New and rewritten suites cover `custom_filter()`,
   [`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md),
   [`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md),
-  [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md),
+  `refine_coordinates()`,
   [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md),
   [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md),
   `detect_native_status()`, and

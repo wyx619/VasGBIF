@@ -8,7 +8,7 @@ developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.re
 [![codecov.io](https://codecov.io/github/wyx619/VasGBIF/coverage.svg?branch=master)](https://app.codecov.io/github/wyx619/VasGBIF?branch=master)
 [![R-CMD-check](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml)
 ![](https://img.shields.io/github/issues/wyx619/VasGBIF?color=F48D73)![](https://img.shields.io/github/license/wyx619/VasGBIF.svg?logo=github)![GitHub
-stars](https://img.shields.io/github/stars/wyx619/VasGBIF.svg?style=social&label=Star&maxAge=2592000)![](https://img.shields.io/badge/version-3.6.4-blue?logo=R)
+stars](https://img.shields.io/github/stars/wyx619/VasGBIF.svg?style=social&label=Star&maxAge=2592000)![](https://img.shields.io/badge/version-3.7.0-blue?logo=R)
 
 ## Introduction
 
@@ -42,7 +42,7 @@ region annotation within a high-performance framework.
 With optimized C/CPP-based dependencies, practical vectorized
 programming methods leveraging the SIMD instruction sets of modern CPUs
 and parallelization, VasGBIF compiles one million GBIF occurrence
-records on a laptop within 15 minutes.
+records within 15 minutes.
 
 In a word, VasGBIF resolves challenges in reproducibility, scalability,
 and spatial-taxonomic integrity without increasing adoption barriers for
@@ -50,7 +50,7 @@ biodiversity researchers.
 
 ## Installation
 
-One can install VasGBIF by any of the 2 ways below:
+One can install VasGBIF by any ways below:
 
 1.  install VasGBIF via official CRAN (Recommend)
 
@@ -84,9 +84,9 @@ Online wikis and manuals are available on
 ## Typical Workflow
 
 ***Architecture*** ***of VasGBIF.** Each step progressively filters
-records through taxonomic, quality, and coordinate checks. After all,
-more than half of the initial records are retained as high-quality and
-non-redundant
+records through taxonomic, quality, coordinate and native status checks.
+After all, more than half of the initial records are retained as
+high-quality and non-redundant
 data.*![Workflow](reference/figures/workflow.png "VasGBIF workflow")
 
 VasGBIF provides a reproducible, vascular plants optimized, and
@@ -116,16 +116,17 @@ modules and eight steps.
     an accepted/synonym status are excluded from the downstream table
     and reported in the `summary` for manual review.
 
-***Filter & Refine Module***
+***Filter & Clean Module***
 
-4.  **Custom Filter** (`custom_filter`): Joins the imported records with
-    the resolved taxonomy and the parsed issue flags, then applies the
-    enabled filter rules (country code, coordinate uncertainty, GBIF
-    issue count, event date, collector and identifier fields) to retain
-    only high-quality records. Every rule is independently toggleable,
-    and each step is recorded in a per-rule audit table.
+4.  **Customized Filter** (`customized_filter`): Joins the imported
+    records with the resolved taxonomy and the parsed issue flags, then
+    applies the enabled filter rules (country code, coordinate
+    uncertainty, GBIF issue count, event date, collector and identifier
+    fields) to retain only high-quality records. Every rule is
+    independently toggleable, and each step is recorded in a per-rule
+    audit table.
 
-5.  **Refine Coordinates** (`refine_coordinates`): Validates coordinates
+5.  **Clean Coordinates** (`clean_coordinates`): Validates coordinates
     with
     [CoordinateCleaner](https://doi.org/10.32614/CRAN.package.CoordinateCleaner)
     (Zizka et al. 2019) to flag spatial errors such as centroids,
@@ -142,14 +143,15 @@ modules and eight steps.
     location_doubtful, or unknown. Records with validated coordinates
     are matched spatially by
     [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md);
-    records without coordinates are matched through their country code
-    by
+    records without coordinates and failed with
+    [`clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/clean_coordinates.md)
+    are matched through their country code by
     [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md).
 
 ***Plot & Export Module***
 
-7.  **Map Records** (`map_records`): Renders the refined records on an
-    interactive map via
+7.  **Map Visualization** (`map_records`): Renders the refined records
+    on an interactive map via
     [mapview](https://CRAN.R-project.org/package=mapview), with
     geohash-based decluttering to reduce visual overlap. Records are
     colour-coded by native status, and multiple basemap layers are
@@ -160,8 +162,7 @@ modules and eight steps.
     native subset.
 
 Focused exclusively on GBIF plant occurrence records, VasGBIF can
-compile one million records within 15 minutes on a laptop without high
-memory usage.
+compile one million records within 15 minutes without high memory usage.
 
 Overall, VasGBIF integrates these components into a unified, automated
 workflow that enhances data standardization, accuracy, and usability,
@@ -170,7 +171,7 @@ tracheophyte records for advanced biodiversity research.
 
 ## Key Points
 
-### Precise native-status detection system
+### Precise native-status detection
 
 [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)
 and
@@ -210,9 +211,9 @@ markers are normalised so `Alnus x pubescens` matches the
 records how it was obtained in `native_status_source`, making the whole
 decision chain auditable.
 
-### Flexible and fluent custom filter system
+### Flexible and customized filter
 
-[`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md)
+[`customized_filter()`](https://wyx619.github.io/VasGBIF/reference/customized_filter.md)
 turns the raw download into an analysis-ready occurrence table. It joins
 the three preceding outputs (`occ_import`, `taxa_checked`, `gbif_issue`)
 into one table, then walks a user-selected set of quality rules — one
@@ -261,24 +262,24 @@ gbif_issue <- extract_gbif_issues(occ_import)
 taxa_checked <- check_taxon(occ_import = occ_import, accuracy = 0.85)
 
 # Filter records by quality rules
-filtered <- custom_filter(
+filtered <- customized_filter(
   occ_import = occ_import,
   taxa_checked = taxa_checked,
   gbif_issue = gbif_issue
 )
 
 # Validate coordinates
-refined_coordinates <- refine_coordinates(
-  custom_filtered = filtered,
+cleaned_coordinates <- clean_coordinates(
+  customized_filtered = filtered,
   threads = 4
 )
 
 # Annotate native status
 native_detected_coord <- detect_native_coord(
-  refined_coordinates = refined_coordinates
+  cleaned_coordinates = cleaned_coordinates
 )
 native_detected_country <- detect_native_country(
-  custom_filtered = filtered
+  cleaned_coordinates = cleaned_coordinates
 )
 
 # Visualise on an interactive map
@@ -317,7 +318,7 @@ architectures:
   [`set()`](https://rdrr.io/pkg/data.table/man/assign.html)) avoids
   intermediate copies
 - **Selective Parallelization**:
-  [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
+  [`clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/clean_coordinates.md)
   partitions the dataset into chunks and distributes CoordinateCleaner
   validation across workers via `foreach` and `doParallel` — vectorized
   processing within chunks, parallel execution across chunks
@@ -386,12 +387,12 @@ Download [doi:10.15468/dl.nt5exp](https://doi.org/10.15468/dl.nt5exp)
 
 ## Step 4 — Custom Filter
 
-- [`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md)
+- [`customized_filter()`](https://wyx619.github.io/VasGBIF/reference/customized_filter.md)
   : Apply custom quality filters to occurrence records
 
 ## Step 5 — Refine Coordinates
 
-- [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
+- [`clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/clean_coordinates.md)
   : Validate coordinates of filtered occurrence records
 
 ## Step 6 — Detect Native Status

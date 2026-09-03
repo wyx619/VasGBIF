@@ -92,9 +92,9 @@ The `occ_taxa` object contains:
 - `summary`: one row per submitted name, for reviewing match quality
 - `runtime`: execution time
 
-## Custom Filter
+## Customized Filter
 
-[`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md)
+[`customized_filter()`](https://wyx619.github.io/VasGBIF/reference/customized_filter.md)
 joins the imported records with the resolved taxonomy and the parsed
 issue flags, then applies the enabled filter rules to retain only
 high-quality records. By default the `countryCode`,
@@ -104,12 +104,12 @@ Every step is recorded in the per-rule `summary` table.
 
 ``` r
 
-filtered <- custom_filter(
+filtered <- customized_filter(
   occ_import = occ_import,
   taxa_checked = taxa_checked,
   gbif_issue = gbif_issue
 )
-VasGBIF_summary$after_custom_filter <- nrow(filtered$occ_filtered)
+VasGBIF_summary$after_customized_filter <- nrow(filtered$occ_filtered)
 print(filtered)
 ```
 
@@ -118,9 +118,9 @@ The `customFiltered` object contains:
 - `occ_filtered`: the filtered occurrence table
 - `summary`: per-rule `rule`, `dropped`, and `remaining` counts
 
-## Refine Coordinates
+## Clean Coordinates
 
-[`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
+[`clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/clean_coordinates.md)
 validates coordinates with CoordinateCleaner (Zizka et al. 2019) to flag
 spatial errors such as centroids, capitals, marine coordinates, and zero
 coordinates, splitting records into cleaned and problematic tables.
@@ -128,19 +128,19 @@ Validation is parallelized across user-specified threads.
 
 ``` r
 
-refined_coordinates <- refine_coordinates(
-  custom_filtered = filtered,
+cleaned_coordinates <- clean_coordinates(
+  customized_filtered = filtered,
   threads = 4,tests = c("capitals", "centroids", "equal", "gbif", "institutions", "outliers", "seas", "zeros"))
-VasGBIF_summary$cleaned <- nrow(refined_coordinates$CoordinateCleaned)
-VasGBIF_summary$problematic <- nrow(refined_coordinates$CoordinateProblematic)
-print(refined_coordinates)
+VasGBIF_summary$cleaned <- nrow(cleaned_coordinates$CoordinateCleaned)
+VasGBIF_summary$problematic <- nrow(cleaned_coordinates$CoordinateProblematic)
+print(cleaned_coordinates)
 ```
 
 The `CoordinateRefined` object contains:
 
 - `CoordinateCleaned`: records with valid coordinates
 - `CoordinateProblematic`: records failing one or more CoordinateCleaner
-  tests
+  tests (including those lack coordinates)
 - `runtime`: execution time
 
 ## Detect Native Status
@@ -153,7 +153,8 @@ match each record against WCVP distribution data (the internal
 native, introduced, extinct, location_doubtful, or unknown. Records with
 validated coordinates are matched spatially by
 [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md);
-records without coordinates are matched through their country code by
+records without coordinates or failed with `cleaned_coordinates()` are
+matched through their country code by
 [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md).
 Every classification records how it was obtained in
 `native_status_source`.
@@ -161,9 +162,9 @@ Every classification records how it was obtained in
 ``` r
 
 native_detected_coord <- detect_native_coord(
-  refined_coordinates = refined_coordinates, buffer_km = 10, buffer_chunk_size = 2000)
+  cleaned_coordinates = cleaned_coordinates, buffer_km = 10, buffer_chunk_size = 2000)
 native_detected_country <- detect_native_country(
-  custom_filtered = filtered)
+  cleaned_coordinates = cleaned_coordinates)
 native_detected <- rbind(
   native_detected_coord,
   native_detected_country,
@@ -188,9 +189,9 @@ and can be passed straight to
 [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)
 and
 [`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)
-without joining back to `refined_coordinates`.
+without joining back to `cleaned_coordinates`.
 
-## Map Records
+## Map Visualiztion
 
 [`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)
 renders the records on an interactive map via `mapview`, with
@@ -241,7 +242,7 @@ VasGBIF_summary |>
 ## initial_taxa            15
 ## after_taxon_resolved 12281
 ## final_taxa               4
-## after_custom_filter  11443
+## after_customized_filter  11443
 ## cleaned              10030
 ## problematic           1413
 ## native                 470
@@ -256,7 +257,7 @@ VasGBIF_summary |>
 | `initial_records` | Total GBIF occurrence records imported |
 | `initial_taxa` | Unique scientific names before resolution |
 | `after_taxon_resolved` | Records retained after TNRS resolution (score and status thresholds) |
-| `after_custom_filter` | Records retained after the quality filter rules |
+| `after_customized_filter` | Records retained after the quality filter rules |
 | `cleaned` | Records with valid coordinates after CoordinateCleaner |
 | `problematic` | Records failing one or more coordinate tests |
 | `native` | Records classified as native |
@@ -268,13 +269,14 @@ VasGBIF_summary |>
 
 The workflow progressively filters the dataset through taxonomic
 resolution, quality rules, and coordinate validation. The drop from
-`initial_records` to `after_custom_filter` reflects unresolved names and
-records failing the quality rules; the drop from `after_custom_filter`
-to `cleaned` reflects records that failed the coordinate tests being set
-aside (records without coordinates are not carried by
-[`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md));
-and the transition from `initial_taxa` to `final_taxa` reflects synonym
-resolution.
+`initial_records` to `after_customized_filter` reflects unresolved names
+and records failing the quality rules; the drop from
+`after_customized_filter` to `cleaned` reflects records that failed the
+coordinate tests being set aside (records without coordinates are not
+carried by
+[`clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/clean_coordinates.md));
+and the transition from `initial_taxa` to `final_taxa` reflects
+taxonomic resolution.
 
 ## Performance
 
@@ -293,7 +295,7 @@ VasGBIF achieves its speed through:
   [`set()`](https://rdrr.io/pkg/data.table/man/assign.html)) avoids
   unnecessary copies
 - **Selective parallelisation**:
-  [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
+  [`clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/clean_coordinates.md)
   distributes CoordinateCleaner validation across threads
 
 On a standard laptop, VasGBIF compiles one million occurrence records

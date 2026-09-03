@@ -31,7 +31,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -85,7 +85,7 @@ Wang</h4>
 University<br><a class="author_email" href="mailto:#"></a><a href="mailto:wyx1743@gmail.com" class="email">wyx1743@gmail.com</a>
       </address>
                   
-            <h4 data-toc-skip class="date">2026-08-31</h4>
+            <h4 data-toc-skip class="date">2026-09-03</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/wyx619/VasGBIF/blob/master/vignettes/Example.Rmd" class="external-link"><code>vignettes/Example.Rmd</code></a></small>
       <div class="d-none name"><code>Example.Rmd</code></div>
@@ -182,9 +182,9 @@ match quality</li>
 </ul>
 </div>
 <div class="section level2">
-<h2 id="custom-filter">Custom Filter<a class="anchor" aria-label="anchor" href="#custom-filter"></a>
+<h2 id="customized-filter">Customized Filter<a class="anchor" aria-label="anchor" href="#customized-filter"></a>
 </h2>
-<p><code><a href="../reference/custom_filter.html">custom_filter()</a></code> joins the imported records with the
+<p><code><a href="../reference/customized_filter.html">customized_filter()</a></code> joins the imported records with the
 resolved taxonomy and the parsed issue flags, then applies the enabled
 filter rules to retain only high-quality records. By default the
 <code>countryCode</code>, <code>coordinateUncertainty</code> (&lt;=
@@ -193,12 +193,12 @@ filter rules to retain only high-quality records. By default the
 <code>recordedBy</code> are opt-in. Every step is recorded in the
 per-rule <code>summary</code> table.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">filtered</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/custom_filter.html">custom_filter</a></span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="va">filtered</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/customized_filter.html">customized_filter</a></span><span class="op">(</span></span>
 <span>  occ_import <span class="op">=</span> <span class="va">occ_import</span>,</span>
 <span>  taxa_checked <span class="op">=</span> <span class="va">taxa_checked</span>,</span>
 <span>  gbif_issue <span class="op">=</span> <span class="va">gbif_issue</span></span>
 <span><span class="op">)</span></span>
-<span><span class="va">VasGBIF_summary</span><span class="op">$</span><span class="va">after_custom_filter</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/dimensions.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">filtered</span><span class="op">$</span><span class="va">occ_filtered</span><span class="op">)</span></span>
+<span><span class="va">VasGBIF_summary</span><span class="op">$</span><span class="va">after_customized_filter</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/dimensions.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">filtered</span><span class="op">$</span><span class="va">occ_filtered</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">filtered</span><span class="op">)</span></span></code></pre></div>
 <p>The <code>customFiltered</code> object contains:</p>
 <ul>
@@ -210,27 +210,27 @@ per-rule <code>summary</code> table.</p>
 </ul>
 </div>
 <div class="section level2">
-<h2 id="refine-coordinates">Refine Coordinates<a class="anchor" aria-label="anchor" href="#refine-coordinates"></a>
+<h2 id="clean-coordinates">Clean Coordinates<a class="anchor" aria-label="anchor" href="#clean-coordinates"></a>
 </h2>
-<p><code><a href="../reference/refine_coordinates.html">refine_coordinates()</a></code> validates coordinates with
+<p><code><a href="../reference/clean_coordinates.html">clean_coordinates()</a></code> validates coordinates with
 CoordinateCleaner (Zizka et al. 2019) to flag spatial errors such as
 centroids, capitals, marine coordinates, and zero coordinates, splitting
 records into cleaned and problematic tables. Validation is parallelized
 across user-specified threads.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">refined_coordinates</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/refine_coordinates.html">refine_coordinates</a></span><span class="op">(</span></span>
-<span>  custom_filtered <span class="op">=</span> <span class="va">filtered</span>,</span>
+<code class="sourceCode R"><span><span class="va">cleaned_coordinates</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/clean_coordinates.html">clean_coordinates</a></span><span class="op">(</span></span>
+<span>  customized_filtered <span class="op">=</span> <span class="va">filtered</span>,</span>
 <span>  threads <span class="op">=</span> <span class="fl">4</span>,tests <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"capitals"</span>, <span class="st">"centroids"</span>, <span class="st">"equal"</span>, <span class="st">"gbif"</span>, <span class="st">"institutions"</span>, <span class="st">"outliers"</span>, <span class="st">"seas"</span>, <span class="st">"zeros"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">VasGBIF_summary</span><span class="op">$</span><span class="va">cleaned</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/dimensions.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">refined_coordinates</span><span class="op">$</span><span class="va">CoordinateCleaned</span><span class="op">)</span></span>
-<span><span class="va">VasGBIF_summary</span><span class="op">$</span><span class="va">problematic</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/dimensions.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">refined_coordinates</span><span class="op">$</span><span class="va">CoordinateProblematic</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">refined_coordinates</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">VasGBIF_summary</span><span class="op">$</span><span class="va">cleaned</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/dimensions.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">cleaned_coordinates</span><span class="op">$</span><span class="va">CoordinateCleaned</span><span class="op">)</span></span>
+<span><span class="va">VasGBIF_summary</span><span class="op">$</span><span class="va">problematic</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/dimensions.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">cleaned_coordinates</span><span class="op">$</span><span class="va">CoordinateProblematic</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">cleaned_coordinates</span><span class="op">)</span></span></code></pre></div>
 <p>The <code>CoordinateRefined</code> object contains:</p>
 <ul>
 <li>
 <code>CoordinateCleaned</code>: records with valid coordinates</li>
 <li>
 <code>CoordinateProblematic</code>: records failing one or more
-CoordinateCleaner tests</li>
+CoordinateCleaner tests (including those lack coordinates)</li>
 <li>
 <code>runtime</code>: execution time</li>
 </ul>
@@ -244,14 +244,15 @@ distribution data (the internal <code>Distributions</code> dataset) via
 WGSRPD Level 3 areas to classify it as native, introduced, extinct,
 location_doubtful, or unknown. Records with validated coordinates are
 matched spatially by <code><a href="../reference/detect_native_coord.html">detect_native_coord()</a></code>; records without
-coordinates are matched through their country code by
+coordinates or failed with <code>cleaned_coordinates()</code> are
+matched through their country code by
 <code><a href="../reference/detect_native_country.html">detect_native_country()</a></code>. Every classification records how
 it was obtained in <code>native_status_source</code>.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">native_detected_coord</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_native_coord.html">detect_native_coord</a></span><span class="op">(</span></span>
-<span>  refined_coordinates <span class="op">=</span> <span class="va">refined_coordinates</span>, buffer_km <span class="op">=</span> <span class="fl">10</span>, buffer_chunk_size <span class="op">=</span> <span class="fl">2000</span><span class="op">)</span></span>
+<span>  cleaned_coordinates <span class="op">=</span> <span class="va">cleaned_coordinates</span>, buffer_km <span class="op">=</span> <span class="fl">10</span>, buffer_chunk_size <span class="op">=</span> <span class="fl">2000</span><span class="op">)</span></span>
 <span><span class="va">native_detected_country</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_native_country.html">detect_native_country</a></span><span class="op">(</span></span>
-<span>  custom_filtered <span class="op">=</span> <span class="va">filtered</span><span class="op">)</span></span>
+<span>  cleaned_coordinates <span class="op">=</span> <span class="va">cleaned_coordinates</span><span class="op">)</span></span>
 <span><span class="va">native_detected</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
 <span>  <span class="va">native_detected_coord</span>,</span>
 <span>  <span class="va">native_detected_country</span>,</span>
@@ -273,10 +274,10 @@ records and appends <code>LEVEL3_COD</code>, <code>native_status</code>,
 spatial result (<code>native_detected_coord</code>) carries coordinates
 for every record and can be passed straight to
 <code><a href="../reference/export_records.html">export_records()</a></code> and <code><a href="../reference/map_records.html">map_records()</a></code> without
-joining back to <code>refined_coordinates</code>.</p>
+joining back to <code>cleaned_coordinates</code>.</p>
 </div>
 <div class="section level2">
-<h2 id="map-records">Map Records<a class="anchor" aria-label="anchor" href="#map-records"></a>
+<h2 id="map-visualiztion">Map Visualiztion<a class="anchor" aria-label="anchor" href="#map-visualiztion"></a>
 </h2>
 <p><code><a href="../reference/map_records.html">map_records()</a></code> renders the records on an interactive map
 via <code>mapview</code>, with geohash-based decluttering and
@@ -322,7 +323,7 @@ reduction through the pipeline:</p>
 <span><span class="co">## initial_taxa            15</span></span>
 <span><span class="co">## after_taxon_resolved 12281</span></span>
 <span><span class="co">## final_taxa               4</span></span>
-<span><span class="co">## after_custom_filter  11443</span></span>
+<span><span class="co">## after_customized_filter  11443</span></span>
 <span><span class="co">## cleaned              10030</span></span>
 <span><span class="co">## problematic           1413</span></span>
 <span><span class="co">## native                 470</span></span>
@@ -354,7 +355,7 @@ reduction through the pipeline:</p>
 thresholds)</td>
 </tr>
 <tr class="even">
-<td><code>after_custom_filter</code></td>
+<td><code>after_customized_filter</code></td>
 <td>Records retained after the quality filter rules</td>
 </tr>
 <tr class="odd">
@@ -393,13 +394,13 @@ thresholds)</td>
 </table>
 <p>The workflow progressively filters the dataset through taxonomic
 resolution, quality rules, and coordinate validation. The drop from
-<code>initial_records</code> to <code>after_custom_filter</code>
+<code>initial_records</code> to <code>after_customized_filter</code>
 reflects unresolved names and records failing the quality rules; the
-drop from <code>after_custom_filter</code> to <code>cleaned</code>
+drop from <code>after_customized_filter</code> to <code>cleaned</code>
 reflects records that failed the coordinate tests being set aside
 (records without coordinates are not carried by
-<code><a href="../reference/refine_coordinates.html">refine_coordinates()</a></code>); and the transition from
-<code>initial_taxa</code> to <code>final_taxa</code> reflects synonym
+<code><a href="../reference/clean_coordinates.html">clean_coordinates()</a></code>); and the transition from
+<code>initial_taxa</code> to <code>final_taxa</code> reflects taxonomic
 resolution.</p>
 </div>
 <div class="section level2">
@@ -423,7 +424,7 @@ calls</li>
 (<code>:=</code>, <code><a href="https://rdrr.io/pkg/data.table/man/assign.html" class="external-link">set()</a></code>) avoids unnecessary copies</li>
 <li>
 <strong>Selective parallelisation</strong>:
-<code><a href="../reference/refine_coordinates.html">refine_coordinates()</a></code> distributes CoordinateCleaner
+<code><a href="../reference/clean_coordinates.html">clean_coordinates()</a></code> distributes CoordinateCleaner
 validation across threads</li>
 </ul>
 <p>On a standard laptop, VasGBIF compiles one million occurrence records

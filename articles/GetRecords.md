@@ -272,34 +272,9 @@ library(data.table)
 occ_import <- import_records(path = gbif_file)
 ```
 
-The returned `import` object is a list of class `"import"` with four
-elements:
-
-- **`occ`** — the occurrence records (`data.table`) with core GBIF
-  fields
-- **`occ_issue`** — a binary matrix of GBIF issue flags per record
-- **`summary`** — frequency table of detected issues (sorted by
-  decreasing count)
-- **`runtime`** — elapsed import time
-
-For the *Saxifraga* example used here, this imports tens of thousands of
-records spanning over a thousand unique scientific names — ready for
-downstream processing.
-
-### Next steps
-
-The `import` object is the entry point to the full VasGBIF pipeline.
-Continue with:
-
-- [`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md)
-  to resolve names against WCVP via TNRS
-- `get_collections()` and `set_vouchers()` for duplicate detection
-- `refine_records()` for coordinate validation and native-status
-  annotation
-
 See the **Example** vignette
 ([`vignette("Example", package = "VasGBIF")`](https://wyx619.github.io/VasGBIF/articles/Example.md))
-for a complete walk-through of all eight steps.
+for a complete example for next to do.
 
 ## References
 

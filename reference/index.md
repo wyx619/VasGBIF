@@ -23,12 +23,12 @@
 
 ## Step 4 — Custom Filter
 
-- [`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md)
+- [`customized_filter()`](https://wyx619.github.io/VasGBIF/reference/customized_filter.md)
   : Apply custom quality filters to occurrence records
 
 ## Step 5 — Refine Coordinates
 
-- [`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
+- [`clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/clean_coordinates.md)
   : Validate coordinates of filtered occurrence records
 
 ## Step 6 — Detect Native Status

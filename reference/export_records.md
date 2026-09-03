@@ -64,4 +64,4 @@ automatically.
 
 [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md),
 [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md),
-[`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)
+[`clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/clean_coordinates.md)

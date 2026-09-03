@@ -26,18 +26,16 @@ is known. The VasGBIF pipeline delivers that in eight sequential steps:
     **[`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md)**
     resolves scientific names against WCVP through TNRS, keeping matches
     that clear the `accuracy` threshold and resolve below genus level
-4.  **Custom Filter** —
-    **[`custom_filter()`](https://wyx619.github.io/VasGBIF/reference/custom_filter.md)**
+4.  **Customized Filter** —
+    **[`customized_filter()`](https://wyx619.github.io/VasGBIF/reference/customized_filter.md)**
     joins the three outputs by `gbifID` and drops records rule by rule,
     logging every step
-5.  **Refine Coordinates** —
-    **[`refine_coordinates()`](https://wyx619.github.io/VasGBIF/reference/refine_coordinates.md)**
+5.  **Clean Coordinates** —
+    **[`clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/clean_coordinates.md)**
     runs CoordinateCleaner tests in parallel, splitting records into
     coordinate-clean and coordinate-problematic tables
 6.  **Detect Native Status** —
     **[`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)**
-    and
-    **[`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)**
     classify each record as `native`, `introduced`, `extinct`,
     `location_doubtful`, or `unknown`
 7.  **Map Records** —
@@ -77,33 +75,29 @@ gbif_issue <- extract_gbif_issues(occ_import)
 taxa_checked <- check_taxon(occ_import = occ_import, accuracy = 0.85)
 
 # Step 4: Filter records by quality rules
-filtered <- custom_filter(
+filtered <- customized_filter(
   occ_import = occ_import,
   taxa_checked = taxa_checked,
   gbif_issue = gbif_issue
 )
 
 # Step 5: Validate coordinates
-refined_coordinates <- refine_coordinates(
-  custom_filtered = filtered,
+cleaned_coordinates <- clean_coordinates(
+  customized_filtered = filtered,
   threads = 4
 )
 
 # Step 6: Annotate native status
 native_detected_coord <- detect_native_coord(
-  refined_coordinates = refined_coordinates
-)
-native_detected_country <- detect_native_country(
-  custom_filtered = filtered
+  cleaned_coordinates = cleaned_coordinates
 )
 ```
 
 Every object prints a summary, so `filtered$summary` shows how many
-records each rule removed, and `native_detected_coord` /
-`native_detected_country` report the status breakdown — both worth
-inspecting before committing to a matrix.
+records each rule removed, and `native_detected_coord` report the status
+breakdown — both worth inspecting before committing to a matrix.
 
-Two objects carry forward. `refined_coordinates$CoordinateCleaned` holds
+Two objects carry forward. `cleaned_coordinates$CoordinateCleaned` holds
 the records that passed every coordinate test, and
 `native_detected_coord` holds one row per record with its
 `native_status`. Because

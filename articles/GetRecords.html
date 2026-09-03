@@ -31,7 +31,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -85,7 +85,7 @@ Wang</h4>
 University<br><a class="author_email" href="mailto:#"></a><a href="mailto:wyx1743@gmail.com" class="email">wyx1743@gmail.com</a>
       </address>
                   
-            <h4 data-toc-skip class="date">2026-08-31</h4>
+            <h4 data-toc-skip class="date">2026-09-03</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/wyx619/VasGBIF/blob/master/vignettes/GetRecords.Rmd" class="external-link"><code>vignettes/GetRecords.Rmd</code></a></small>
       <div class="d-none name"><code>GetRecords.Rmd</code></div>
@@ -426,44 +426,9 @@ and parses GBIF issue flags into record-level logical indicators.</p>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com" class="external-link">data.table</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">occ_import</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/import_records.html">import_records</a></span><span class="op">(</span>path <span class="op">=</span> <span class="va">gbif_file</span><span class="op">)</span></span></code></pre></div>
-<p>The returned <code>import</code> object is a list of class
-<code>"import"</code> with four elements:</p>
-<ul>
-<li>
-<strong><code>occ</code></strong> — the occurrence records
-(<code>data.table</code>) with core GBIF fields</li>
-<li>
-<strong><code>occ_issue</code></strong> — a binary matrix of GBIF
-issue flags per record</li>
-<li>
-<strong><code>summary</code></strong> — frequency table of detected
-issues (sorted by decreasing count)</li>
-<li>
-<strong><code>runtime</code></strong> — elapsed import time</li>
-</ul>
-<p>For the <em>Saxifraga</em> example used here, this imports tens of
-thousands of records spanning over a thousand unique scientific names —
-ready for downstream processing.</p>
-</div>
-<div class="section level3">
-<h3 id="next-steps">Next steps<a class="anchor" aria-label="anchor" href="#next-steps"></a>
-</h3>
-<p>The <code>import</code> object is the entry point to the full VasGBIF
-pipeline. Continue with:</p>
-<ul>
-<li>
-<code><a href="../reference/check_taxon.html">check_taxon()</a></code> to resolve names against WCVP via
-TNRS</li>
-<li>
-<code>get_collections()</code> and <code>set_vouchers()</code> for
-duplicate detection</li>
-<li>
-<code>refine_records()</code> for coordinate validation and
-native-status annotation</li>
-</ul>
 <p>See the <strong>Example</strong> vignette
 (<code><a href="../articles/Example.html">vignette("Example", package = "VasGBIF")</a></code>) for a complete
-walk-through of all eight steps.</p>
+example for next to do.</p>
 </div>
 </div>
 <div class="section level2">

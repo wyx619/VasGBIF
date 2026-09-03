@@ -19,10 +19,11 @@ If all three flags are 0, the area is "native".
 Any remaining case defaults to "unknown".
 
 
-Only records missing longitude or latitude -
-custom_filtered$occ_filtered[is.na(decimalLatitude) | is.na(decimalLongitude)] - are classified. Records with complete
-coordinates are not part of the result; classify them with
-detect_native_coord() instead.'><meta property="og:description" content='Assigns a native status classification to occurrence records
+All records from CoordinateProblematic are classified, including both
+records that lack coordinates (missing longitude or latitude) and records
+with complete coordinates that failed validation tests. Records from
+CoordinateCleaned (those that passed validation) should be classified
+using detect_native_coord() instead.'><meta property="og:description" content='Assigns a native status classification to occurrence records
 that lack usable coordinates by matching their countryCode against WCVP
 distribution data (the internal Distributions dataset) via WGSRPD Level 3
 areas. countryCode is mapped to candidate Level 3 areas by the
@@ -36,10 +37,11 @@ If all three flags are 0, the area is "native".
 Any remaining case defaults to "unknown".
 
 
-Only records missing longitude or latitude -
-custom_filtered$occ_filtered[is.na(decimalLatitude) | is.na(decimalLongitude)] - are classified. Records with complete
-coordinates are not part of the result; classify them with
-detect_native_coord() instead.'><meta property="og:image" content="https://wyx619.github.io/VasGBIF/logo.png"></head><body>
+All records from CoordinateProblematic are classified, including both
+records that lack coordinates (missing longitude or latitude) and records
+with complete coordinates that failed validation tests. Records from
+CoordinateCleaned (those that passed validation) should be classified
+using detect_native_coord() instead.'><meta property="og:image" content="https://wyx619.github.io/VasGBIF/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -47,7 +49,7 @@ detect_native_coord() instead.'><meta property="og:image" content="https://wyx61
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.6.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -97,34 +99,36 @@ areas. <code>countryCode</code> is mapped to candidate Level 3 areas by the
 <li><p>Otherwise, if <code>extinct == 1</code>, the area is <code>"extinct"</code>.</p></li>
 <li><p>If all three flags are <code>0</code>, the area is <code>"native"</code>.</p></li>
 <li><p>Any remaining case defaults to <code>"unknown"</code>.</p></li>
-</ol><p>Only records missing longitude <strong>or</strong> latitude -
-<code>custom_filtered$occ_filtered[is.na(decimalLatitude) | is.na(decimalLongitude)]</code> - are classified. Records with complete
-coordinates are not part of the result; classify them with
-<code><a href="detect_native_coord.html">detect_native_coord()</a></code> instead.</p>
+</ol><p>All records from <code>CoordinateProblematic</code> are classified, including both
+records that lack coordinates (missing longitude or latitude) and records
+with complete coordinates that failed validation tests. Records from
+<code>CoordinateCleaned</code> (those that passed validation) should be classified
+using <code><a href="detect_native_coord.html">detect_native_coord()</a></code> instead.</p>
     </div>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">detect_native_country</span><span class="op">(</span>custom_filtered <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">detect_native_country</span><span class="op">(</span>cleaned_coordinates <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
 
 
-<dl><dt id="arg-custom-filtered">custom_filtered<a class="anchor" aria-label="anchor" href="#arg-custom-filtered"></a></dt>
-<dd><p>A <code>customFiltered</code> object returned by
-<code><a href="custom_filter.html">custom_filter()</a></code>. Only records missing longitude or latitude are
-classified; records with complete coordinates are dropped from the
-result.</p></dd>
+<dl><dt id="arg-cleaned-coordinates">cleaned_coordinates<a class="anchor" aria-label="anchor" href="#arg-cleaned-coordinates"></a></dt>
+<dd><p>A <code>CoordinateRefined</code> object returned by
+<code><a href="clean_coordinates.html">clean_coordinates()</a></code>. All records from <code>CoordinateProblematic</code> are
+classified, including both coordinateless records and records that failed
+coordinate validation tests.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A <code>nativeDetected</code> object - a <code>data.table</code> subclass with one row
-per coordinateless record (every row of
-<code>custom_filtered$occ_filtered[is.na(decimalLatitude) | is.na(decimalLongitude)]</code>), keyed by <code>gbifID</code>. Every column of the input
-records is retained unchanged, with four classification columns appended:</p><ul><li><p><code>LEVEL3_COD</code>: the assigned WGSRPD Level 3 area code, or <code>NA</code> if the
+    <p>A <code>nativeDetected</code> object - a <code>data.table</code> subclass with one row</p>
+<p>A <code>nativeDetected</code> object - a <code>data.table</code> subclass with one row
+per record from <code>CoordinateProblematic</code>
+(<code>cleaned_coordinates$CoordinateProblematic</code>), keyed by <code>gbifID</code>. Every
+column of the input:</p><ul><li><p><code>LEVEL3_COD</code>: the assigned WGSRPD Level 3 area code, or <code>NA</code> if the
 record could not be matched</p></li>
 <li><p><code>native_status</code>: one of <code>"native"</code>, <code>"introduced"</code>, <code>"extinct"</code>,
 <code>"location_doubtful"</code>, or <code>"unknown"</code></p></li>
@@ -155,10 +159,11 @@ taxon has no distribution entry there are <code>"country_code_no_entry"</code>.<
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># interactive() &amp;&amp; exists("filtered")</span></span></span>
-<span class="r-in"><span><span class="co"># Classify the coordinate-less records. `filtered` comes from</span></span></span>
-<span class="r-in"><span><span class="co"># `custom_filter()`, whose example creates it when run first.</span></span></span>
-<span class="r-in"><span><span class="va">native_country</span> <span class="op">&lt;-</span> <span class="fu">detect_native_country</span><span class="op">(</span>custom_filtered <span class="op">=</span> <span class="va">filtered</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># interactive() &amp;&amp; exists("cleaned_coordinates")</span></span></span>
+<span class="r-in"><span><span class="co"># Classify the coordinate-less records. `cleaned_coordinates` comes from</span></span></span>
+<span class="r-in"><span><span class="co"># `clean_coordinates()`, whose example creates it when run first.</span></span></span>
+<span class="r-in"><span><span class="va">native_country</span> <span class="op">&lt;-</span> <span class="fu">detect_native_country</span><span class="op">(</span>cleaned_coordinates <span class="op">=</span> <span class="va">cleaned_coordinates</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">native_country</span> <span class="op">&lt;-</span> <span class="fu">detect_native_country</span><span class="op">(</span>customized_filtered <span class="op">=</span> <span class="va">filtered</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">native_country</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 </code></pre></div>
