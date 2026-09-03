@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------
-# Tests for refine_coordinates() and the CoordinateRefined print method.
+# Tests for clean_coordinates() and the CoordinateRefined print method.
 #
 # Behavioural tests use small, deterministic CoordinateCleaner test sets
 # ("zeros" flags (0, 0), "equal" flags lat == lon) and threads = 1 to keep
@@ -8,7 +8,7 @@
 
 # --- Helpers ----------------------------------------------------------------
 
-mk_custom_filtered <- function(occ_filtered) {
+mk_customized_filtered <- function(occ_filtered) {
   out <- list(occ_filtered = occ_filtered)
   class(out) <- "customFiltered"
   out
@@ -27,15 +27,15 @@ mk_occ <- function(gbifID, lon, lat, species = rep("id1", length(gbifID))) {
 
 test_that("default (missing) inputs error with a clear message", {
   expect_error(
-    refine_coordinates(),
-    '`custom_filtered` must be a "customFiltered" object'
+    clean_coordinates(),
+    '`customized_filtered` must be a "customFiltered" object'
   )
 })
 
-test_that("custom_filtered must be a customFiltered object", {
+test_that("customized_filtered must be a customFiltered object", {
   expect_error(
-    refine_coordinates(custom_filtered = iris),
-    '`custom_filtered` must be a "customFiltered" object'
+    clean_coordinates(customized_filtered = iris),
+    '`customized_filtered` must be a "customFiltered" object'
   )
 })
 
@@ -44,7 +44,7 @@ test_that("occ_filtered must carry the required columns", {
     occ <- mk_occ(c("1", "2"), c(10, 20), c(60, 70))
     occ[[col]] <- NULL
     expect_error(
-      refine_coordinates(custom_filtered = mk_custom_filtered(occ)),
+      clean_coordinates(customized_filtered = mk_customized_filtered(occ)),
       paste0("missing required column\\(s\\): ", col),
       info = col
     )
@@ -52,9 +52,9 @@ test_that("occ_filtered must carry the required columns", {
 })
 
 test_that("unknown tests error", {
-  cf <- mk_custom_filtered(mk_occ("1", 10, 60))
+  cf <- mk_customized_filtered(mk_occ("1", 10, 60))
   expect_error(
-    refine_coordinates(custom_filtered = cf, tests = c("zeros", "bogus")),
+    clean_coordinates(customized_filtered = cf, tests = c("zeros", "bogus")),
     "Unknown test\\(s\\): bogus"
   )
 })
@@ -62,9 +62,9 @@ test_that("unknown tests error", {
 # --- Output contract --------------------------------------------------------
 
 test_that("returns a CoordinateRefined object with the expected elements", {
-  cf <- mk_custom_filtered(mk_occ(c("1", "2"), c(10, 0), c(60, 0)))
-  res <- suppressMessages(refine_coordinates(
-    custom_filtered = cf,
+  cf <- mk_customized_filtered(mk_occ(c("1", "2"), c(10, 0), c(60, 0)))
+  res <- suppressMessages(clean_coordinates(
+    customized_filtered = cf,
     threads = 1,
     tests = c("zeros", "equal")
   ))
@@ -87,20 +87,21 @@ test_that("passing and failing records are split by CoordinateCleaner", {
     c(10, 0, 10, NA, 10),
     c(60, 0, 10, 60, NA)
   )
-  res <- suppressMessages(refine_coordinates(
-    custom_filtered = mk_custom_filtered(occ),
+  res <- suppressMessages(clean_coordinates(
+    customized_filtered = mk_customized_filtered(occ),
     threads = 1,
     tests = c("zeros", "equal")
   ))
 
   expect_setequal(res$CoordinateCleaned$gbifID, "1")
-  expect_setequal(res$CoordinateProblematic$gbifID, c("2", "3"))
+  # CoordinateProblematic now includes both failed tests and missing coords
+  expect_setequal(res$CoordinateProblematic$gbifID, c("2", "3", "4", "5"))
 })
 
 test_that("CoordinateCleaned keeps the original columns only", {
   occ <- mk_occ(c("1", "2"), c(10, 0), c(60, 0))
-  res <- suppressMessages(refine_coordinates(
-    custom_filtered = mk_custom_filtered(occ),
+  res <- suppressMessages(clean_coordinates(
+    customized_filtered = mk_customized_filtered(occ),
     threads = 1,
     tests = "zeros"
   ))
@@ -111,43 +112,63 @@ test_that("CoordinateCleaned keeps the original columns only", {
   expect_false(".summary" %in% names(res$CoordinateCleaned))
 })
 
-test_that("CoordinateProblematic retains the CoordinateCleaner flag columns", {
+test_that("CoordinateProblematic includes records that failed coordinate tests", {
   occ <- mk_occ(c("1", "2"), c(10, 0), c(60, 0))
-  res <- suppressMessages(refine_coordinates(
-    custom_filtered = mk_custom_filtered(occ),
+  res <- suppressMessages(clean_coordinates(
+    customized_filtered = mk_customized_filtered(occ),
     threads = 1,
     tests = "zeros"
   ))
-  expect_true(".summary" %in% names(res$CoordinateProblematic))
-  expect_true(".zer" %in% names(res$CoordinateProblematic))
-  expect_true(all(res$CoordinateProblematic$.summary == FALSE))
+  # CoordinateProblematic contains failed records from filtered (without flags)
+  expect_equal(nrow(res$CoordinateProblematic), 1L)
+  expect_equal(res$CoordinateProblematic$gbifID, "2")
+  expect_true(all(c("gbifID", "decimalLongitude", "decimalLatitude", "Accepted_name_id") %in%
+    names(res$CoordinateProblematic)))
+})
+
+test_that("CoordinateProblematic combines failed tests and missing coordinates", {
+  occ <- mk_occ(
+    c("1", "2", "3", "4"),
+    c(10, 0, NA, 20),
+    c(60, 0, 50, NA)
+  )
+  res <- suppressMessages(clean_coordinates(
+    customized_filtered = mk_customized_filtered(occ),
+    threads = 1,
+    tests = "zeros"
+  ))
+  
+  # ID 1 passes, ID 2 fails "zeros", ID 3 and 4 have missing coords
+  expect_setequal(res$CoordinateCleaned$gbifID, "1")
+  expect_setequal(res$CoordinateProblematic$gbifID, c("2", "3", "4"))
 })
 
 # --- Empty input ------------------------------------------------------------
 
-test_that("records without complete coordinates bypass validation", {
+test_that("records without complete coordinates bypass validation and go to CoordinateProblematic", {
   occ <- mk_occ(c("1", "2"), c(NA, 10), c(60, NA))
-  res <- suppressMessages(refine_coordinates(
-    custom_filtered = mk_custom_filtered(occ),
+  res <- suppressMessages(clean_coordinates(
+    customized_filtered = mk_customized_filtered(occ),
     threads = 1
   ))
 
   expect_equal(nrow(res$CoordinateCleaned), 0L)
-  expect_equal(nrow(res$CoordinateProblematic), 0L)
+  expect_equal(nrow(res$CoordinateProblematic), 2L)
+  expect_setequal(res$CoordinateProblematic$gbifID, c("1", "2"))
 })
 
 test_that("empty-coordinate input reports skipping validation", {
   occ <- mk_occ(c("1", "2"), c(NA, 10), c(60, NA))
   expect_message(
-    refine_coordinates(custom_filtered = mk_custom_filtered(occ), threads = 1),
+    clean_coordinates(customized_filtered = mk_customized_filtered(occ), threads = 1),
     "No records with complete coordinates"
   )
 })
 
 test_that("a fully empty occ_filtered returns empty tables", {
   occ <- mk_occ(character(0), numeric(0), numeric(0))
-  res <- suppressMessages(refine_coordinates(
-    custom_filtered = mk_custom_filtered(occ),
+  res <- suppressMessages(clean_coordinates(
+    customized_filtered = mk_customized_filtered(occ),
     threads = 1
   ))
 
@@ -158,9 +179,9 @@ test_that("a fully empty occ_filtered returns empty tables", {
 # --- Print method -----------------------------------------------------------
 
 test_that("print.CoordinateRefined shows counts and runtime", {
-  cf <- mk_custom_filtered(mk_occ(c("1", "2"), c(10, 0), c(60, 0)))
-  res <- suppressMessages(refine_coordinates(
-    custom_filtered = cf,
+  cf <- mk_customized_filtered(mk_occ(c("1", "2"), c(10, 0), c(60, 0)))
+  res <- suppressMessages(clean_coordinates(
+    customized_filtered = cf,
     threads = 1,
     tests = "zeros"
   ))

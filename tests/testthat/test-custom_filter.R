@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------
-# Tests for custom_filter() and the customFiltered print method.
+# Tests for customized_filter() and the customFiltered print method.
 # ---------------------------------------------------------------------------
 
 # --- Helpers ----------------------------------------------------------------
@@ -69,7 +69,7 @@ filter_off <- list(
 
 test_that("default (missing) inputs error with a clear message", {
   expect_error(
-    custom_filter(),
+    customized_filter(),
     '`occ_import` must be an "import" data.table'
   )
 })
@@ -79,15 +79,15 @@ test_that("each input must have its expected class", {
   taxa <- mk_taxa("1")
   issue <- mk_issue("1")
   expect_error(
-    custom_filter(occ_import = iris, taxa_checked = taxa, gbif_issue = issue),
+    customized_filter(occ_import = iris, taxa_checked = taxa, gbif_issue = issue),
     '`occ_import` must be an "import" data.table'
   )
   expect_error(
-    custom_filter(occ_import = occ, taxa_checked = iris, gbif_issue = issue),
+    customized_filter(occ_import = occ, taxa_checked = iris, gbif_issue = issue),
     '`taxa_checked` must be an "occ_taxa" object'
   )
   expect_error(
-    custom_filter(occ_import = occ, taxa_checked = taxa, gbif_issue = iris),
+    customized_filter(occ_import = occ, taxa_checked = taxa, gbif_issue = iris),
     '`gbif_issue` must be an "issue" object'
   )
 })
@@ -98,7 +98,7 @@ test_that("filter flags must be single non-NA logicals", {
   issue <- mk_issue("1")
   for (bad in list(NA, 1, c(TRUE, FALSE), "TRUE")) {
     expect_error(
-      custom_filter(occ_import = occ, taxa_checked = taxa, gbif_issue = issue,
+      customized_filter(occ_import = occ, taxa_checked = taxa, gbif_issue = issue,
                     filter_countryCode = bad),
       '`filter_countryCode` must be a single logical value',
       info = paste(deparse(bad), collapse = "")
@@ -116,7 +116,7 @@ test_that("occ_import must carry the required columns", {
     occ <- mk_occ_import("1")
     occ[[col]] <- NULL
     expect_error(
-      custom_filter(occ_import = occ, taxa_checked = taxa, gbif_issue = issue),
+      customized_filter(occ_import = occ, taxa_checked = taxa, gbif_issue = issue),
       paste0("missing required column\\(s\\): ", col),
       info = col
     )
@@ -132,7 +132,7 @@ test_that("taxa_checked and gbif_issue must carry their columns", {
     taxa <- mk_taxa("1")
     taxa$occ_taxa_checked[[col]] <- NULL
     expect_error(
-      custom_filter(occ_import = occ, taxa_checked = taxa, gbif_issue = mk_issue("1")),
+      customized_filter(occ_import = occ, taxa_checked = taxa, gbif_issue = mk_issue("1")),
       paste0("missing column\\(s\\): ", col),
       info = col
     )
@@ -141,7 +141,7 @@ test_that("taxa_checked and gbif_issue must carry their columns", {
     issue <- mk_issue("1")
     issue$occ_issue[[col]] <- NULL
     expect_error(
-      custom_filter(occ_import = occ, taxa_checked = mk_taxa("1"), gbif_issue = issue),
+      customized_filter(occ_import = occ, taxa_checked = mk_taxa("1"), gbif_issue = issue),
       paste0("missing column\\(s\\): ", col),
       info = col
     )
@@ -154,13 +154,13 @@ test_that("numeric filters must be non-negative scalars or disabled", {
   issue <- mk_issue("1")
   for (bad in list(-1, "100", c(100, 200))) {
     expect_error(
-      custom_filter(occ_import = occ, taxa_checked = taxa, gbif_issue = issue,
+      customized_filter(occ_import = occ, taxa_checked = taxa, gbif_issue = issue,
                     filter_coordinateUncertainty = bad),
       "`filter_coordinateUncertainty` must be a single non-negative number",
       info = paste(deparse(bad), collapse = "")
     )
     expect_error(
-      custom_filter(occ_import = occ, taxa_checked = taxa, gbif_issue = issue,
+      customized_filter(occ_import = occ, taxa_checked = taxa, gbif_issue = issue,
                     filter_gbif_issues_max = bad),
       "`filter_gbif_issues_max` must be a single non-negative number",
       info = paste(deparse(bad), collapse = "")
@@ -174,7 +174,7 @@ test_that("inner taxon join drops unresolved records and logs taxon_resolved", {
   occ <- mk_occ_import(c("1", "2"))
   taxa <- mk_taxa("1") # "2" unresolved
   issue <- mk_issue(c("1", "2"))
-  res <- do.call(custom_filter, c(
+  res <- do.call(customized_filter, c(
     list(occ_import = occ, taxa_checked = taxa, gbif_issue = issue),
     filter_off
   ))
@@ -190,7 +190,7 @@ test_that("issue join must cover every record", {
   taxa <- mk_taxa(c("1", "2"))
   issue <- mk_issue("1") # missing "2"
   expect_error(
-    custom_filter(occ_import = occ, taxa_checked = taxa, gbif_issue = issue),
+    customized_filter(occ_import = occ, taxa_checked = taxa, gbif_issue = issue),
     "does not cover every record"
   )
 })
@@ -199,7 +199,7 @@ test_that("issue count is joined as gbif_issues and the raw issue column is drop
   occ <- mk_occ_import(c("1", "2"), issue = c(3L, 1L))
   taxa <- mk_taxa(c("1", "2"))
   issue <- mk_issue(c("1", "2"), issue_count = c(3L, 1L))
-  res <- do.call(custom_filter, c(
+  res <- do.call(customized_filter, c(
     list(occ_import = occ, taxa_checked = taxa, gbif_issue = issue),
     filter_off
   ))
@@ -217,7 +217,7 @@ test_that("countryCode rule drops records with neither coordinate nor country co
     decimalLatitude = c(10, NA, 10, NA),
     countryCode = c("NO", NA, NA, "NO")
   )
-  res <- custom_filter(
+  res <- customized_filter(
     occ_import = occ,
     taxa_checked = mk_taxa(c("1", "2", "3", "4")),
     gbif_issue = mk_issue(c("1", "2", "3", "4"))
@@ -232,7 +232,7 @@ test_that("coordinateUncertainty drops values strictly above the threshold", {
     gbifID = c("1", "2", "3", "4"),
     coordinateUncertaintyInMeters = c(500, 50000, NA, "")
   )
-  res <- custom_filter(
+  res <- customized_filter(
     occ_import = occ,
     taxa_checked = mk_taxa(c("1", "2", "3", "4")),
     gbif_issue = mk_issue(c("1", "2", "3", "4")),
@@ -248,7 +248,7 @@ test_that("coordinateUncertainty rule can be disabled with NULL, NA or ''", {
   taxa <- mk_taxa(c("1", "2"))
   issue <- mk_issue(c("1", "2"))
   for (off in list(NULL, NA, "")) {
-    res <- custom_filter(
+    res <- customized_filter(
       occ_import = occ, taxa_checked = taxa, gbif_issue = issue,
       filter_countryCode = FALSE, filter_coordinateUncertainty = off
     )
@@ -265,7 +265,7 @@ test_that("date rule drops records with all four date components missing", {
     year = c("2020", NA, NA),
     day = c("01", NA, NA)
   )
-  res <- custom_filter(
+  res <- customized_filter(
     occ_import = occ,
     taxa_checked = mk_taxa(c("1", "2", "3")),
     gbif_issue = mk_issue(c("1", "2", "3")),
@@ -289,7 +289,7 @@ test_that("identifiedBy and recordedBy rules flag junk but keep mixed names", {
       "Botanist Y", "Botanist Z", "no collector"
     )
   )
-  res <- custom_filter(
+  res <- customized_filter(
     occ_import = occ,
     taxa_checked = mk_taxa(c("1", "2", "3", "4", "5", "6")),
     gbif_issue = mk_issue(c("1", "2", "3", "4", "5", "6")),
@@ -306,7 +306,7 @@ test_that("identifiedBy and recordedBy rules flag junk but keep mixed names", {
 test_that("gbif_issues_max drops records above the threshold", {
   occ <- mk_occ_import(c("1", "2", "3"))
   issue <- mk_issue(c("1", "2", "3"), issue_count = c(0L, 3L, 12L))
-  res <- custom_filter(
+  res <- customized_filter(
     occ_import = occ,
     taxa_checked = mk_taxa(c("1", "2", "3")),
     gbif_issue = issue,
@@ -321,7 +321,7 @@ test_that("gbif_issues_max drops records above the threshold", {
 test_that("gbif_issues_max rule can be disabled", {
   occ <- mk_occ_import(c("1", "2"))
   issue <- mk_issue(c("1", "2"), issue_count = c(0L, 12L))
-  res <- custom_filter(
+  res <- customized_filter(
     occ_import = occ,
     taxa_checked = mk_taxa(c("1", "2")),
     gbif_issue = issue,
@@ -338,7 +338,7 @@ test_that("gbif_issues_max rule can be disabled", {
 
 test_that("returns a customFiltered object with occ_filtered and summary", {
   occ <- mk_occ_import(c("1", "2"))
-  res <- custom_filter(
+  res <- customized_filter(
     occ_import = occ,
     taxa_checked = mk_taxa(c("1", "2")),
     gbif_issue = mk_issue(c("1", "2"))
@@ -360,7 +360,7 @@ test_that("returns a customFiltered object with occ_filtered and summary", {
 
 test_that("print.customFiltered shows record counts and the per-rule table", {
   occ <- mk_occ_import(c("1", "2"), decimalLatitude = c(10, NA), countryCode = c("NO", NA))
-  res <- custom_filter(
+  res <- customized_filter(
     occ_import = occ,
     taxa_checked = mk_taxa(c("1", "2")),
     gbif_issue = mk_issue(c("1", "2"))

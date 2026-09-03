@@ -4,7 +4,7 @@
 #' record by matching it against WCVP distribution data (the internal
 #' `Distributions` dataset) via WGSRPD Level 3 areas. Classification uses only
 #' the spatial stage: records with validated coordinates, taken from
-#' `refined_coordinates$CoordinateCleaned`, are overlaid on the WGSRPD Level 3
+#' `cleaned_coordinates$CoordinateCleaned`, are overlaid on the WGSRPD Level 3
 #' polygon map (via [terra::extract()]) to assign an area code to each record.
 #' That area code is looked up in a distribution table classified from the
 #' WCVP flags (`introduced`, `extinct`, `location_doubtful`) with the
@@ -33,8 +33,8 @@
 #' applied as metres via [terra::buffer()]'s geodesic buffer, so it keeps the
 #' same meaning at every latitude.
 #'
-#' @param refined_coordinates A `CoordinateRefined` object returned by
-#'   [refine_coordinates()], or a list with the same structure. Only the
+#' @param cleaned_coordinates A `CoordinateRefined` object returned by
+#'   [clean_coordinates()], or a list with the same structure. Only the
 #'   `CoordinateCleaned` table - records with validated coordinates - is
 #'   classified; `CoordinateProblematic` and `Coordinateless` records are not
 #'   part of the result.
@@ -61,23 +61,23 @@
 #' The intermediate matching columns used internally (taxon keys, candidate
 #' areas, match ranks) are not returned. Because the record columns are
 #' carried through, the result holds a second copy of the input data: for large
-#' inputs, `refined_coordinates` can be dropped once the classification is in
+#' inputs, `cleaned_coordinates` can be dropped once the classification is in
 #' hand.
 #'
 #' @seealso [detect_native_country()] for records without coordinates,
 #'   [print.nativeDetected()] for a compact summary of the result.
 #'
-#' @examplesIf interactive() && exists("refined_coordinates")
-#' # Classify records with validated coordinates. `refined_coordinates` comes
-#' # from `refine_coordinates()`, whose example creates it when run first.
-#' native_coord <- detect_native_coord(refined_coordinates = refined_coordinates)
+#' @examplesIf interactive() && exists("cleaned_coordinates")
+#' # Classify records with validated coordinates. `cleaned_coordinates` comes
+#' # from `clean_coordinates()`, whose example creates it when run first.
+#' native_coord <- detect_native_coord(cleaned_coordinates = cleaned_coordinates)
 #' native_coord
 #'
 #' @import data.table
 #' @importFrom dplyr %>%
 #' @export
 detect_native_coord <- function(
-  refined_coordinates = NA,
+  cleaned_coordinates = NA,
   buffer_km = 10,
   buffer_chunk_size = 2000
 ) {
@@ -102,16 +102,16 @@ detect_native_coord <- function(
   }
 
   if (
-    !is.list(refined_coordinates) ||
-      is.null(refined_coordinates$CoordinateCleaned)
+    !is.list(cleaned_coordinates) ||
+      is.null(cleaned_coordinates$CoordinateCleaned)
   ) {
     stop(
-      "`refined_coordinates` must be a `CoordinateRefined` object (or a list ",
+      "`cleaned_coordinates` must be a `CoordinateRefined` object (or a list ",
       "with the same structure) containing a `CoordinateCleaned` table.",
       call. = FALSE
     )
   }
-  CoordinateCleaned <- refined_coordinates$CoordinateCleaned
+  CoordinateCleaned <- cleaned_coordinates$CoordinateCleaned
 
   required_cols <- c(
     "gbifID",
@@ -122,7 +122,7 @@ detect_native_coord <- function(
   missing_cols <- setdiff(required_cols, names(CoordinateCleaned))
   if (length(missing_cols) > 0L) {
     stop(
-      "`refined_coordinates$CoordinateCleaned` is missing required column(s): ",
+      "`cleaned_coordinates$CoordinateCleaned` is missing required column(s): ",
       paste(missing_cols, collapse = ", "),
       call. = FALSE
     )
@@ -140,9 +140,9 @@ detect_native_coord <- function(
   clashing_cols <- intersect(status_cols, names(CoordinateCleaned))
   if (length(clashing_cols) > 0L) {
     stop(
-      "`refined_coordinates` already contains the classification column(s): ",
+      "`cleaned_coordinates` already contains the classification column(s): ",
       paste(clashing_cols, collapse = ", "),
-      ". Pass the output of `refine_coordinates()`, not an already-classified ",
+      ". Pass the output of `clean_coordinates()`, not an already-classified ",
       "table.",
       call. = FALSE
     )
@@ -361,7 +361,7 @@ detect_native_coord <- function(
 
   # Reattach the record columns. A status is only interpretable next to the
   # record it describes, and every consumer otherwise has to join back to
-  # `refined_coordinates` to recover them.
+  # `cleaned_coordinates` to recover them.
   result <- merge(CoordinateCleaned, status, by = "gbifID")
 
   if (nrow(result) != nrow(status)) {

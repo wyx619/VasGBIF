@@ -16,3 +16,4 @@
 ^data-raw$
 ^\.posit/assistant$
 ^README\.md$
+^man/figures/workflow\.png$

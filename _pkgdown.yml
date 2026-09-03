@@ -51,10 +51,10 @@ reference:
       - check_taxon
   - title: "Step 4 — Custom Filter"
     contents:
-      - custom_filter
+      - customized_filter
   - title: "Step 5 — Refine Coordinates"
     contents:
-      - refine_coordinates
+      - clean_coordinates
   - title: "Step 6 — Detect Native Status"
     contents:
       - detect_native_coord

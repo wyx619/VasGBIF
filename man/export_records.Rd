@@ -48,5 +48,5 @@ exist, a warning is emitted and the directory is created automatically.
 }
 \seealso{
 \code{\link[=detect_native_coord]{detect_native_coord()}}, \code{\link[=detect_native_country]{detect_native_country()}},
-\code{\link[=refine_coordinates]{refine_coordinates()}}
+\code{\link[=clean_coordinates]{clean_coordinates()}}
 }

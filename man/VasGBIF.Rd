@@ -42,23 +42,30 @@ Vascular Plants (WCVP) or World Flora Online (WFO). Synonyms are
 resolved to accepted names; records that fail the match-score threshold
 or lack an accepted/synonym status are excluded from the downstream
 table and reported in the \code{summary} for manual review.
-\item \strong{Custom Filter} - \code{\link[=custom_filter]{custom_filter()}}: joins the imported records with
+\item \strong{Custom Filter} - \code{\link[=customized_filter]{customized_filter()}}: joins the imported records with
 the resolved taxonomy and the parsed issue flags, then applies the
 enabled filter rules (country code, coordinate uncertainty, GBIF issue
 count, event date, collector and identifier fields) to retain only
 high-quality records. Every rule is independently toggleable, and each
 step is recorded in a per-rule audit table (see \emph{Flexible and fluent
 custom filter system}).
-\item \strong{Refine Coordinates} - \code{\link[=refine_coordinates]{refine_coordinates()}}: validates coordinates
+\item \strong{Refine Coordinates} - \code{\link[=clean_coordinates]{clean_coordinates()}}: validates coordinates
 with \code{\link[CoordinateCleaner:clean_coordinates]{CoordinateCleaner::clean_coordinates()}} (Zizka et al. 2019) to
 flag spatial errors such as centroids, capitals, marine coordinates, and
 zero coordinates, splitting records into cleaned and problematic tables.
+Records that pass all tests go to \code{CoordinateCleaned}; those that fail
+any test or lack complete coordinates go to \code{CoordinateProblematic}.
 Validation is parallelized across user-specified threads.
 \item \strong{Detect Native Status} - \code{\link[=detect_native_coord]{detect_native_coord()}} and
 \code{\link[=detect_native_country]{detect_native_country()}}: match each record against WCVP distribution
 data (the internal \code{Distributions} dataset) via WGSRPD Level 3 areas to
 classify it as native, introduced, extinct, location_doubtful, or
-unknown (see \emph{Precise native-status detection system}).
+unknown. \code{\link[=detect_native_coord]{detect_native_coord()}} processes records from
+\code{CoordinateCleaned} (those with validated coordinates);
+\code{\link[=detect_native_country]{detect_native_country()}} processes all records from
+\code{CoordinateProblematic} (both coordinateless records and those that
+failed validation) using country codes (see \emph{Precise native-status
+detection system}).
 \item \strong{Map Records} - \code{\link[=map_records]{map_records()}}: renders refined records on
 interactive maps via \code{\link[mapview:mapView]{mapView()}}, with geohash-based
 decluttering to reduce visual overlap. Records are colour-coded by
@@ -78,9 +85,11 @@ location_doubtful, or unknown classification to every occurrence by
 matching the record's identification and position against authoritative
 WCVP distribution data (the internal \code{Distributions} dataset) organised by
 WGSRPD Level 3 areas. Classification is split across two functions so that
-the most precise available evidence always wins: records with validated
-coordinates are matched spatially by \code{\link[=detect_native_coord]{detect_native_coord()}}, and records
-without coordinates are matched through their country code by
+the most precise available evidence always wins: records from
+\code{CoordinateCleaned} (those with validated coordinates) are matched
+spatially by \code{\link[=detect_native_coord]{detect_native_coord()}}, and records from
+\code{CoordinateProblematic} (coordinateless records and those that failed
+validation) are matched through their country code by
 \code{\link[=detect_native_country]{detect_native_country()}}.
 
 \strong{Spatial classification.} \code{\link[=detect_native_coord]{detect_native_coord()}} overlays records with
@@ -107,9 +116,10 @@ The buffer pass is chunked (\code{buffer_chunk_size}) to keep the relate matrix
 small.
 
 \strong{Country-code classification.} \code{\link[=detect_native_country]{detect_native_country()}} matches records
-without coordinates through \code{countryCode} mapped to WGSRPD Level 3 areas
-by the \code{Level3maping} table. No geometry is used, so this pass is nearly
-free.
+from \code{CoordinateProblematic} through \code{countryCode} mapped to WGSRPD Level 3
+areas by the \code{Level3maping} table. This includes both coordinateless
+records and records that failed coordinate validation tests. No geometry is
+used, so this pass is nearly free.
 
 Every classification records how it was obtained in
 \code{native_status_source} - \code{spatial} / \code{spatial_buffered} for spatial
@@ -126,12 +136,12 @@ lookup ever iterates record-by-record in R. Both functions return a
 input records and appends \code{LEVEL3_COD}, \code{native_status},
 \code{native_status_source}, and \code{buffered}; the spatial result feeds directly
 into \code{\link[=export_records]{export_records()}} and \code{\link[=map_records]{map_records()}} without any join back to
-\code{refined_coordinates}.
+\code{cleaned_coordinates}.
 }
 
 \subsection{Flexible and fluent custom filter system}{
 
-\code{\link[=custom_filter]{custom_filter()}} turns the raw download into an analysis-ready
+\code{\link[=customized_filter]{customized_filter()}} turns the raw download into an analysis-ready
 occurrence table. It joins the three preceding outputs (\code{occ_import},
 \code{taxa_checked}, \code{gbif_issue}) into one table, then walks a user-selected
 set of quality rules - one vectorised \link[data.table:data.table]{data.table} pass per rule - with
@@ -192,25 +202,25 @@ gbif_issue <- extract_gbif_issues(occ_import)
 taxa_checked <- check_taxon(occ_import = occ_import, accuracy = 0.85)
 
 
-filtered <- custom_filter(
+filtered <- customized_filter(
   occ_import = occ_import,
   taxa_checked = taxa_checked,
   gbif_issue = gbif_issue
 )
 
 
-refined_coordinates <- refine_coordinates(
-  custom_filtered = filtered,
+cleaned_coordinates <- clean_coordinates(
+  customized_filtered = filtered,
   threads = 4
 )
 
 native_detected_coord <- detect_native_coord(
-  refined_coordinates = refined_coordinates
+  cleaned_coordinates = cleaned_coordinates
 )
 
 
 native_detected_country <- detect_native_country(
-  custom_filtered = filtered
+  cleaned_coordinates = cleaned_coordinates
 )
 
 map_records(
@@ -245,7 +255,7 @@ cycle.
 \item \strong{Memory-efficient design}: \link[data.table:data.table]{data.table}'s in-place modification \verb{:=}
 avoids unnecessary copies, and contiguous memory access patterns improve
 CPU cache utilisation.
-\item \strong{Selective parallelisation}: \code{\link[=refine_coordinates]{refine_coordinates()}} partitions the
+\item \strong{Selective parallelisation}: \code{\link[=clean_coordinates]{clean_coordinates()}} partitions the
 dataset into chunks and distributes \link[CoordinateCleaner:CoordinateCleaner]{CoordinateCleaner} validation
 across workers via \link[foreach:foreach]{foreach} and \link[doParallel:doParallel]{doParallel}, combining vectorised
 processing within each chunk with parallel execution across chunks.

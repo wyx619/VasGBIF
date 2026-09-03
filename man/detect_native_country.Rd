@@ -4,19 +4,21 @@
 \alias{detect_native_country}
 \title{Detect native status from country codes}
 \usage{
-detect_native_country(custom_filtered = NA)
+detect_native_country(cleaned_coordinates = NA)
 }
 \arguments{
-\item{custom_filtered}{A \code{customFiltered} object returned by
-\code{\link[=custom_filter]{custom_filter()}}. Only records missing longitude or latitude are
-classified; records with complete coordinates are dropped from the
-result.}
+\item{cleaned_coordinates}{A \code{CoordinateRefined} object returned by
+\code{\link[=clean_coordinates]{clean_coordinates()}}. All records from \code{CoordinateProblematic} are
+classified, including both coordinateless records and records that failed
+coordinate validation tests.}
 }
 \value{
 A \code{nativeDetected} object - a \code{data.table} subclass with one row
-per coordinateless record (every row of
-\code{custom_filtered$occ_filtered[is.na(decimalLatitude) | is.na(decimalLongitude)]}), keyed by \code{gbifID}. Every column of the input
-records is retained unchanged, with four classification columns appended:
+
+A \code{nativeDetected} object - a \code{data.table} subclass with one row
+per record from \code{CoordinateProblematic}
+(\code{cleaned_coordinates$CoordinateProblematic}), keyed by \code{gbifID}. Every
+column of the input:
 \itemize{
 \item \code{LEVEL3_COD}: the assigned WGSRPD Level 3 area code, or \code{NA} if the
 record could not be matched
@@ -48,10 +50,11 @@ areas. \code{countryCode} is mapped to candidate Level 3 areas by the
 \item Any remaining case defaults to \code{"unknown"}.
 }
 
-Only records missing longitude \strong{or} latitude -
-\code{custom_filtered$occ_filtered[is.na(decimalLatitude) | is.na(decimalLongitude)]} - are classified. Records with complete
-coordinates are not part of the result; classify them with
-\code{\link[=detect_native_coord]{detect_native_coord()}} instead.
+All records from \code{CoordinateProblematic} are classified, including both
+records that lack coordinates (missing longitude or latitude) and records
+with complete coordinates that failed validation tests. Records from
+\code{CoordinateCleaned} (those that passed validation) should be classified
+using \code{\link[=detect_native_coord]{detect_native_coord()}} instead.
 }
 \details{
 \verb{L3 ISOcode} in \code{Level3maping} is reproduced as published and is \strong{not} a
@@ -64,10 +67,11 @@ area, stay \code{"unmatched"}; records whose country maps to areas but whose
 taxon has no distribution entry there are \code{"country_code_no_entry"}.
 }
 \examples{
-\dontshow{if (interactive() && exists("filtered")) withAutoprint(\{ # examplesIf}
-# Classify the coordinate-less records. `filtered` comes from
-# `custom_filter()`, whose example creates it when run first.
-native_country <- detect_native_country(custom_filtered = filtered)
+\dontshow{if (interactive() && exists("cleaned_coordinates")) withAutoprint(\{ # examplesIf}
+# Classify the coordinate-less records. `cleaned_coordinates` comes from
+# `clean_coordinates()`, whose example creates it when run first.
+native_country <- detect_native_country(cleaned_coordinates = cleaned_coordinates)
+native_country <- detect_native_country(customized_filtered = filtered)
 native_country
 \dontshow{\}) # examplesIf}
 }

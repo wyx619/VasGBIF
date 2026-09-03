@@ -1,3 +1,25 @@
+# VasGBIF 3.7.0
+
+## Breaking Changes
+
+- **`detect_native_country()` now requires a `CoordinateRefined` object.** The function signature has changed from `detect_native_country(customized_filtered)` to `detect_native_country(cleaned_coordinates)`. It now takes the output of `clean_coordinates()` instead of `customized_filter()`, processing all records from `CoordinateProblematic` (both coordinateless records and those that failed coordinate validation tests).
+
+## Improvements
+
+- **`clean_coordinates()` now includes coordinateless records in `CoordinateProblematic`.** Records missing longitude or latitude are no longer silently excluded but are added to `CoordinateProblematic` alongside records that failed coordinate validation tests. This ensures all problematic records are captured in one place for downstream processing.
+- **`detect_native_country()` processes all `CoordinateProblematic` records.** The function now classifies both coordinateless records and records with coordinates that failed validation tests, providing comprehensive country-code-based classification for all records that cannot be spatially matched.
+
+## Documentation
+
+- **Pipeline workflow updated in package documentation.** The step 6 description in `VasGBIF-package.R` now accurately reflects that `detect_native_coord()` processes `CoordinateCleaned` while `detect_native_country()` processes all `CoordinateProblematic` records. The "Precise native-status detection system" section has been revised to clarify the division of labor between the two functions.
+- **Example code updated.** Quick start examples in package documentation now correctly pass `cleaned_coordinates` to `detect_native_country()` instead of the previous `customized_filtered` argument.
+- **Function names corrected throughout.** All references to `custom_filter()` and `refine_coordinates()` have been updated to `customized_filter()` and `clean_coordinates()` respectively across package documentation, ensuring consistency with actual function names.
+
+## Testing
+
+- **`test-detect_native_country.R` updated for new input type.** All 40 tests rewritten to create `CoordinateRefined` objects instead of `customFiltered` objects. New tests verify that records with complete coordinates (those that failed validation) are correctly processed alongside coordinateless records.
+- **`test-refine_coordinates.R` updated for `CoordinateProblematic` behavior.** All 32 tests updated to reflect that `CoordinateProblematic` now includes both validation-failed records and coordinateless records, with tests confirming the correct categorization of each record type.
+
 # VasGBIF 3.6.4
 
 ## Improvements

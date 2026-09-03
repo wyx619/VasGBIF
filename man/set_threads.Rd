@@ -26,7 +26,7 @@ Absolute thread counts exceeding the number of cores reported by
 \code{\link[parallel:detectCores]{parallel::detectCores()}} are silently capped to that limit with a message.
 Values less than or equal to zero and non-numeric inputs produce an error.
 
-This function is also used by \code{\link[=refine_coordinates]{refine_coordinates()}} to normalize its \code{threads}
+This function is also used by \code{\link[=clean_coordinates]{clean_coordinates()}} to normalize its \code{threads}
 argument.
 }
 \examples{
@@ -34,5 +34,5 @@ set_threads(1)
 set_threads(0.5)
 }
 \seealso{
-\code{\link[parallel:detectCores]{parallel::detectCores()}}, \code{\link[=refine_coordinates]{refine_coordinates()}}
+\code{\link[parallel:detectCores]{parallel::detectCores()}}, \code{\link[=clean_coordinates]{clean_coordinates()}}
 }

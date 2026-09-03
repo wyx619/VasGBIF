@@ -44,7 +44,7 @@
 #'    or lack an accepted/synonym status are excluded from the downstream
 #'    table and reported in the `summary` for manual review.
 #'
-#' 4. **Custom Filter** - [custom_filter()]: joins the imported records with
+#' 4. **Custom Filter** - [customized_filter()]: joins the imported records with
 #'    the resolved taxonomy and the parsed issue flags, then applies the
 #'    enabled filter rules (country code, coordinate uncertainty, GBIF issue
 #'    count, event date, collector and identifier fields) to retain only
@@ -52,17 +52,24 @@
 #'    step is recorded in a per-rule audit table (see *Flexible and fluent
 #'    custom filter system*).
 #'
-#' 5. **Refine Coordinates** - [refine_coordinates()]: validates coordinates
+#' 5. **Refine Coordinates** - [clean_coordinates()]: validates coordinates
 #'    with [CoordinateCleaner::clean_coordinates()] (Zizka et al. 2019) to
 #'    flag spatial errors such as centroids, capitals, marine coordinates, and
 #'    zero coordinates, splitting records into cleaned and problematic tables.
+#'    Records that pass all tests go to `CoordinateCleaned`; those that fail
+#'    any test or lack complete coordinates go to `CoordinateProblematic`.
 #'    Validation is parallelized across user-specified threads.
 #'
 #' 6. **Detect Native Status** - [detect_native_coord()] and
 #'    [detect_native_country()]: match each record against WCVP distribution
 #'    data (the internal `Distributions` dataset) via WGSRPD Level 3 areas to
 #'    classify it as native, introduced, extinct, location_doubtful, or
-#'    unknown (see *Precise native-status detection system*).
+#'    unknown. [detect_native_coord()] processes records from
+#'    `CoordinateCleaned` (those with validated coordinates);
+#'    [detect_native_country()] processes all records from
+#'    `CoordinateProblematic` (both coordinateless records and those that
+#'    failed validation) using country codes (see *Precise native-status
+#'    detection system*).
 #'
 #' 7. **Map Records** - [map_records()]: renders refined records on
 #'    interactive maps via [`mapView()`][mapview::mapView], with geohash-based
@@ -82,9 +89,11 @@
 #' matching the record's identification and position against authoritative
 #' WCVP distribution data (the internal `Distributions` dataset) organised by
 #' WGSRPD Level 3 areas. Classification is split across two functions so that
-#' the most precise available evidence always wins: records with validated
-#' coordinates are matched spatially by [detect_native_coord()], and records
-#' without coordinates are matched through their country code by
+#' the most precise available evidence always wins: records from
+#' `CoordinateCleaned` (those with validated coordinates) are matched
+#' spatially by [detect_native_coord()], and records from
+#' `CoordinateProblematic` (coordinateless records and those that failed
+#' validation) are matched through their country code by
 #' [detect_native_country()].
 #'
 #' **Spatial classification.** [detect_native_coord()] overlays records with
@@ -110,9 +119,10 @@
 #' small.
 #'
 #' **Country-code classification.** [detect_native_country()] matches records
-#' without coordinates through `countryCode` mapped to WGSRPD Level 3 areas
-#' by the `Level3maping` table. No geometry is used, so this pass is nearly
-#' free.
+#' from `CoordinateProblematic` through `countryCode` mapped to WGSRPD Level 3
+#' areas by the `Level3maping` table. This includes both coordinateless
+#' records and records that failed coordinate validation tests. No geometry is
+#' used, so this pass is nearly free.
 #'
 #' Every classification records how it was obtained in
 #' `native_status_source` - `spatial` / `spatial_buffered` for spatial
@@ -129,11 +139,11 @@
 #' input records and appends `LEVEL3_COD`, `native_status`,
 #' `native_status_source`, and `buffered`; the spatial result feeds directly
 #' into [export_records()] and [map_records()] without any join back to
-#' `refined_coordinates`.
+#' `cleaned_coordinates`.
 #'
 #' ## Flexible and fluent custom filter system
 #'
-#' [custom_filter()] turns the raw download into an analysis-ready
+#' [customized_filter()] turns the raw download into an analysis-ready
 #' occurrence table. It joins the three preceding outputs (`occ_import`,
 #' `taxa_checked`, `gbif_issue`) into one table, then walks a user-selected
 #' set of quality rules - one vectorised [data.table] pass per rule - with
@@ -194,25 +204,25 @@
 #' taxa_checked <- check_taxon(occ_import = occ_import, accuracy = 0.85)
 #'
 #'
-#' filtered <- custom_filter(
+#' filtered <- customized_filter(
 #'   occ_import = occ_import,
 #'   taxa_checked = taxa_checked,
 #'   gbif_issue = gbif_issue
 #' )
 #'
 #'
-#' refined_coordinates <- refine_coordinates(
-#'   custom_filtered = filtered,
+#' cleaned_coordinates <- clean_coordinates(
+#'   customized_filtered = filtered,
 #'   threads = 4
 #' )
 #'
 #' native_detected_coord <- detect_native_coord(
-#'   refined_coordinates = refined_coordinates
+#'   cleaned_coordinates = cleaned_coordinates
 #' )
 #'
 #'
 #' native_detected_country <- detect_native_country(
-#'   custom_filtered = filtered
+#'   cleaned_coordinates = cleaned_coordinates
 #' )
 #'
 #' map_records(
@@ -246,7 +256,7 @@
 #' - **Memory-efficient design**: [data.table]'s in-place modification `:=`
 #'   avoids unnecessary copies, and contiguous memory access patterns improve
 #'   CPU cache utilisation.
-#' - **Selective parallelisation**: [refine_coordinates()] partitions the
+#' - **Selective parallelisation**: [clean_coordinates()] partitions the
 #'   dataset into chunks and distributes [CoordinateCleaner] validation
 #'   across workers via [foreach] and [doParallel], combining vectorised
 #'   processing within each chunk with parallel execution across chunks.
@@ -300,7 +310,7 @@ utils::globalVariables(c(
   ".",
   # data.table specials
   "N",
-  # ---- GBIF occurrence fields (from import_records / custom_filter) ----
+  # ---- GBIF occurrence fields (from import_records / customized_filter) ----
   "gbifID",
   "order",
   "family",
@@ -339,11 +349,11 @@ utils::globalVariables(c(
   "Accepted_name_rank",
   "Accepted_family",
   "Source",
-  # ---- custom_filter summary ----
+  # ---- customized_filter summary ----
   "rule",
   "dropped",
   "remaining",
-  # ---- CoordinateCleaner flags (from refine_coordinates) ----
+  # ---- CoordinateCleaner flags (from clean_coordinates) ----
   ".summary",
   ".zer",
   ".equ",

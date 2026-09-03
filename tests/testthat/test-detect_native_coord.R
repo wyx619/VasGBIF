@@ -28,9 +28,9 @@ test_that("default (missing) input errors with a clear message", {
   )
 })
 
-test_that("refined_coordinates must carry a CoordinateCleaned table", {
+test_that("cleaned_coordinates must carry a CoordinateCleaned table", {
   expect_error(
-    detect_native_coord(refined_coordinates = list()),
+    detect_native_coord(cleaned_coordinates = list()),
     "CoordinateCleaned"
   )
 })
@@ -40,7 +40,7 @@ test_that("CoordinateCleaned must carry the required columns", {
     clean <- mk_clean("1", "Alnus glutinosa", 10, 60)
     clean[[col]] <- NULL
     expect_error(
-      detect_native_coord(refined_coordinates = list(CoordinateCleaned = clean)),
+      detect_native_coord(cleaned_coordinates = list(CoordinateCleaned = clean)),
       paste0("missing required column\\(s\\): ", col),
       info = col
     )
@@ -50,7 +50,7 @@ test_that("CoordinateCleaned must carry the required columns", {
 # --- Output contract --------------------------------------------------------
 
 test_that("output is a nativeDetected data.table keyed by gbifID", {
-  result <- suppressMessages(detect_native_coord(refined_coordinates = list(
+  result <- suppressMessages(detect_native_coord(cleaned_coordinates = list(
     CoordinateCleaned = mk_clean("1", "Alnus glutinosa", 10, 60)
   )))
 
@@ -79,7 +79,7 @@ test_that("output is a nativeDetected data.table keyed by gbifID", {
 test_that("record columns are returned unchanged", {
   clean <- mk_clean("1", "Alnus glutinosa", 10, 60)
 
-  result <- suppressMessages(detect_native_coord(refined_coordinates = list(
+  result <- suppressMessages(detect_native_coord(cleaned_coordinates = list(
     CoordinateCleaned = clean
   )))
 
@@ -96,7 +96,7 @@ test_that("an already-classified input is rejected", {
   clean[, native_status := "native"]
 
   expect_error(
-    detect_native_coord(refined_coordinates = list(CoordinateCleaned = clean)),
+    detect_native_coord(cleaned_coordinates = list(CoordinateCleaned = clean)),
     "already contains the classification column"
   )
 })
@@ -106,7 +106,7 @@ test_that("one row per input record", {
     mk_clean("1", "Alnus glutinosa", 10, 60),
     mk_clean("2", "Alnus glutinosa", 10, 60)
   )
-  result <- suppressMessages(detect_native_coord(refined_coordinates = list(
+  result <- suppressMessages(detect_native_coord(cleaned_coordinates = list(
     CoordinateCleaned = clean
   )))
 
@@ -119,7 +119,7 @@ test_that("one row per input record", {
 # --- Spatial classification -------------------------------------------------
 
 test_that("a point in a documented area resolves from its accepted name", {
-  result <- suppressMessages(detect_native_coord(refined_coordinates = list(
+  result <- suppressMessages(detect_native_coord(cleaned_coordinates = list(
     CoordinateCleaned = mk_clean("1", "Alnus glutinosa", 10, 60)
   )))
 
@@ -130,7 +130,7 @@ test_that("a point in a documented area resolves from its accepted name", {
 })
 
 test_that("a taxon absent from Distributions is unknown and unmatched", {
-  result <- suppressMessages(detect_native_coord(refined_coordinates = list(
+  result <- suppressMessages(detect_native_coord(cleaned_coordinates = list(
     CoordinateCleaned = mk_clean("1", "Test absentia ficta", 10, 60)
   )))
 
@@ -145,7 +145,7 @@ test_that("a taxon absent from Distributions is unknown and unmatched", {
 test_that("buffer_km = 0 leaves an outside point unknown", {
   # (6.5, 58) is seaward of the NOR polygon; with no buffer the record cannot
   # be resolved at all.
-  result <- suppressMessages(detect_native_coord(refined_coordinates = list(
+  result <- suppressMessages(detect_native_coord(cleaned_coordinates = list(
     CoordinateCleaned = mk_clean("1", "Alnus glutinosa", 6.5, 58)
   ), buffer_km = 0))
 
@@ -154,7 +154,7 @@ test_that("buffer_km = 0 leaves an outside point unknown", {
 })
 
 test_that("a buffer wide enough to reach the polygon resolves and is flagged", {
-  result <- suppressMessages(detect_native_coord(refined_coordinates = list(
+  result <- suppressMessages(detect_native_coord(cleaned_coordinates = list(
     CoordinateCleaned = mk_clean("1", "Alnus glutinosa", 6.5, 58)
   ), buffer_km = 25))
 
@@ -167,7 +167,7 @@ test_that("a buffer wide enough to reach the polygon resolves and is flagged", {
 test_that("an exact hit is never displaced by a buffered candidate", {
   # (10, 60) is inside NOR; running a 25 km buffer must not turn the exact
   # hit into a buffered one.
-  result <- suppressMessages(detect_native_coord(refined_coordinates = list(
+  result <- suppressMessages(detect_native_coord(cleaned_coordinates = list(
     CoordinateCleaned = mk_clean("1", "Alnus glutinosa", 10, 60)
   ), buffer_km = 25))
 
@@ -199,7 +199,7 @@ test_that("buffer results do not depend on buffer_chunk_size", {
 # --- Hybrid name normalisation ----------------------------------------------
 
 test_that("a hybrid recorded with ASCII 'x' matches the U+00D7 name", {
-  result <- suppressMessages(detect_native_coord(refined_coordinates = list(
+  result <- suppressMessages(detect_native_coord(cleaned_coordinates = list(
     CoordinateCleaned = mk_clean("1", "Alnus x pubescens", 10, 60)
   )))
 
@@ -213,7 +213,7 @@ test_that("a hybrid recorded with ASCII 'x' matches the U+00D7 name", {
 test_that("empty CoordinateCleaned is handled", {
   clean <- mk_clean(character(), character(), numeric(), numeric())
 
-  result <- suppressMessages(detect_native_coord(refined_coordinates = list(
+  result <- suppressMessages(detect_native_coord(cleaned_coordinates = list(
     CoordinateCleaned = clean[0]
   )))
   expect_equal(nrow(result), 0L)
@@ -248,7 +248,7 @@ test_that("canonical_taxon_name normalises hybrid markers and whitespace", {
 # --- print.nativeDetected() -------------------------------------------------
 
 test_that("print shows a compact status summary", {
-  result <- suppressMessages(detect_native_coord(refined_coordinates = list(
+  result <- suppressMessages(detect_native_coord(cleaned_coordinates = list(
     CoordinateCleaned = rbind(
       mk_clean("1", "Alnus glutinosa", 10, 60),
       mk_clean("2", "Alnus glutinosa", 6.5, 58)
@@ -265,7 +265,7 @@ test_that("print shows a compact status summary", {
 
 test_that("print handles an empty result", {
   clean <- mk_clean(character(), character(), numeric(), numeric())
-  result <- suppressMessages(detect_native_coord(refined_coordinates = list(
+  result <- suppressMessages(detect_native_coord(cleaned_coordinates = list(
     CoordinateCleaned = clean[0]
   )))
 
@@ -273,7 +273,7 @@ test_that("print handles an empty result", {
 })
 
 test_that("print falls back to data.table for a degraded subset", {
-  result <- suppressMessages(detect_native_coord(refined_coordinates = list(
+  result <- suppressMessages(detect_native_coord(cleaned_coordinates = list(
     CoordinateCleaned = mk_clean("1", "Alnus glutinosa", 10, 60)
   )))
 

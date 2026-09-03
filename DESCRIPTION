@@ -1,7 +1,7 @@
 Package: VasGBIF
 Title: Fast and Easy Compilation of Vascular Plants Occurrence Records from 'GBIF'
-Version: 3.6.4
-Date: 2026-08-12
+Version: 3.7.0
+Date: 2026-09-03
 Type: Package
 Maintainer: Yuxuan Wang <wyx1743@gmail.com>
 Authors@R: 

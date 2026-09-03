@@ -10,9 +10,13 @@
 
 # --- Helpers ----------------------------------------------------------------
 
-mk_custom_filtered <- function(occ_filtered) {
-  out <- list(occ_filtered = occ_filtered)
-  class(out) <- "customFiltered"
+mk_cleaned_coordinates <- function(CoordinateProblematic) {
+  out <- list(
+    CoordinateCleaned = data.table(),
+    CoordinateProblematic = CoordinateProblematic,
+    runtime = as.difftime(0, units = "secs")
+  )
+  class(out) <- "CoordinateRefined"
   out
 }
 
@@ -33,23 +37,23 @@ mk_occ <- function(gbifID, name, cc, lon = NA_real_, lat = NA_real_) {
 test_that("default (missing) input errors with a clear message", {
   expect_error(
     detect_native_country(),
-    '`custom_filtered` must be a "customFiltered" object'
+    '`cleaned_coordinates` must be a "CoordinateRefined" object'
   )
 })
 
-test_that("custom_filtered must be a customFiltered object", {
+test_that("cleaned_coordinates must be a CoordinateRefined object", {
   expect_error(
-    detect_native_country(custom_filtered = iris),
-    '`custom_filtered` must be a "customFiltered" object'
+    detect_native_country(cleaned_coordinates = iris),
+    '`cleaned_coordinates` must be a "CoordinateRefined" object'
   )
 })
 
-test_that("occ_filtered must carry the required columns", {
+test_that("CoordinateProblematic must carry the required columns", {
   for (col in c("gbifID", "Accepted_name", "countryCode", "decimalLongitude", "decimalLatitude")) {
     occ <- mk_occ("1", "Alnus glutinosa", "NO")
     occ[[col]] <- NULL
     expect_error(
-      detect_native_country(custom_filtered = mk_custom_filtered(occ)),
+      detect_native_country(cleaned_coordinates = mk_cleaned_coordinates(occ)),
       paste0("missing required column\\(s\\): ", col),
       info = col
     )
@@ -61,25 +65,25 @@ test_that("an already-classified input is rejected", {
   occ[, native_status := "native"]
 
   expect_error(
-    detect_native_country(custom_filtered = mk_custom_filtered(occ)),
+    detect_native_country(cleaned_coordinates = mk_cleaned_coordinates(occ)),
     "already contains the classification column"
   )
 })
 
 # --- Output contract --------------------------------------------------------
 
-test_that("only records without complete coordinates are classified", {
+test_that("all records from CoordinateProblematic are classified", {
   occ <- rbind(
     mk_occ("1", "Alnus glutinosa", "NO", NA_real_, NA_real_), # no coords
     mk_occ("2", "Alnus glutinosa", "NO", NA_real_, 60),       # missing lon
     mk_occ("3", "Alnus glutinosa", "NO", 10, NA_real_),       # missing lat
-    mk_occ("4", "Alnus glutinosa", "NO", 10, 60)              # complete
+    mk_occ("4", "Alnus glutinosa", "NO", 10, 60)              # complete (failed validation)
   )
   result <- suppressMessages(detect_native_country(
-    custom_filtered = mk_custom_filtered(occ)
+    cleaned_coordinates = mk_cleaned_coordinates(occ)
   ))
 
-  expect_setequal(result$gbifID, c("1", "2", "3"))
+  expect_setequal(result$gbifID, c("1", "2", "3", "4"))
   expect_s3_class(result, "nativeDetected")
   expect_identical(key(result), "gbifID")
   expect_named(
@@ -103,7 +107,7 @@ test_that("only records without complete coordinates are classified", {
 test_that("record columns are returned unchanged", {
   occ <- mk_occ(c("1", "2"), "Alnus glutinosa", c("NO", "DE"))
   result <- suppressMessages(detect_native_country(
-    custom_filtered = mk_custom_filtered(occ)
+    cleaned_coordinates = mk_cleaned_coordinates(occ)
   ))
 
   setkey(occ, gbifID)
@@ -117,7 +121,7 @@ test_that("record columns are returned unchanged", {
 # --- Country-code classification --------------------------------------------
 
 test_that("a record without coordinates resolves from its country code", {
-  result <- suppressMessages(detect_native_country(custom_filtered = mk_custom_filtered(
+  result <- suppressMessages(detect_native_country(cleaned_coordinates = mk_cleaned_coordinates(
     mk_occ("1", "Alnus glutinosa", "NO")
   )))
 
@@ -128,7 +132,7 @@ test_that("a record without coordinates resolves from its country code", {
 
 test_that("an introduced taxon resolves as introduced from its country code", {
   # Acorus calamus is introduced in Norway (NOR, introduced = 1).
-  result <- suppressMessages(detect_native_country(custom_filtered = mk_custom_filtered(
+  result <- suppressMessages(detect_native_country(cleaned_coordinates = mk_cleaned_coordinates(
     mk_occ("1", "Acorus calamus", "NO")
   )))
 
@@ -141,7 +145,7 @@ test_that("a multi-area country is adjudicated by status preference", {
   # ISO code "CN" maps to eight Level 3 areas; "Abutilon guineense" is native
   # in CHC (China South-Central) and introduced in CHH (Hainan). Native wins
   # and the native area is reported.
-  result <- suppressMessages(detect_native_country(custom_filtered = mk_custom_filtered(
+  result <- suppressMessages(detect_native_country(cleaned_coordinates = mk_cleaned_coordinates(
     mk_occ("1", "Abutilon guineense", "CN")
   )))
 
@@ -153,7 +157,7 @@ test_that("a multi-area country is adjudicated by status preference", {
 test_that("a hybrid recorded with ASCII 'x' matches the U+00D7 name", {
   # "× Bolboschoenoplectus" is native in CHN (China North-Central), one of the
   # Level 3 areas mapped from ISO code "CN".
-  result <- suppressMessages(detect_native_country(custom_filtered = mk_custom_filtered(
+  result <- suppressMessages(detect_native_country(cleaned_coordinates = mk_cleaned_coordinates(
     mk_occ("1", "x Bolboschoenoplectus", "CN")
   )))
 
@@ -163,7 +167,7 @@ test_that("a hybrid recorded with ASCII 'x' matches the U+00D7 name", {
 })
 
 test_that("a mapped country with no distribution hit is country_code_no_entry", {
-  result <- suppressMessages(detect_native_country(custom_filtered = mk_custom_filtered(
+  result <- suppressMessages(detect_native_country(cleaned_coordinates = mk_cleaned_coordinates(
     mk_occ("1", "Test absentia ficta", "NO")
   )))
 
@@ -175,7 +179,7 @@ test_that("a mapped country with no distribution hit is country_code_no_entry", 
 test_that("no usable country code leaves a record unmatched", {
   occ <- mk_occ(c("1", "2"), "Alnus glutinosa", c(NA_character_, ""))
   result <- suppressMessages(detect_native_country(
-    custom_filtered = mk_custom_filtered(occ)
+    cleaned_coordinates = mk_cleaned_coordinates(occ)
   ))
 
   expect_true(all(result$native_status == "unknown"))
@@ -185,7 +189,7 @@ test_that("no usable country code leaves a record unmatched", {
 
 test_that("a country code unknown to Level3maping leaves a record unmatched", {
   # "ZZ" appears in no Level 3 area; the code is non-missing but unmapped.
-  result <- suppressMessages(detect_native_country(custom_filtered = mk_custom_filtered(
+  result <- suppressMessages(detect_native_country(cleaned_coordinates = mk_cleaned_coordinates(
     mk_occ("1", "Alnus glutinosa", "ZZ")
   )))
 
@@ -196,10 +200,13 @@ test_that("a country code unknown to Level3maping leaves a record unmatched", {
 
 # --- Empty input ------------------------------------------------------------
 
-test_that("no coordinateless records returns an empty nativeDetected", {
-  occ <- mk_occ("1", "Alnus glutinosa", "NO", 10, 60)
+test_that("empty countryCode records are excluded from classification", {
+  occ <- rbind(
+    mk_occ("1", "Alnus glutinosa", "", 10, 60),        # empty countryCode
+    mk_occ("2", "Alnus glutinosa", NA_character_, 10, 60) # NA countryCode
+  )
   result <- suppressMessages(detect_native_country(
-    custom_filtered = mk_custom_filtered(occ)
+    cleaned_coordinates = mk_cleaned_coordinates(occ)
   ))
 
   expect_equal(nrow(result), 0L)
@@ -209,7 +216,7 @@ test_that("no coordinateless records returns an empty nativeDetected", {
 test_that("an empty occ_filtered returns an empty nativeDetected", {
   occ <- mk_occ(character(), character(), character())
   result <- suppressMessages(detect_native_country(
-    custom_filtered = mk_custom_filtered(occ[0])
+    cleaned_coordinates = mk_cleaned_coordinates(occ[0])
   ))
 
   expect_equal(nrow(result), 0L)

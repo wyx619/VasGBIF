@@ -1,5 +1,5 @@
 #' @title Validate coordinates of filtered occurrence records
-#' @name refine_coordinates
+#' @name clean_coordinates
 #'
 #' @description Validates the coordinates of filtered occurrence records with
 #'   CoordinateCleaner and splits them into coordinate-clean and problematic
@@ -9,14 +9,14 @@
 #' common spatial issues such as centroids, capitals, and marine records.
 #'
 #' Records that pass all requested tests are returned in `CoordinateCleaned`;
-#' records that fail one or more tests are returned in `CoordinateProblematic`.
-#' Native-status classification is a separate step: [detect_native_coord()]
-#' classifies the records with validated coordinates, and
-#' [detect_native_country()] the coordinate-less records (taken directly from
-#' `custom_filtered`).
+#' records that fail one or more tests, along with records lacking coordinates,
+#' are returned in `CoordinateProblematic`. Native-status classification is a
+#' separate step: [detect_native_coord()] classifies the records with validated
+#' coordinates, and [detect_native_country()] the coordinate-less records
+#' (extracted from `CoordinateProblematic`).
 #'
-#' @param custom_filtered A `customFiltered` object returned by
-#'   [custom_filter()].
+#' @param customized_filtered A `customFiltered` object returned by
+#'   [customized_filter()].
 #' @param threads Number of threads to use for coordinate validation, passed to
 #'   [set_threads()]. Use an integer `>= 1` for an absolute count, or a value
 #'   between `0` and `1` for a proportion of available cores. The default is
@@ -49,20 +49,22 @@
 #'
 #' ## Empty input
 #'
-#' If no records have complete coordinates, validation is skipped and empty
-#' `CoordinateCleaned` and `CoordinateProblematic` tables are returned.
+#' If no records have complete coordinates, validation is skipped. An empty
+#' `CoordinateCleaned` table is returned, while records lacking coordinates are
+#' placed in `CoordinateProblematic`.
 #'
 #' @returns A `CoordinateRefined` object (list) with three elements:
 #'
 #' - `CoordinateCleaned`: a `data.table` of records that passed all requested
-#'   coordinate tests
-#' - `CoordinateProblematic`: a `data.table` of records that failed one or more
-#'   tests, retaining the CoordinateCleaner flag columns (e.g. `.summary`) so
-#'   the failing tests can be inspected
+#'   coordinate tests (complete data with valid coordinates)
+#' - `CoordinateProblematic`: a `data.table` containing (1) records that failed
+#'   one or more coordinate tests, and (2) records lacking complete coordinates
+#'   (missing latitude or longitude)
 #' - `runtime`: the elapsed execution time
 #'
 #' Use [detect_native_coord()] to classify the records with validated
-#' coordinates, and [detect_native_country()] for the coordinate-less records.
+#' coordinates, and [detect_native_country()] for the coordinate-less records
+#' from `CoordinateProblematic`.
 #'
 #' @references
 #'
@@ -78,13 +80,13 @@
 #' @import doParallel
 #' @import rnaturalearthdata
 #' @seealso [`clean_coordinates()`][CoordinateCleaner::clean_coordinates],
-#'   [custom_filter()], [detect_native_coord()], [detect_native_country()],
+#'   [customized_filter()], [detect_native_coord()], [detect_native_country()],
 #'   [export_records()], [print.CoordinateRefined()], [set_threads()]
 #' @examplesIf interactive() && exists("filtered")
-#' refined_coordinates <- refine_coordinates(custom_filtered = filtered, threads = 4)
+#' cleaned_coordinates <- clean_coordinates(customized_filtered = filtered, threads = 4)
 #' @export
-refine_coordinates <- function(
-  custom_filtered = NA,
+clean_coordinates <- function(
+  customized_filtered = NA,
   threads = 4,
   tests = c(
     "capitals",
@@ -100,9 +102,9 @@ refine_coordinates <- function(
   start <- Sys.time()
 
   # ---- validate inputs ----
-  if (!inherits(custom_filtered, "customFiltered")) {
+  if (!inherits(customized_filtered, "customFiltered")) {
     stop(
-      '`custom_filtered` must be a "customFiltered" object from custom_filter().'
+      '`customized_filtered` must be a "customFiltered" object from customized_filter().'
     )
   }
   required_cols <- c(
@@ -111,10 +113,13 @@ refine_coordinates <- function(
     "decimalLongitude",
     "Accepted_name_id"
   )
-  missing_cols <- setdiff(required_cols, names(custom_filtered$occ_filtered))
+  missing_cols <- setdiff(
+    required_cols,
+    names(customized_filtered$occ_filtered)
+  )
   if (length(missing_cols) > 0L) {
     stop(
-      "`custom_filtered$occ_filtered` is missing required column(s): ",
+      "`customized_filtered$occ_filtered` is missing required column(s): ",
       paste(missing_cols, collapse = ", ")
     )
   }
@@ -140,10 +145,14 @@ refine_coordinates <- function(
     )
   }
 
-  filtered <- custom_filtered$occ_filtered[
+  filtered <- customized_filtered$occ_filtered[
     !is.na(decimalLatitude) & !is.na(decimalLongitude)
   ] %>%
     as.data.table()
+
+  no_coord <- customized_filtered$occ_filtered[
+    is.na(decimalLatitude) | is.na(decimalLongitude)
+  ]
 
   message("Validating coordinates")
 
@@ -154,13 +163,13 @@ refine_coordinates <- function(
     message("No records with complete coordinates; skipping validation.")
     used <- Sys.time() - start
     message(paste('used', used %>% round(1), attributes(used)$units))
-    refined_coordinates <- list(
-      CoordinateCleaned = filtered,
-      CoordinateProblematic = data.table(),
+    cleaned_coordinates <- list(
+      CoordinateCleaned = data.table(),
+      CoordinateProblematic = no_coord,
       runtime = used
     )
-    class(refined_coordinates) <- 'CoordinateRefined'
-    return(refined_coordinates)
+    class(cleaned_coordinates) <- 'CoordinateRefined'
+    return(cleaned_coordinates)
   }
 
   # cap workers to available records (avoid idle cluster nodes)
@@ -214,24 +223,25 @@ refine_coordinates <- function(
 
   CoordinateFlagged <- rbindlist(CoordinateFlagged, fill = TRUE)
 
-  CoordinateProblematic <- CoordinateFlagged[.summary == FALSE]
+  CoordinateProblematic <- filtered[
+    gbifID %chin% CoordinateFlagged[.summary == FALSE, gbifID]
+  ] %>%
+    rbind(no_coord)
 
-  CoordinateCleaned <- CoordinateFlagged[.summary == TRUE, gbifID]
-
-  rm(chunks_list, CoordinateFlagged)
-
-  results <- filtered[gbifID %chin% CoordinateCleaned]
+  CoordinateCleaned <- filtered[
+    gbifID %chin% CoordinateFlagged[.summary == TRUE, gbifID]
+  ]
 
   used <- Sys.time() - start
   message(paste('used', used %>% round(1), attributes(used)$units))
-
-  refined_coordinates <- list(
-    CoordinateCleaned = results,
+  rm(chunks_list, CoordinateFlagged)
+  cleaned_coordinates <- list(
+    CoordinateCleaned = CoordinateCleaned,
     CoordinateProblematic = CoordinateProblematic,
     runtime = used
   )
-  class(refined_coordinates) <- 'CoordinateRefined'
-  return(refined_coordinates)
+  class(cleaned_coordinates) <- 'CoordinateRefined'
+  return(cleaned_coordinates)
 }
 
 #' Print a `CoordinateRefined` object
@@ -241,7 +251,7 @@ refine_coordinates <- function(
 #' are not shown; use [head()] or `View()` to inspect them.
 #'
 #' @param x An object of class `"CoordinateRefined"` returned by
-#'   [refine_coordinates()].
+#'   [clean_coordinates()].
 #' @param ... Additional arguments (unused, retained for S3 compatibility).
 #'
 #' @return Invisibly returns `x`.

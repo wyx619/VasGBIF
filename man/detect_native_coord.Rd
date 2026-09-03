@@ -5,14 +5,14 @@
 \title{Detect native status from WGSRPD distributions}
 \usage{
 detect_native_coord(
-  refined_coordinates = NA,
+  cleaned_coordinates = NA,
   buffer_km = 10,
   buffer_chunk_size = 2000
 )
 }
 \arguments{
-\item{refined_coordinates}{A \code{CoordinateRefined} object returned by
-\code{\link[=refine_coordinates]{refine_coordinates()}}, or a list with the same structure. Only the
+\item{cleaned_coordinates}{A \code{CoordinateRefined} object returned by
+\code{\link[=clean_coordinates]{clean_coordinates()}}, or a list with the same structure. Only the
 \code{CoordinateCleaned} table - records with validated coordinates - is
 classified; \code{CoordinateProblematic} and \code{Coordinateless} records are not
 part of the result.}
@@ -43,7 +43,7 @@ buffer; \code{"unmatched"} means the record matched no area.
 The intermediate matching columns used internally (taxon keys, candidate
 areas, match ranks) are not returned. Because the record columns are
 carried through, the result holds a second copy of the input data: for large
-inputs, \code{refined_coordinates} can be dropped once the classification is in
+inputs, \code{cleaned_coordinates} can be dropped once the classification is in
 hand.
 }
 \description{
@@ -51,7 +51,7 @@ Assigns a native status classification to each occurrence
 record by matching it against WCVP distribution data (the internal
 \code{Distributions} dataset) via WGSRPD Level 3 areas. Classification uses only
 the spatial stage: records with validated coordinates, taken from
-\code{refined_coordinates$CoordinateCleaned}, are overlaid on the WGSRPD Level 3
+\code{cleaned_coordinates$CoordinateCleaned}, are overlaid on the WGSRPD Level 3
 polygon map (via \code{\link[terra:extract]{terra::extract()}}) to assign an area code to each record.
 That area code is looked up in a distribution table classified from the
 WCVP flags (\code{introduced}, \code{extinct}, \code{location_doubtful}) with the
@@ -82,10 +82,10 @@ applied as metres via \code{\link[terra:buffer]{terra::buffer()}}'s geodesic buf
 same meaning at every latitude.
 }
 \examples{
-\dontshow{if (interactive() && exists("refined_coordinates")) withAutoprint(\{ # examplesIf}
-# Classify records with validated coordinates. `refined_coordinates` comes
-# from `refine_coordinates()`, whose example creates it when run first.
-native_coord <- detect_native_coord(refined_coordinates = refined_coordinates)
+\dontshow{if (interactive() && exists("cleaned_coordinates")) withAutoprint(\{ # examplesIf}
+# Classify records with validated coordinates. `cleaned_coordinates` comes
+# from `clean_coordinates()`, whose example creates it when run first.
+native_coord <- detect_native_coord(cleaned_coordinates = cleaned_coordinates)
 native_coord
 \dontshow{\}) # examplesIf}
 }

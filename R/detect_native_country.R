@@ -14,11 +14,11 @@
 #' 4. If all three flags are `0`, the area is `"native"`.
 #' 5. Any remaining case defaults to `"unknown"`.
 #'
-#' Only records missing longitude **or** latitude -
-#' `custom_filtered$occ_filtered[is.na(decimalLatitude) |
-#' is.na(decimalLongitude)]` - are classified. Records with complete
-#' coordinates are not part of the result; classify them with
-#' [detect_native_coord()] instead.
+#' All records from `CoordinateProblematic` are classified, including both
+#' records that lack coordinates (missing longitude or latitude) and records
+#' with complete coordinates that failed validation tests. Records from
+#' `CoordinateCleaned` (those that passed validation) should be classified
+#' using [detect_native_coord()] instead.
 #'
 #' @details
 #' `L3 ISOcode` in `Level3maping` is reproduced as published and is **not** a
@@ -30,16 +30,16 @@
 #' area, stay `"unmatched"`; records whose country maps to areas but whose
 #' taxon has no distribution entry there are `"country_code_no_entry"`.
 #'
-#' @param custom_filtered A `customFiltered` object returned by
-#'   [custom_filter()]. Only records missing longitude or latitude are
-#'   classified; records with complete coordinates are dropped from the
-#'   result.
+#' @param cleaned_coordinates A `CoordinateRefined` object returned by
+#'   [clean_coordinates()]. All records from `CoordinateProblematic` are
+#'   classified, including both coordinateless records and records that failed
+#'   coordinate validation tests.
 #'
 #' @returns A `nativeDetected` object - a `data.table` subclass with one row
-#'   per coordinateless record (every row of
-#'   `custom_filtered$occ_filtered[is.na(decimalLatitude) |
-#'   is.na(decimalLongitude)]`), keyed by `gbifID`. Every column of the input
-#'   records is retained unchanged, with four classification columns appended:
+#' @returns A `nativeDetected` object - a `data.table` subclass with one row
+#'   per record from `CoordinateProblematic`
+#'   (`cleaned_coordinates$CoordinateProblematic`), keyed by `gbifID`. Every
+#'   column of the input:
 #'
 #' - `LEVEL3_COD`: the assigned WGSRPD Level 3 area code, or `NA` if the
 #'   record could not be matched
@@ -56,27 +56,27 @@
 #'
 #' @seealso [detect_native_coord()] for records with validated coordinates,
 #'   [print.nativeDetected()] for a compact summary of the result.
-#'
-#' @examplesIf interactive() && exists("filtered")
-#' # Classify the coordinate-less records. `filtered` comes from
-#' # `custom_filter()`, whose example creates it when run first.
-#' native_country <- detect_native_country(custom_filtered = filtered)
+#' @examplesIf interactive() && exists("cleaned_coordinates")
+#' # Classify the coordinate-less records. `cleaned_coordinates` comes from
+#' # `clean_coordinates()`, whose example creates it when run first.
+#' native_country <- detect_native_country(cleaned_coordinates = cleaned_coordinates)
+#' native_country <- detect_native_country(customized_filtered = filtered)
 #' native_country
 #'
 #' @import data.table
 #' @importFrom dplyr %>%
 #' @export
-detect_native_country <- function(custom_filtered = NA) {
+detect_native_country <- function(cleaned_coordinates = NA) {
   t1 <- Sys.time()
 
-  if (!inherits(custom_filtered, "customFiltered")) {
+  if (!inherits(cleaned_coordinates, "CoordinateRefined")) {
     stop(
-      '`custom_filtered` must be a "customFiltered" object from custom_filter().',
+      '`cleaned_coordinates` must be a "CoordinateRefined" object from clean_coordinates().',
       call. = FALSE
     )
   }
 
-  occ_filtered <- custom_filtered$occ_filtered
+  CoordinateProblematic <- cleaned_coordinates$CoordinateProblematic
 
   required_cols <- c(
     "gbifID",
@@ -85,10 +85,10 @@ detect_native_country <- function(custom_filtered = NA) {
     "decimalLongitude",
     "decimalLatitude"
   )
-  missing_cols <- setdiff(required_cols, names(occ_filtered))
+  missing_cols <- setdiff(required_cols, names(CoordinateProblematic))
   if (length(missing_cols) > 0L) {
     stop(
-      "`custom_filtered$occ_filtered` is missing required column(s): ",
+      "`cleaned_coordinates$CoordinateProblematic` is missing required column(s): ",
       paste(missing_cols, collapse = ", "),
       call. = FALSE
     )
@@ -103,25 +103,23 @@ detect_native_country <- function(custom_filtered = NA) {
     "native_status_source",
     "buffered"
   )
-  clashing_cols <- intersect(status_cols, names(occ_filtered))
+  clashing_cols <- intersect(status_cols, names(CoordinateProblematic))
   if (length(clashing_cols) > 0L) {
     stop(
-      "`custom_filtered$occ_filtered` already contains the classification ",
+      "`cleaned_coordinates$CoordinateProblematic` already contains the classification ",
       "column(s): ",
       paste(clashing_cols, collapse = ", "),
-      ". Pass the output of `custom_filter()`, not an already-classified ",
+      ". Pass the output of `cleaned_coordinates()`, not an already-classified ",
       "table.",
       call. = FALSE
     )
   }
 
-  coordinateless <- occ_filtered[
-    is.na(decimalLatitude) | is.na(decimalLongitude)
-  ]
+  Problematic <- CoordinateProblematic[countryCode != '', ]
 
   message("Detecting native status by country code")
 
-  records <- coordinateless[, .(
+  records <- Problematic[, .(
     gbifID,
     name_key = canonical_taxon_name(Accepted_name),
     countryCode
@@ -188,7 +186,11 @@ detect_native_country <- function(custom_filtered = NA) {
     is.na(native_status),
     `:=`(
       native_status = "unknown",
-      native_status_source = fifelse(mapped, "country_code_no_entry", "unmatched"),
+      native_status_source = fifelse(
+        mapped,
+        "country_code_no_entry",
+        "unmatched"
+      ),
       buffered = FALSE
     )
   ]
@@ -203,8 +205,8 @@ detect_native_country <- function(custom_filtered = NA) {
 
   # Reattach the record columns. A status is only interpretable next to the
   # record it describes, and every consumer otherwise has to join back to
-  # `custom_filtered` to recover them.
-  result <- merge(coordinateless, status, by = "gbifID")
+  # `customized_filtered` to recover them.
+  result <- merge(Problematic, status, by = "gbifID")
 
   if (nrow(result) != nrow(status)) {
     stop(
@@ -212,7 +214,7 @@ detect_native_country <- function(custom_filtered = NA) {
       nrow(status),
       " -> ",
       nrow(result),
-      "); `gbifID` is not unique in `custom_filtered$occ_filtered`.",
+      "); `gbifID` is not unique in `customized_filtered$occ_filtered`.",
       call. = FALSE
     )
   }

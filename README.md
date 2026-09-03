@@ -2,7 +2,7 @@
 
 ## Fast and Easy Compilation of Vascular Plants Occurrence Records from GBIF
 
-[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active) [![codecov.io](https://codecov.io/github/wyx619/VasGBIF/coverage.svg?branch=master)](https://app.codecov.io/github/wyx619/VasGBIF?branch=master) [![R-CMD-check](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml) ![](https://img.shields.io/github/issues/wyx619/VasGBIF?color=F48D73) ![](https://img.shields.io/github/license/wyx619/VasGBIF.svg?logo=github) ![GitHub stars](https://img.shields.io/github/stars/wyx619/VasGBIF.svg?style=social&label=Star&maxAge=2592000) ![](https://img.shields.io/badge/version-3.6.4-blue?logo=R)
+[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active) [![codecov.io](https://codecov.io/github/wyx619/VasGBIF/coverage.svg?branch=master)](https://app.codecov.io/github/wyx619/VasGBIF?branch=master) [![R-CMD-check](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml) ![](https://img.shields.io/github/issues/wyx619/VasGBIF?color=F48D73) ![](https://img.shields.io/github/license/wyx619/VasGBIF.svg?logo=github) ![GitHub stars](https://img.shields.io/github/stars/wyx619/VasGBIF.svg?style=social&label=Star&maxAge=2592000) ![](https://img.shields.io/badge/version-3.7.0-blue?logo=R)
 
 ## Introduction
 
@@ -14,13 +14,13 @@ Generally, [`rgbif`](https://doi.org/10.32614/CRAN.package.rgbif), [`TNRS`](http
 
 To rectify this situation, we introduce VasGBIF, an efficient R package that unifies taxonomic resolution, spatial validation, and botanical region annotation within a high-performance framework.
 
-With optimized C/CPP-based dependencies, practical vectorized programming methods leveraging the SIMD instruction sets of modern CPUs and parallelization, VasGBIF compiles one million GBIF occurrence records on a laptop within 15 minutes.
+With optimized C/CPP-based dependencies, practical vectorized programming methods leveraging the SIMD instruction sets of modern CPUs and parallelization, VasGBIF compiles one million GBIF occurrence records within 15 minutes.
 
 In a word, VasGBIF resolves challenges in reproducibility, scalability, and spatial-taxonomic integrity without increasing adoption barriers for biodiversity researchers.
 
 ## Installation
 
-One can install VasGBIF by any of the 2 ways below:
+One can install VasGBIF by any ways below:
 
 1.  install VasGBIF via official CRAN (Recommend)
 
@@ -49,7 +49,7 @@ Online wikis and manuals are available on <https://wyx619.github.io/VasGBIF/>.
 
 ## Typical Workflow
 
-***Architecture*** ***of VasGBIF.** Each step progressively filters records through taxonomic, quality, and coordinate checks. After all, more than half of the initial records are retained as high-quality and non-redundant data.*![Workflow](man/figures/workflow.png "VasGBIF workflow")
+***Architecture*** ***of VasGBIF.** Each step progressively filters records through taxonomic, quality, coordinate and native status checks. After all, more than half of the initial records are retained as high-quality and non-redundant data.*![Workflow](man/figures/workflow.png "VasGBIF workflow")
 
 VasGBIF provides a reproducible, vascular plants optimized, and computationally efficient framework for transforming GBIF records into analysis-ready datasets. The package functions are organized into four modules and eight steps.
 
@@ -61,29 +61,29 @@ VasGBIF provides a reproducible, vascular plants optimized, and computationally 
 
 3.  **Check Taxon Name** (`check_taxon`): Submits species- and infraspecific-rank names to the [Taxonomic Name Resolution Service](https://doi.org/10.32614/CRAN.package.TNRS) (TNRS; Boyle et al. 2013) for resolution against the World Checklist of Vascular Plants (WCVP) or World Flora Online (WFO). Synonyms are resolved to accepted names; records that fail the match-score threshold or lack an accepted/synonym status are excluded from the downstream table and reported in the `summary` for manual review.
 
-***Filter & Refine Module***
+***Filter & Clean Module***
 
-4.  **Custom Filter** (`custom_filter`): Joins the imported records with the resolved taxonomy and the parsed issue flags, then applies the enabled filter rules (country code, coordinate uncertainty, GBIF issue count, event date, collector and identifier fields) to retain only high-quality records. Every rule is independently toggleable, and each step is recorded in a per-rule audit table.
+4.  **Customized Filter** (`customized_filter`): Joins the imported records with the resolved taxonomy and the parsed issue flags, then applies the enabled filter rules (country code, coordinate uncertainty, GBIF issue count, event date, collector and identifier fields) to retain only high-quality records. Every rule is independently toggleable, and each step is recorded in a per-rule audit table.
 
-5.  **Refine Coordinates** (`refine_coordinates`): Validates coordinates with [CoordinateCleaner](https://doi.org/10.32614/CRAN.package.CoordinateCleaner) (Zizka et al. 2019) to flag spatial errors such as centroids, capitals, marine coordinates, and zero coordinates, splitting records into cleaned and problematic tables. Validation is parallelized across user-specified threads.
+5.  **Clean Coordinates** (`clean_coordinates`): Validates coordinates with [CoordinateCleaner](https://doi.org/10.32614/CRAN.package.CoordinateCleaner) (Zizka et al. 2019) to flag spatial errors such as centroids, capitals, marine coordinates, and zero coordinates, splitting records into cleaned and problematic tables. Validation is parallelized across user-specified threads.
 
 ***Native Status Detection Module***
 
-6.  **Detect Native Status** (`detect_native_coord` + `detect_native_country`): Match each record against WCVP distribution data (the internal `Distributions` dataset) via WGSRPD Level 3 areas to classify it as native, introduced, extinct, location_doubtful, or unknown. Records with validated coordinates are matched spatially by `detect_native_coord()`; records without coordinates are matched through their country code by `detect_native_country()`.
+6.  **Detect Native Status** (`detect_native_coord` + `detect_native_country`): Match each record against WCVP distribution data (the internal `Distributions` dataset) via WGSRPD Level 3 areas to classify it as native, introduced, extinct, location_doubtful, or unknown. Records with validated coordinates are matched spatially by `detect_native_coord()`; records without coordinates and failed with `clean_coordinates()` are matched through their country code by `detect_native_country()`.
 
 ***Plot & Export Module***
 
-7.  **Map Records** (`map_records`): Renders the refined records on an interactive map via [mapview](https://CRAN.R-project.org/package=mapview), with geohash-based decluttering to reduce visual overlap. Records are colour-coded by native status, and multiple basemap layers are supported (OpenStreetMap, Esri World Imagery, and others).
+7.  **Map Visualization** (`map_records`): Renders the refined records on an interactive map via [mapview](https://CRAN.R-project.org/package=mapview), with geohash-based decluttering to reduce visual overlap. Records are colour-coded by native status, and multiple basemap layers are supported (OpenStreetMap, Esri World Imagery, and others).
 
 8.  **Export Records** (`export_records`): Writes the classified records to disk as two gzip-compressed CSV files: all usable records and the native subset.
 
-Focused exclusively on GBIF plant occurrence records, VasGBIF can compile one million records within 15 minutes on a laptop without high memory usage.
+Focused exclusively on GBIF plant occurrence records, VasGBIF can compile one million records within 15 minutes without high memory usage.
 
 Overall, VasGBIF integrates these components into a unified, automated workflow that enhances data standardization, accuracy, and usability, which enables robust, reproducible, and scalable compiling of GBIF tracheophyte records for advanced biodiversity research.
 
 ## Key Points
 
-### Precise native-status detection system
+### Precise native-status detection
 
 `detect_native_coord()` and `detect_native_country()` are the analytical core of VasGBIF. Together they assign a native, introduced, extinct, location_doubtful, or unknown classification to every occurrence by matching the record's identification and position against authoritative WCVP distribution data (the internal `Distributions` dataset) organised by WGSRPD Level 3 areas. Classification is split across two functions so that the most precise available evidence always wins:
 
@@ -92,9 +92,9 @@ Overall, VasGBIF integrates these components into a unified, automated workflow 
 
 The system stays precise without sacrificing speed: coastal points just outside a polygon are still matched through a geodesic buffer (`buffer_km`, applied in metres so its meaning is identical at every latitude), with buffered hits always ranked below exact ones; hybrid markers are normalised so `Alnus x pubescens` matches the `Alnus × pubescens` in the distributions; and every classification records how it was obtained in `native_status_source`, making the whole decision chain auditable.
 
-### Flexible and fluent custom filter system
+### Flexible and customized filter
 
-`custom_filter()` turns the raw download into an analysis-ready occurrence table. It joins the three preceding outputs (`occ_import`, `taxa_checked`, `gbif_issue`) into one table, then walks a user-selected set of quality rules — one vectorised `data.table` pass per rule — with every step audited:
+`customized_filter()` turns the raw download into an analysis-ready occurrence table. It joins the three preceding outputs (`occ_import`, `taxa_checked`, `gbif_issue`) into one table, then walks a user-selected set of quality rules — one vectorised `data.table` pass per rule — with every step audited:
 
 - **Fluent rule control.** Each rule is an independently toggleable argument. Three rules are on by default (`countryCode`, `coordinateUncertainty` ≤ 10,000 m, `gbif_issues_max` ≤ 5); `date`, `identifiedBy`, and `recordedBy` are opt-in, so no information is discarded without an explicit choice. Numeric thresholds share one uniform "off" convention — `NULL`, `NA`, or `''` — so any rule can be disabled without restructuring the call.
 - **Auditable pipeline.** Every step, including the `taxon_resolved` join, is logged in the returned `summary` table (`rule`, `dropped`, `remaining`), making the effect of each decision visible and reproducible.
@@ -122,24 +122,24 @@ gbif_issue <- extract_gbif_issues(occ_import)
 taxa_checked <- check_taxon(occ_import = occ_import, accuracy = 0.85)
 
 # Filter records by quality rules
-filtered <- custom_filter(
+filtered <- customized_filter(
   occ_import = occ_import,
   taxa_checked = taxa_checked,
   gbif_issue = gbif_issue
 )
 
 # Validate coordinates
-refined_coordinates <- refine_coordinates(
-  custom_filtered = filtered,
+cleaned_coordinates <- clean_coordinates(
+  customized_filtered = filtered,
   threads = 4
 )
 
 # Annotate native status
 native_detected_coord <- detect_native_coord(
-  refined_coordinates = refined_coordinates
+  cleaned_coordinates = cleaned_coordinates
 )
 native_detected_country <- detect_native_country(
-  custom_filtered = filtered
+  cleaned_coordinates = cleaned_coordinates
 )
 
 # Visualise on an interactive map
@@ -164,7 +164,7 @@ VasGBIF achieves outstanding performance through specific technical architecture
 - **Vectorization Over Explicit Loops**: issue-flag detection in `extract_gbif_issues()` and native-status lookups in `detect_native_coord()` and `detect_native_country()` process entire columns in compiled calls rather than iterating in R
 - **SIMD Exploitation**: vectorized routines in `stringi` and `terra::extract()` enable compiler-level SIMD auto-vectorization (AVX, AVX-512)
 - **Memory-Efficient Design**: in-place modification (`:=`, `set()`) avoids intermediate copies
-- **Selective Parallelization**: `refine_coordinates()` partitions the dataset into chunks and distributes CoordinateCleaner validation across workers via `foreach` and `doParallel` — vectorized processing within chunks, parallel execution across chunks
+- **Selective Parallelization**: `clean_coordinates()` partitions the dataset into chunks and distributes CoordinateCleaner validation across workers via `foreach` and `doParallel` — vectorized processing within chunks, parallel execution across chunks
 
 On a standard laptop, VasGBIF can compile one million occurrence records within 15 minutes.
 

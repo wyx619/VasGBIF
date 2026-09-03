@@ -138,7 +138,7 @@
 #' gbif_issue <- extract_gbif_issues(occ)
 #' taxa_checked <- check_taxon(occ_import = occ, accuracy = 0.85)
 #'
-#' filtered <- custom_filter(
+#' filtered <- customized_filter(
 #'   occ_import = occ,
 #'   taxa_checked = taxa_checked,
 #'   gbif_issue = gbif_issue,
@@ -149,7 +149,7 @@
 #' filtered
 #'
 #' # Disable the coordinate-uncertainty rule (NULL / NA / '' all work):
-#' filtered_loose <- custom_filter(
+#' filtered_loose <- customized_filter(
 #'   occ_import = occ,
 #'   taxa_checked = taxa_checked,
 #'   gbif_issue = gbif_issue,
@@ -158,7 +158,7 @@
 #' filtered_loose
 #'
 #' @export
-custom_filter <- function(
+customized_filter <- function(
   occ_import = NA,
   taxa_checked = NA,
   gbif_issue = NA,
@@ -415,7 +415,7 @@ custom_filter <- function(
 #' Displays a concise summary of the filtering result: the number of records
 #' before and after filtering, and the per-rule drop table.
 #'
-#' @param x An object of class `"customFiltered"` returned by [custom_filter()].
+#' @param x An object of class `"customFiltered"` returned by [customized_filter()].
 #' @param ... Additional arguments (unused, retained for S3 compatibility).
 #'
 #' @return Invisibly returns `x`.
@@ -438,7 +438,7 @@ print.customFiltered <- function(x, ...) {
 
 #' Detect "no named person" values in collector or identifier fields
 #'
-#' Used by [custom_filter()] to flag junk values in `recordedBy` /
+#' Used by [customized_filter()] to flag junk values in `recordedBy` /
 #' `identifiedBy`. A value is considered junk when it is missing or empty, or
 #' when it matches a curated keyword / whole-value pattern while containing no
 #' name separator.

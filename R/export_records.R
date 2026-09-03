@@ -37,7 +37,7 @@
 #'
 #' @import data.table
 #' @seealso [detect_native_coord()], [detect_native_country()],
-#'   [refine_coordinates()]
+#'   [clean_coordinates()]
 #' @export
 export_records <- function(
   native_detected_coord = NA,
