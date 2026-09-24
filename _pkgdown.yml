@@ -51,7 +51,7 @@ reference:
       - customized_filter
   - title: "Step 4 — Clean Coordinates"
     contents:
-      - clean_coordinates
+      - par_clean_coordinates
   - title: "Step 5 — Detect Native Status"
     contents:
       - detect_native_coord
