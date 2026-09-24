@@ -1,7 +1,10 @@
 # Print a `customFiltered` object
 
 Displays a concise summary of the filtering result: the number of
-records before and after filtering, and the per-rule drop table.
+records before and after filtering, how many were excluded, and the
+per-rule table (`dropped`, `remaining`, `failed`, and
+`only_failed_here`). The excluded records are available in
+`x$occ_marked`.
 
 ## Usage
 

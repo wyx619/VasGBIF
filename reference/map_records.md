@@ -7,7 +7,12 @@ geohashes and color-coded by their native status.
 ## Usage
 
 ``` r
-map_records(native_detected_coord = NA, precision = 3, cex = 3)
+map_records(
+  native_detected_coord = NA,
+  species = "all",
+  precision = 3,
+  cex = 3
+)
 ```
 
 ## Arguments
@@ -17,6 +22,14 @@ map_records(native_detected_coord = NA, precision = 3, cex = 3)
   A `nativeDetected` object returned by
   [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md),
   containing records with validated coordinates.
+
+- species:
+
+  Either `"all"` (the default) to map every species, or a single species
+  name to restrict the map to that species. The name is matched exactly
+  against the `Accepted_name` column, so `"Saxifraga hirculus"` maps the
+  records of that species. Records whose `native_status` is `"unknown"`
+  are excluded either way.
 
 - precision:
 
@@ -43,7 +56,8 @@ The function works in four steps:
 
 - **Record selection:** Reads the classified records from
   [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md),
-  keeping those whose `native_status` is not `"unknown"`.
+  keeping those whose `native_status` is not `"unknown"`, optionally
+  restricted to a single species named by `species`.
 
 - **Geohash deduplication:** Encodes coordinates at the requested
   precision and retains one representative record per species, geohash
@@ -59,8 +73,13 @@ The function works in four steps:
 
 Both the classification and the coordinates are read from
 `native_detected_coord`, which carries every column of the input
-records. Records with `native_status = "unknown"` are excluded. Records
-with missing longitude or latitude are excluded as a guard;
+records. Records with `native_status = "unknown"` are excluded. When
+`species` names a species rather than `"all"`, the selection is narrowed
+further to the records whose `Accepted_name` equals that name; the
+comparison is exact, so the spelling must match the column value. A name
+that selects nothing is an error, because an empty map is read as "this
+species has no native records". Records with missing longitude or
+latitude are excluded as a guard;
 [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)
 only classifies records with validated coordinates, so none are
 expected, and inputs that carry missing coordinates (such as the output
@@ -104,10 +123,17 @@ for interactive map construction.
 
 ``` r
 if (FALSE) { # interactive() && exists("native_detected_coord")
+# Every species in the classification
 map_records(
   native_detected_coord = native_detected_coord,
   precision = 3,
   cex = 3
+)
+
+# A single species
+map_records(
+  native_detected_coord = native_detected_coord,
+  species = "Saxifraga hirculus"
 )
 }
 ```

@@ -3,9 +3,8 @@
 Assigns a native status classification to each occurrence record by
 matching it against WCVP distribution data (the internal `Distributions`
 dataset) via WGSRPD Level 3 areas. Classification uses only the spatial
-stage: records with validated coordinates, taken from
-`cleaned_coordinates$CoordinateCleaned`, are overlaid on the WGSRPD
-Level 3 polygon map (via
+stage: the records in `input` are overlaid on the WGSRPD Level 3 polygon
+map (via
 [`terra::extract()`](https://rspatial.github.io/terra/reference/extract.html))
 to assign an area code to each record. That area code is looked up in a
 distribution table classified from the WCVP flags (`introduced`,
@@ -27,17 +26,19 @@ preferred status (`"native"` first). Unresolved records may be buffered
 (`buffer_km`) so coastal points just outside a polygon can still be
 matched; buffered hits are ranked below exact ones.
 
-Records without usable coordinates are **not** classified here; classify
-them with
+Every record must carry a usable coordinate. Records without one are
+**not** classified here; classify them with
 [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md),
-which matches records through their `countryCode` without using
-geometry.
+which matches them through their `countryCode` without using geometry.
 
 ## Usage
 
 ``` r
 detect_native_coord(
-  cleaned_coordinates = NA,
+  input = NA,
+  species = "Accepted_name",
+  longitude = "decimalLongitude",
+  latitude = "decimalLatitude",
   buffer_km = 10,
   buffer_chunk_size = 2000
 )
@@ -45,14 +46,23 @@ detect_native_coord(
 
 ## Arguments
 
-- cleaned_coordinates:
+- input:
 
-  A `CoordinateRefined` object returned by
-  [`clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/clean_coordinates.md),
-  or a list with the same structure. Only the `CoordinateCleaned`
-  table - records with validated coordinates - is classified;
-  `CoordinateProblematic` and `Coordinateless` records are not part of
-  the result.
+  A table holding one occurrence record per row, with the species and
+  coordinate columns named by `species`, `longitude` and `latitude`.
+  Anything
+  [`data.table::as.data.table()`](https://rdrr.io/pkg/data.table/man/as.data.table.html)
+  can convert is accepted, so a `data.frame`, `data.table`, tibble or
+  list of equal-length columns all work. Typically the
+  `CoordinateCleaned` table of a `CoordinateRefined` object returned by
+  [`par_clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/par_clean_coordinates.md).
+  Every record must carry a non-missing coordinate.
+
+- species, longitude, latitude:
+
+  Names of the columns in `input` holding the species name and the
+  coordinates. Default to the GBIF field names `"Accepted_name"`,
+  `"decimalLongitude"` and `"decimalLatitude"`.
 
 - buffer_km:
 
@@ -68,9 +78,9 @@ detect_native_coord(
 ## Value
 
 A `nativeDetected` object - a `data.table` subclass with one row per
-input record (every row of `CoordinateCleaned`), keyed by `gbifID`.
-Every column of the input records is retained unchanged, with four
-classification columns appended:
+input record (every row of `input`), keyed by `gbifID`. Every column of
+the input records is retained unchanged, with three classification
+columns appended:
 
 - `LEVEL3_COD`: the assigned WGSRPD Level 3 area code, or `NA` if the
   record could not be matched
@@ -78,17 +88,16 @@ classification columns appended:
 - `native_status`: one of `"native"`, `"introduced"`, `"extinct"`,
   `"location_doubtful"`, or `"unknown"`
 
-- `native_status_source`: how the status was inferred. `"spatial"` /
-  `"spatial_buffered"` are spatial matches, the latter via the geodesic
-  buffer; `"unmatched"` means the record matched no area.
-
-- `buffered`: `TRUE` when the status came from a buffered spatial hit
+- `native_status_source`: how the status was inferred. `"exact"` is a
+  direct spatial match, `"buffered"` a match obtained through the
+  geodesic buffer, and `"unmatched"` a record that matched no area at
+  all.
 
 The intermediate matching columns used internally (taxon keys, candidate
 areas, match ranks) are not returned. Because the record columns are
 carried through, the result holds a second copy of the input data: for
-large inputs, `cleaned_coordinates` can be dropped once the
-classification is in hand.
+large inputs, the input table can be dropped once the classification is
+in hand.
 
 ## Details
 
@@ -98,6 +107,23 @@ internal `WGSRPD3` polygons are assumed to be in longitude/latitude
 is applied as metres via
 [`terra::buffer()`](https://rspatial.github.io/terra/reference/buffer.html)'s
 geodesic buffer, so it keeps the same meaning at every latitude.
+
+**Input.** Any table-like object that
+[`data.table::as.data.table()`](https://rdrr.io/pkg/data.table/man/as.data.table.html)
+can convert is accepted - a `data.frame`, a `data.table`, a tibble, or a
+list of equal-length columns - provided it carries the species and
+coordinate columns named by `species`, `longitude` and `latitude`. It
+does not have to come from
+[`par_clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/par_clean_coordinates.md).
+Pass the validated-coordinate table (for example
+`refined_coordinates$CoordinateCleaned`) so the records that failed
+coordinate validation are left to
+[`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)
+instead of being classified by geometry. If `input` has no `gbifID`, one
+is created as a character sequence number. The column-name arguments are
+independent of the data: a column that happens to share a name with one
+of them (for example a `species` column) does not interfere, and
+`species = "species"` is a valid way to select it.
 
 ## See also
 
@@ -109,10 +135,11 @@ for a compact summary of the result.
 ## Examples
 
 ``` r
-if (FALSE) { # interactive() && exists("cleaned_coordinates")
-# Classify records with validated coordinates. `cleaned_coordinates` comes
-# from `clean_coordinates()`, whose example creates it when run first.
-native_coord <- detect_native_coord(cleaned_coordinates = cleaned_coordinates)
+if (FALSE) { # interactive() && exists("refined_coordinates")
+# Classify the records with validated coordinates. `refined_coordinates`
+# comes from `par_clean_coordinates()`, whose example creates it when run
+# first.
+native_coord <- detect_native_coord(refined_coordinates$CoordinateCleaned)
 native_coord
 }
 ```

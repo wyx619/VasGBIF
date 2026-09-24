@@ -8,8 +8,7 @@
 </script><script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Detect native status from WGSRPD distributions — detect_native_coord"><meta name="description" content='Assigns a native status classification to each occurrence
 record by matching it against WCVP distribution data (the internal
 Distributions dataset) via WGSRPD Level 3 areas. Classification uses only
-the spatial stage: records with validated coordinates, taken from
-cleaned_coordinates$CoordinateCleaned, are overlaid on the WGSRPD Level 3
+the spatial stage: the records in input are overlaid on the WGSRPD Level 3
 polygon map (via terra::extract()) to assign an area code to each record.
 That area code is looked up in a distribution table classified from the
 WCVP flags (introduced, extinct, location_doubtful) with the
@@ -26,13 +25,12 @@ A record that falls in several areas at once is assigned the most preferred
 status ("native" first). Unresolved records may be buffered (buffer_km)
 so coastal points just outside a polygon can still be matched; buffered
 hits are ranked below exact ones.
-Records without usable coordinates are not classified here; classify
-them with detect_native_country(), which matches records through their
-countryCode without using geometry.'><meta property="og:description" content='Assigns a native status classification to each occurrence
+Every record must carry a usable coordinate. Records without one are not
+classified here; classify them with detect_native_country(), which matches
+them through their countryCode without using geometry.'><meta property="og:description" content='Assigns a native status classification to each occurrence
 record by matching it against WCVP distribution data (the internal
 Distributions dataset) via WGSRPD Level 3 areas. Classification uses only
-the spatial stage: records with validated coordinates, taken from
-cleaned_coordinates$CoordinateCleaned, are overlaid on the WGSRPD Level 3
+the spatial stage: the records in input are overlaid on the WGSRPD Level 3
 polygon map (via terra::extract()) to assign an area code to each record.
 That area code is looked up in a distribution table classified from the
 WCVP flags (introduced, extinct, location_doubtful) with the
@@ -49,9 +47,9 @@ A record that falls in several areas at once is assigned the most preferred
 status ("native" first). Unresolved records may be buffered (buffer_km)
 so coastal points just outside a polygon can still be matched; buffered
 hits are ranked below exact ones.
-Records without usable coordinates are not classified here; classify
-them with detect_native_country(), which matches records through their
-countryCode without using geometry.'><meta property="og:image" content="https://wyx619.github.io/VasGBIF/logo.png"></head><body>
+Every record must carry a usable coordinate. Records without one are not
+classified here; classify them with detect_native_country(), which matches
+them through their countryCode without using geometry.'><meta property="og:image" content="https://wyx619.github.io/VasGBIF/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -59,7 +57,7 @@ countryCode without using geometry.'><meta property="og:image" content="https://
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.7.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -101,8 +99,7 @@ countryCode without using geometry.'><meta property="og:image" content="https://
     <p>Assigns a native status classification to each occurrence
 record by matching it against WCVP distribution data (the internal
 <code>Distributions</code> dataset) via WGSRPD Level 3 areas. Classification uses only
-the spatial stage: records with validated coordinates, taken from
-<code>cleaned_coordinates$CoordinateCleaned</code>, are overlaid on the WGSRPD Level 3
+the spatial stage: the records in <code>input</code> are overlaid on the WGSRPD Level 3
 polygon map (via <code><a href="https://rspatial.github.io/terra/reference/extract.html" class="external-link">terra::extract()</a></code>) to assign an area code to each record.
 That area code is looked up in a distribution table classified from the
 WCVP flags (<code>introduced</code>, <code>extinct</code>, <code>location_doubtful</code>) with the
@@ -116,15 +113,18 @@ following priority:</p><ol><li><p>If <code>location_doubtful == 1</code>, the ar
 status (<code>"native"</code> first). Unresolved records may be buffered (<code>buffer_km</code>)
 so coastal points just outside a polygon can still be matched; buffered
 hits are ranked below exact ones.</p>
-<p>Records without usable coordinates are <strong>not</strong> classified here; classify
-them with <code><a href="detect_native_country.html">detect_native_country()</a></code>, which matches records through their
-<code>countryCode</code> without using geometry.</p>
+<p>Every record must carry a usable coordinate. Records without one are <strong>not</strong>
+classified here; classify them with <code><a href="detect_native_country.html">detect_native_country()</a></code>, which matches
+them through their <code>countryCode</code> without using geometry.</p>
     </div>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">detect_native_coord</span><span class="op">(</span></span>
-<span>  cleaned_coordinates <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  input <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  species <span class="op">=</span> <span class="st">"Accepted_name"</span>,</span>
+<span>  longitude <span class="op">=</span> <span class="st">"decimalLongitude"</span>,</span>
+<span>  latitude <span class="op">=</span> <span class="st">"decimalLatitude"</span>,</span>
 <span>  buffer_km <span class="op">=</span> <span class="fl">10</span>,</span>
 <span>  buffer_chunk_size <span class="op">=</span> <span class="fl">2000</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -134,12 +134,20 @@ them with <code><a href="detect_native_country.html">detect_native_country()</a>
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
 
 
-<dl><dt id="arg-cleaned-coordinates">cleaned_coordinates<a class="anchor" aria-label="anchor" href="#arg-cleaned-coordinates"></a></dt>
-<dd><p>A <code>CoordinateRefined</code> object returned by
-<code><a href="clean_coordinates.html">clean_coordinates()</a></code>, or a list with the same structure. Only the
-<code>CoordinateCleaned</code> table - records with validated coordinates - is
-classified; <code>CoordinateProblematic</code> and <code>Coordinateless</code> records are not
-part of the result.</p></dd>
+<dl><dt id="arg-input">input<a class="anchor" aria-label="anchor" href="#arg-input"></a></dt>
+<dd><p>A table holding one occurrence record per row, with the species
+and coordinate columns named by <code>species</code>, <code>longitude</code> and <code>latitude</code>.
+Anything <code><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html" class="external-link">data.table::as.data.table()</a></code> can convert is accepted, so a
+<code>data.frame</code>, <code>data.table</code>, tibble or list of equal-length columns all
+work. Typically the <code>CoordinateCleaned</code> table of a <code>CoordinateRefined</code>
+object returned by <code><a href="par_clean_coordinates.html">par_clean_coordinates()</a></code>. Every record must carry a
+non-missing coordinate.</p></dd>
+
+
+<dt id="arg-species-longitude-latitude">species, longitude, latitude<a class="anchor" aria-label="anchor" href="#arg-species-longitude-latitude"></a></dt>
+<dd><p>Names of the columns in <code>input</code> holding the
+species name and the coordinates. Default to the GBIF field names
+<code>"Accepted_name"</code>, <code>"decimalLongitude"</code> and <code>"decimalLatitude"</code>.</p></dd>
 
 
 <dt id="arg-buffer-km">buffer_km<a class="anchor" aria-label="anchor" href="#arg-buffer-km"></a></dt>
@@ -156,20 +164,19 @@ in one chunk, keeping the relate matrix small. Defaults to <code>2000</code>.</p
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A <code>nativeDetected</code> object - a <code>data.table</code> subclass with one row
-per input record (every row of <code>CoordinateCleaned</code>), keyed by <code>gbifID</code>.
-Every column of the input records is retained unchanged, with four
-classification columns appended:</p><ul><li><p><code>LEVEL3_COD</code>: the assigned WGSRPD Level 3 area code, or <code>NA</code> if the
+per input record (every row of <code>input</code>), keyed by <code>gbifID</code>. Every column of
+the input records is retained unchanged, with three classification columns
+appended:</p><ul><li><p><code>LEVEL3_COD</code>: the assigned WGSRPD Level 3 area code, or <code>NA</code> if the
 record could not be matched</p></li>
 <li><p><code>native_status</code>: one of <code>"native"</code>, <code>"introduced"</code>, <code>"extinct"</code>,
 <code>"location_doubtful"</code>, or <code>"unknown"</code></p></li>
-<li><p><code>native_status_source</code>: how the status was inferred. <code>"spatial"</code> /
-<code>"spatial_buffered"</code> are spatial matches, the latter via the geodesic
-buffer; <code>"unmatched"</code> means the record matched no area.</p></li>
-<li><p><code>buffered</code>: <code>TRUE</code> when the status came from a buffered spatial hit</p></li>
+<li><p><code>native_status_source</code>: how the status was inferred. <code>"exact"</code> is a direct
+spatial match, <code>"buffered"</code> a match obtained through the geodesic buffer,
+and <code>"unmatched"</code> a record that matched no area at all.</p></li>
 </ul><p>The intermediate matching columns used internally (taxon keys, candidate
 areas, match ranks) are not returned. Because the record columns are
 carried through, the result holds a second copy of the input data: for large
-inputs, <code>cleaned_coordinates</code> can be dropped once the classification is in
+inputs, the input table can be dropped once the classification is in
 hand.</p>
     </div>
     <div class="section level2">
@@ -179,6 +186,18 @@ internal <code>WGSRPD3</code> polygons are assumed to be in longitude/latitude
 (EPSG:4326); the function asserts this on the polygon side. <code>buffer_km</code> is
 applied as metres via <code><a href="https://rspatial.github.io/terra/reference/buffer.html" class="external-link">terra::buffer()</a></code>'s geodesic buffer, so it keeps the
 same meaning at every latitude.</p>
+<p><strong>Input.</strong> Any table-like object that <code><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html" class="external-link">data.table::as.data.table()</a></code> can
+convert is accepted - a <code>data.frame</code>, a <code>data.table</code>, a tibble, or a list of
+equal-length columns - provided it carries the species and
+coordinate columns named by <code>species</code>, <code>longitude</code> and <code>latitude</code>. It does
+not have to come from <code><a href="par_clean_coordinates.html">par_clean_coordinates()</a></code>. Pass the
+validated-coordinate table (for example <code>refined_coordinates$CoordinateCleaned</code>)
+so the records that failed coordinate validation are left to
+<code><a href="detect_native_country.html">detect_native_country()</a></code> instead of being classified by geometry. If
+<code>input</code> has no <code>gbifID</code>, one is created as a character sequence number. The
+column-name arguments are independent of the data: a column that happens to
+share a name with one of them (for example a <code>species</code> column) does not
+interfere, and <code>species = "species"</code> is a valid way to select it.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -188,10 +207,11 @@ same meaning at every latitude.</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># interactive() &amp;&amp; exists("cleaned_coordinates")</span></span></span>
-<span class="r-in"><span><span class="co"># Classify records with validated coordinates. `cleaned_coordinates` comes</span></span></span>
-<span class="r-in"><span><span class="co"># from `clean_coordinates()`, whose example creates it when run first.</span></span></span>
-<span class="r-in"><span><span class="va">native_coord</span> <span class="op">&lt;-</span> <span class="fu">detect_native_coord</span><span class="op">(</span>cleaned_coordinates <span class="op">=</span> <span class="va">cleaned_coordinates</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># interactive() &amp;&amp; exists("refined_coordinates")</span></span></span>
+<span class="r-in"><span><span class="co"># Classify the records with validated coordinates. `refined_coordinates`</span></span></span>
+<span class="r-in"><span><span class="co"># comes from `par_clean_coordinates()`, whose example creates it when run</span></span></span>
+<span class="r-in"><span><span class="co"># first.</span></span></span>
+<span class="r-in"><span><span class="va">native_coord</span> <span class="op">&lt;-</span> <span class="fu">detect_native_coord</span><span class="op">(</span><span class="va">refined_coordinates</span><span class="op">$</span><span class="va">CoordinateCleaned</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">native_coord</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 </code></pre></div>

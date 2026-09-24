@@ -31,7 +31,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.7.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -85,7 +85,7 @@ Wang</h4>
 University<br><a class="author_email" href="mailto:#"></a><a href="mailto:wyx1743@gmail.com" class="email">wyx1743@gmail.com</a>
       </address>
                   
-            <h4 data-toc-skip class="date">2026-09-03</h4>
+            <h4 data-toc-skip class="date">2026-09-24</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/wyx619/VasGBIF/blob/master/vignettes/Example.Rmd" class="external-link"><code>vignettes/Example.Rmd</code></a></small>
       <div class="d-none name"><code>Example.Rmd</code></div>
@@ -135,27 +135,6 @@ sativa</em> (preserved specimens with coordinates, obtained 23 July
 <code>issue</code> column).</p>
 </div>
 <div class="section level2">
-<h2 id="extract-gbif-issues">Extract GBIF Issues<a class="anchor" aria-label="anchor" href="#extract-gbif-issues"></a>
-</h2>
-<p><code><a href="../reference/extract_gbif_issues.html">extract_gbif_issues()</a></code> expands the raw pipe-separated
-<code>issue</code> column into one logical indicator column per GBIF
-issue code, and returns a companion summary ranking issues by how many
-records they flag.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">gbif_issue</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/extract_gbif_issues.html">extract_gbif_issues</a></span><span class="op">(</span><span class="va">occ_import</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">gbif_issue</span><span class="op">)</span></span></code></pre></div>
-<p>The <code>issue</code> object contains:</p>
-<ul>
-<li>
-<code>occ_issue</code>: one logical column per issue code, plus
-<code>gbifID</code> and <code>issue_count</code>
-</li>
-<li>
-<code>summary</code>: <code>issue_keys</code> and <code>N</code>,
-ranked by decreasing flag count</li>
-</ul>
-</div>
-<div class="section level2">
 <h2 id="check-taxon-name">Check Taxon Name<a class="anchor" aria-label="anchor" href="#check-taxon-name"></a>
 </h2>
 <p><code><a href="../reference/check_taxon.html">check_taxon()</a></code> submits species- and infraspecific-rank
@@ -165,7 +144,7 @@ World Flora Online (WFO). Synonyms are resolved to accepted names;
 records that fail the match-score threshold or lack an accepted/synonym
 status are excluded from the downstream table and reported in the
 <code>summary</code> for manual review.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">taxa_checked</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/check_taxon.html">check_taxon</a></span><span class="op">(</span>occ_import <span class="op">=</span> <span class="va">occ_import</span>, accuracy <span class="op">=</span> <span class="fl">0.85</span><span class="op">)</span></span>
 <span><span class="va">VasGBIF_summary</span><span class="op">$</span><span class="va">after_taxon_resolved</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/dimensions.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">taxa_checked</span><span class="op">$</span><span class="va">occ_taxa_checked</span><span class="op">)</span></span>
 <span><span class="va">VasGBIF_summary</span><span class="op">$</span><span class="va">final_taxa</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/duplicated.html" class="external-link">uniqueN</a></span><span class="op">(</span><span class="va">taxa_checked</span><span class="op">$</span><span class="va">occ_taxa_checked</span><span class="op">$</span><span class="va">Accepted_name</span><span class="op">)</span></span>
@@ -192,11 +171,10 @@ filter rules to retain only high-quality records. By default the
 <code>date</code>, <code>identifiedBy</code>, and
 <code>recordedBy</code> are opt-in. Every step is recorded in the
 per-rule <code>summary</code> table.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">filtered</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/customized_filter.html">customized_filter</a></span><span class="op">(</span></span>
 <span>  occ_import <span class="op">=</span> <span class="va">occ_import</span>,</span>
-<span>  taxa_checked <span class="op">=</span> <span class="va">taxa_checked</span>,</span>
-<span>  gbif_issue <span class="op">=</span> <span class="va">gbif_issue</span></span>
+<span>  taxa_checked <span class="op">=</span> <span class="va">taxa_checked</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">VasGBIF_summary</span><span class="op">$</span><span class="va">after_customized_filter</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/dimensions.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">filtered</span><span class="op">$</span><span class="va">occ_filtered</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">filtered</span><span class="op">)</span></span></code></pre></div>
@@ -205,6 +183,9 @@ per-rule <code>summary</code> table.</p>
 <li>
 <code>occ_filtered</code>: the filtered occurrence table</li>
 <li>
+<code>occ_marked</code>: the records failed customized quality
+rules</li>
+<li>
 <code>summary</code>: per-rule <code>rule</code>,
 <code>dropped</code>, and <code>remaining</code> counts</li>
 </ul>
@@ -212,15 +193,18 @@ per-rule <code>summary</code> table.</p>
 <div class="section level2">
 <h2 id="clean-coordinates">Clean Coordinates<a class="anchor" aria-label="anchor" href="#clean-coordinates"></a>
 </h2>
-<p><code><a href="../reference/clean_coordinates.html">clean_coordinates()</a></code> validates coordinates with
+<p><code><a href="../reference/par_clean_coordinates.html">par_clean_coordinates()</a></code> validates coordinates with
 CoordinateCleaner (Zizka et al. 2019) to flag spatial errors such as
 centroids, capitals, marine coordinates, and zero coordinates, splitting
 records into cleaned and problematic tables. Validation is parallelized
 across user-specified threads.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">cleaned_coordinates</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/clean_coordinates.html">clean_coordinates</a></span><span class="op">(</span></span>
-<span>  customized_filtered <span class="op">=</span> <span class="va">filtered</span>,</span>
-<span>  threads <span class="op">=</span> <span class="fl">4</span>,tests <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"capitals"</span>, <span class="st">"centroids"</span>, <span class="st">"equal"</span>, <span class="st">"gbif"</span>, <span class="st">"institutions"</span>, <span class="st">"outliers"</span>, <span class="st">"seas"</span>, <span class="st">"zeros"</span><span class="op">)</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cleaned_coordinates</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/par_clean_coordinates.html">par_clean_coordinates</a></span><span class="op">(</span></span>
+<span>  input <span class="op">=</span> <span class="va">filtered</span><span class="op">$</span><span class="va">occ_filtered</span>,</span>
+<span>  species <span class="op">=</span> <span class="st">'Accepted_name_id'</span>,</span>
+<span>  latitude <span class="op">=</span> <span class="st">'decimalLatitude'</span>,</span>
+<span>  longitude <span class="op">=</span> <span class="st">'decimalLongitude'</span>,</span>
+<span>  threads <span class="op">=</span> <span class="fl">8</span>,tests <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"capitals"</span>, <span class="st">"centroids"</span>, <span class="st">"equal"</span>, <span class="st">"gbif"</span>, <span class="st">"institutions"</span>, <span class="st">"outliers"</span>, <span class="st">"seas"</span>, <span class="st">"zeros"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">VasGBIF_summary</span><span class="op">$</span><span class="va">cleaned</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/dimensions.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">cleaned_coordinates</span><span class="op">$</span><span class="va">CoordinateCleaned</span><span class="op">)</span></span>
 <span><span class="va">VasGBIF_summary</span><span class="op">$</span><span class="va">problematic</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/dimensions.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">cleaned_coordinates</span><span class="op">$</span><span class="va">CoordinateProblematic</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">cleaned_coordinates</span><span class="op">)</span></span></code></pre></div>
@@ -248,14 +232,19 @@ coordinates or failed with <code>cleaned_coordinates()</code> are
 matched through their country code by
 <code><a href="../reference/detect_native_country.html">detect_native_country()</a></code>. Every classification records how
 it was obtained in <code>native_status_source</code>.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">native_detected_coord</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_native_coord.html">detect_native_coord</a></span><span class="op">(</span></span>
-<span>  cleaned_coordinates <span class="op">=</span> <span class="va">cleaned_coordinates</span>, buffer_km <span class="op">=</span> <span class="fl">10</span>, buffer_chunk_size <span class="op">=</span> <span class="fl">2000</span><span class="op">)</span></span>
+<span>  input <span class="op">=</span> <span class="va">cleaned_coordinates</span><span class="op">$</span><span class="va">CoordinateCleaned</span>,</span>
+<span>  species <span class="op">=</span> <span class="st">'Accepted_name'</span>,</span>
+<span>  latitude <span class="op">=</span> <span class="st">'decimalLatitude'</span>,</span>
+<span>  longitude <span class="op">=</span> <span class="st">'decimalLongitude'</span>, buffer_km <span class="op">=</span> <span class="fl">10</span>, buffer_chunk_size <span class="op">=</span> <span class="fl">2000</span><span class="op">)</span></span>
 <span><span class="va">native_detected_country</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_native_country.html">detect_native_country</a></span><span class="op">(</span></span>
-<span>  cleaned_coordinates <span class="op">=</span> <span class="va">cleaned_coordinates</span><span class="op">)</span></span>
+<span>  input <span class="op">=</span> <span class="va">cleaned_coordinates</span><span class="op">$</span><span class="va">CoordinateProblematic</span>,</span>
+<span>  country <span class="op">=</span> <span class="st">'countryCode'</span>,</span>
+<span>  species <span class="op">=</span> <span class="st">'Accepted_name'</span><span class="op">)</span></span>
 <span><span class="va">native_detected</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
 <span>  <span class="va">native_detected_coord</span>,</span>
-<span>  <span class="va">native_detected_country</span>,</span>
+<span>  <span class="va">native_detected_country</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">decimalLatitude</span><span class="op">)</span> <span class="op">|</span> <span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">decimalLongitude</span><span class="op">)</span>,<span class="op">]</span>,</span>
 <span>  use.names <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  fill <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
@@ -282,7 +271,7 @@ joining back to <code>cleaned_coordinates</code>.</p>
 <p><code><a href="../reference/map_records.html">map_records()</a></code> renders the records on an interactive map
 via <code>mapview</code>, with geohash-based decluttering and
 colour-coding by native status.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/map_records.html">map_records</a></span><span class="op">(</span></span>
 <span>  native_detected_coord <span class="op">=</span> <span class="va">native_detected_coord</span>,</span>
 <span>  precision <span class="op">=</span> <span class="fl">3</span>,</span>
@@ -302,9 +291,10 @@ validated coordinates, with their native status</li>
 <code>native_records.csv.gz</code>: the subset classified as
 native</li>
 </ul>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/export_records.html">export_records</a></span><span class="op">(</span></span>
 <span>  native_detected_coord <span class="op">=</span> <span class="va">native_detected_coord</span>,</span>
+<span>  native_detected_country <span class="op">=</span> <span class="va">native_detected_country</span>,</span>
 <span>  export_path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/getwd.html" class="external-link">getwd</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -313,24 +303,10 @@ native</li>
 </h2>
 <p>The summary statistics provide a quantitative overview of data
 reduction through the pipeline:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">VasGBIF_summary</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://rspatial.github.io/terra/reference/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://rspatial.github.io/terra/reference/transpose.html" class="external-link">t</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co">##                        [,1]</span></span>
-<span><span class="co">## initial_records      12362</span></span>
-<span><span class="co">## initial_taxa            15</span></span>
-<span><span class="co">## after_taxon_resolved 12281</span></span>
-<span><span class="co">## final_taxa               4</span></span>
-<span><span class="co">## after_customized_filter  11443</span></span>
-<span><span class="co">## cleaned              10030</span></span>
-<span><span class="co">## problematic           1413</span></span>
-<span><span class="co">## native                 470</span></span>
-<span><span class="co">## introduced            9535</span></span>
-<span><span class="co">## extinct                  0</span></span>
-<span><span class="co">## location_doubtful        0</span></span>
-<span><span class="co">## unknown                 25</span></span></code></pre></div>
 <table class="table">
 <colgroup>
 <col width="50%">
@@ -399,7 +375,7 @@ reflects unresolved names and records failing the quality rules; the
 drop from <code>after_customized_filter</code> to <code>cleaned</code>
 reflects records that failed the coordinate tests being set aside
 (records without coordinates are not carried by
-<code><a href="../reference/clean_coordinates.html">clean_coordinates()</a></code>); and the transition from
+<code>clean_coordinates()</code>); and the transition from
 <code>initial_taxa</code> to <code>final_taxa</code> reflects taxonomic
 resolution.</p>
 </div>
@@ -415,7 +391,7 @@ resolution.</p>
 </li>
 <li>
 <strong>Vectorisation</strong>: issue-flag detection in
-<code><a href="../reference/extract_gbif_issues.html">extract_gbif_issues()</a></code> and native-status lookups in
+<code><a href="../reference/extract_issues.html">extract_issues()</a></code> and native-status lookups in
 <code><a href="../reference/detect_native_coord.html">detect_native_coord()</a></code> and
 <code><a href="../reference/detect_native_country.html">detect_native_country()</a></code> process entire columns in compiled
 calls</li>
@@ -424,7 +400,7 @@ calls</li>
 (<code>:=</code>, <code><a href="https://rdrr.io/pkg/data.table/man/assign.html" class="external-link">set()</a></code>) avoids unnecessary copies</li>
 <li>
 <strong>Selective parallelisation</strong>:
-<code><a href="../reference/clean_coordinates.html">clean_coordinates()</a></code> distributes CoordinateCleaner
+<code><a href="../reference/par_clean_coordinates.html">par_clean_coordinates()</a></code> distributes CoordinateCleaner
 validation across threads</li>
 </ul>
 <p>On a standard laptop, VasGBIF compiles one million occurrence records

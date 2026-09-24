@@ -8,7 +8,7 @@ developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.re
 [![codecov.io](https://codecov.io/github/wyx619/VasGBIF/coverage.svg?branch=master)](https://app.codecov.io/github/wyx619/VasGBIF?branch=master)
 [![R-CMD-check](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/wyx619/VasGBIF/actions/workflows/R-CMD-check.yaml)
 ![](https://img.shields.io/github/issues/wyx619/VasGBIF?color=F48D73)![](https://img.shields.io/github/license/wyx619/VasGBIF.svg?logo=github)![GitHub
-stars](https://img.shields.io/github/stars/wyx619/VasGBIF.svg?style=social&label=Star&maxAge=2592000)![](https://img.shields.io/badge/version-3.7.0-blue?logo=R)
+stars](https://img.shields.io/github/stars/wyx619/VasGBIF.svg?style=social&label=Star&maxAge=2592000)![](https://img.shields.io/badge/version-3.7.1-blue?logo=R)
 
 ## Introduction
 
@@ -92,7 +92,7 @@ data.*![Workflow](reference/figures/workflow.png "VasGBIF workflow")
 VasGBIF provides a reproducible, vascular plants optimized, and
 computationally efficient framework for transforming GBIF records into
 analysis-ready datasets. The package functions are organized into four
-modules and eight steps.
+modules and seven steps.
 
 ***Data Preparation Module***
 
@@ -102,12 +102,7 @@ modules and eight steps.
     required by the workflow. No records are filtered at this stage —
     all diagnostic flags are preserved for later quality scoring.
 
-2.  **Extract GBIF Issues** (`extract_gbif_issues`): Expands the raw
-    pipe-separated `issue` column into one logical indicator column per
-    GBIF issue code, plus a companion summary ranking issues by how many
-    records they flag.
-
-3.  **Check Taxon Name** (`check_taxon`): Submits species- and
+2.  **Check Taxon Name** (`check_taxon`): Submits species- and
     infraspecific-rank names to the [Taxonomic Name Resolution
     Service](https://doi.org/10.32614/CRAN.package.TNRS) (TNRS; Boyle et
     al. 2013) for resolution against the World Checklist of Vascular
@@ -118,7 +113,7 @@ modules and eight steps.
 
 ***Filter & Clean Module***
 
-4.  **Customized Filter** (`customized_filter`): Joins the imported
+3.  **Customized Filter** (`customized_filter`): Joins the imported
     records with the resolved taxonomy and the parsed issue flags, then
     applies the enabled filter rules (country code, coordinate
     uncertainty, GBIF issue count, event date, collector and identifier
@@ -126,40 +121,41 @@ modules and eight steps.
     independently toggleable, and each step is recorded in a per-rule
     audit table.
 
-5.  **Clean Coordinates** (`clean_coordinates`): Validates coordinates
-    with
+4.  **Clean Coordinates** (`par_clean_coordinates`): Validates
+    coordinates with
     [CoordinateCleaner](https://doi.org/10.32614/CRAN.package.CoordinateCleaner)
     (Zizka et al. 2019) to flag spatial errors such as centroids,
     capitals, marine coordinates, and zero coordinates, splitting
-    records into cleaned and problematic tables. Validation is
-    parallelized across user-specified threads.
+    records into cleaned and problematic tables in chunk-based
+    parallelization across user-specified threads.
 
 ***Native Status Detection Module***
 
-6.  **Detect Native Status** (`detect_native_coord` +
+5.  **Detect Native Status** (`detect_native_coord` +
     `detect_native_country`): Match each record against WCVP
     distribution data (the internal `Distributions` dataset) via WGSRPD
     Level 3 areas to classify it as native, introduced, extinct,
     location_doubtful, or unknown. Records with validated coordinates
     are matched spatially by
     [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md);
-    records without coordinates and failed with
-    [`clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/clean_coordinates.md)
-    are matched through their country code by
+    records without coordinates and those that failed coordinate
+    validation are matched through their country code by
     [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md).
 
 ***Plot & Export Module***
 
-7.  **Map Visualization** (`map_records`): Renders the refined records
+6.  **Map Visualization** (`map_records`): Renders the refined records
     on an interactive map via
     [mapview](https://CRAN.R-project.org/package=mapview), with
     geohash-based decluttering to reduce visual overlap. Records are
     colour-coded by native status, and multiple basemap layers are
     supported (OpenStreetMap, Esri World Imagery, and others).
 
-8.  **Export Records** (`export_records`): Writes the classified records
-    to disk as two gzip-compressed CSV files: all usable records and the
-    native subset.
+7.  **Export Records** (`export_records`): Writes the classified records
+    to disk as gzip-compressed CSV files, one pair per classification
+    supplied: the records classified from validated coordinates and
+    those classified through country codes. Each pair holds all
+    classified records and the native subset.
 
 Focused exclusively on GBIF plant occurrence records, VasGBIF can
 compile one million records within 15 minutes without high memory usage.
@@ -215,9 +211,11 @@ decision chain auditable.
 
 [`customized_filter()`](https://wyx619.github.io/VasGBIF/reference/customized_filter.md)
 turns the raw download into an analysis-ready occurrence table. It joins
-the three preceding outputs (`occ_import`, `taxa_checked`, `gbif_issue`)
-into one table, then walks a user-selected set of quality rules — one
-vectorised `data.table` pass per rule — with every step audited:
+the imported records with the resolved taxonomy and, through
+[`extract_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_issues.md),
+the per-record issue count, then walks a user-selected set of quality
+rules — one vectorised `data.table` pass per rule — with every step
+audited:
 
 - **Fluent rule control.** Each rule is an independently toggleable
   argument. Three rules are on by default (`countryCode`,
@@ -228,8 +226,11 @@ vectorised `data.table` pass per rule — with every step audited:
   disabled without restructuring the call.
 - **Auditable pipeline.** Every step, including the `taxon_resolved`
   join, is logged in the returned `summary` table (`rule`, `dropped`,
-  `remaining`), making the effect of each decision visible and
-  reproducible.
+  `remaining`, `failed`, `only_failed_here`), making the effect of each
+  decision visible and reproducible. Because every rule is evaluated on
+  its own terms rather than only on the records left by the preceding
+  rules, `failed` counts overlap while `dropped` credits each removed
+  record to the first rule that rejected it.
 - **Careful collector and identifier detection.** The `identifiedBy` and
   `recordedBy` rules remove only values that contain no named person,
   using a curated multilingual keyword list and whole-value patterns;
@@ -255,8 +256,6 @@ gbif_file <- system.file(
 
 occ_import <- import_records(path = gbif_file)
 
-# Parse GBIF issue flags
-gbif_issue <- extract_gbif_issues(occ_import)
 
 # Resolve taxon names by TNRS
 taxa_checked <- check_taxon(occ_import = occ_import, accuracy = 0.85)
@@ -264,22 +263,21 @@ taxa_checked <- check_taxon(occ_import = occ_import, accuracy = 0.85)
 # Filter records by quality rules
 filtered <- customized_filter(
   occ_import = occ_import,
-  taxa_checked = taxa_checked,
-  gbif_issue = gbif_issue
+  taxa_checked = taxa_checked
 )
 
 # Validate coordinates
-cleaned_coordinates <- clean_coordinates(
-  customized_filtered = filtered,
+refined_coordinates <- par_clean_coordinates(
+  filtered$occ_filtered,
   threads = 4
 )
 
 # Annotate native status
 native_detected_coord <- detect_native_coord(
-  cleaned_coordinates = cleaned_coordinates
+  refined_coordinates$CoordinateCleaned
 )
 native_detected_country <- detect_native_country(
-  cleaned_coordinates = cleaned_coordinates
+  refined_coordinates$CoordinateProblematic
 )
 
 # Visualise on an interactive map
@@ -292,6 +290,7 @@ map_records(
 # Export records
 export_records(
   native_detected_coord = native_detected_coord,
+  native_detected_country = native_detected_country,
   export_path = getwd()
 )
 ```
@@ -305,7 +304,7 @@ architectures:
   `data.table`, `stringi`, and `terra`, implemented in C/C++ that bypass
   R’s per-iteration interpretive overhead
 - **Vectorization Over Explicit Loops**: issue-flag detection in
-  [`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md)
+  [`extract_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_issues.md)
   and native-status lookups in
   [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)
   and
@@ -318,7 +317,7 @@ architectures:
   [`set()`](https://rdrr.io/pkg/data.table/man/assign.html)) avoids
   intermediate copies
 - **Selective Parallelization**:
-  [`clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/clean_coordinates.md)
+  [`par_clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/par_clean_coordinates.md)
   partitions the dataset into chunks and distributes CoordinateCleaner
   validation across workers via `foreach` and `doParallel` — vectorized
   processing within chunks, parallel execution across chunks
@@ -375,39 +374,34 @@ Download [doi:10.15468/dl.nt5exp](https://doi.org/10.15468/dl.nt5exp)
 - [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md)
   : Import GBIF occurrence records
 
-## Step 2 — Extract GBIF Issues
-
-- [`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md)
-  : Extract GBIF issue flags into logical columns
-
-## Step 3 — Check Taxon Name
+## Step 2 — Check Taxon Name
 
 - [`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md)
   : Resolve taxon names via the Taxonomic Name Resolution Service
 
-## Step 4 — Custom Filter
+## Step 3 — Customized Filter
 
 - [`customized_filter()`](https://wyx619.github.io/VasGBIF/reference/customized_filter.md)
   : Apply custom quality filters to occurrence records
 
-## Step 5 — Refine Coordinates
+## Step 4 — Clean Coordinates
 
-- [`clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/clean_coordinates.md)
+- [`par_clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/par_clean_coordinates.md)
   : Validate coordinates of filtered occurrence records
 
-## Step 6 — Detect Native Status
+## Step 5 — Detect Native Status
 
 - [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)
   : Detect native status from WGSRPD distributions
 - [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)
   : Detect native status from country codes
 
-## Step 7 — Map Records
+## Step 6 — Map Records
 
 - [`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)
   : Visualize refined records on interactive maps
 
-## Step 8 — Export Records
+## Step 7 — Export Records
 
 - [`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)
   : Export classified records to compressed CSV files
@@ -418,11 +412,6 @@ Download [doi:10.15468/dl.nt5exp](https://doi.org/10.15468/dl.nt5exp)
   :
 
   Print an `import` object
-
-- [`print(`*`<issue>`*`)`](https://wyx619.github.io/VasGBIF/reference/print.issue.md)
-  :
-
-  Print an `issue` object
 
 - [`print(`*`<occ_taxa>`*`)`](https://wyx619.github.io/VasGBIF/reference/print.occ_taxa.md)
   :

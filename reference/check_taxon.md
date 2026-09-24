@@ -153,9 +153,6 @@ continuously updated resource for exploring global plant diversity.
 - [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md)
   for the first step that produces the `occ_import` input.
 
-- [`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md)
-  for the parallel step that processes issue flags.
-
 - [`TNRS::TNRS()`](https://rdrr.io/pkg/TNRS/man/TNRS.html) for the
   underlying name resolution function.
 

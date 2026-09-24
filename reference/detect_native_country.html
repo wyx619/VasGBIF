@@ -6,11 +6,10 @@
     }
   };
 </script><script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Detect native status from country codes — detect_native_country"><meta name="description" content='Assigns a native status classification to occurrence records
-that lack usable coordinates by matching their countryCode against WCVP
-distribution data (the internal Distributions dataset) via WGSRPD Level 3
-areas. countryCode is mapped to candidate Level 3 areas by the
-Level3maping table; no geometry is used. The same flag priority as
-detect_native_coord() applies:
+by matching their country code against WCVP distribution data (the internal
+Distributions dataset) via WGSRPD Level 3 areas. The country code is mapped
+to candidate Level 3 areas by the Level3maping table; no geometry is used.
+The same flag priority as detect_native_coord() applies:
 If location_doubtful == 1, the area is classified as
 "location_doubtful" regardless of other flags.
 Otherwise, if introduced == 1, the area is "introduced".
@@ -19,16 +18,14 @@ If all three flags are 0, the area is "native".
 Any remaining case defaults to "unknown".
 
 
-All records from CoordinateProblematic are classified, including both
-records that lack coordinates (missing longitude or latitude) and records
-with complete coordinates that failed validation tests. Records from
-CoordinateCleaned (those that passed validation) should be classified
-using detect_native_coord() instead.'><meta property="og:description" content='Assigns a native status classification to occurrence records
-that lack usable coordinates by matching their countryCode against WCVP
-distribution data (the internal Distributions dataset) via WGSRPD Level 3
-areas. countryCode is mapped to candidate Level 3 areas by the
-Level3maping table; no geometry is used. The same flag priority as
-detect_native_coord() applies:
+This stage needs no geometry, so it classifies every record handed to it,
+including records that lack coordinates entirely. Records with validated
+coordinates are better classified with detect_native_coord(), whose spatial
+match is more precise.'><meta property="og:description" content='Assigns a native status classification to occurrence records
+by matching their country code against WCVP distribution data (the internal
+Distributions dataset) via WGSRPD Level 3 areas. The country code is mapped
+to candidate Level 3 areas by the Level3maping table; no geometry is used.
+The same flag priority as detect_native_coord() applies:
 If location_doubtful == 1, the area is classified as
 "location_doubtful" regardless of other flags.
 Otherwise, if introduced == 1, the area is "introduced".
@@ -37,11 +34,10 @@ If all three flags are 0, the area is "native".
 Any remaining case defaults to "unknown".
 
 
-All records from CoordinateProblematic are classified, including both
-records that lack coordinates (missing longitude or latitude) and records
-with complete coordinates that failed validation tests. Records from
-CoordinateCleaned (those that passed validation) should be classified
-using detect_native_coord() instead.'><meta property="og:image" content="https://wyx619.github.io/VasGBIF/logo.png"></head><body>
+This stage needs no geometry, so it classifies every record handed to it,
+including records that lack coordinates entirely. Records with validated
+coordinates are better classified with detect_native_coord(), whose spatial
+match is more precise.'><meta property="og:image" content="https://wyx619.github.io/VasGBIF/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -49,7 +45,7 @@ using detect_native_coord() instead.'><meta property="og:image" content="https:/
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.7.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -89,54 +85,61 @@ using detect_native_coord() instead.'><meta property="og:image" content="https:/
 
     <div class="ref-description section level2">
     <p>Assigns a native status classification to occurrence records
-that lack usable coordinates by matching their <code>countryCode</code> against WCVP
-distribution data (the internal <code>Distributions</code> dataset) via WGSRPD Level 3
-areas. <code>countryCode</code> is mapped to candidate Level 3 areas by the
-<code>Level3maping</code> table; no geometry is used. The same flag priority as
-<code><a href="detect_native_coord.html">detect_native_coord()</a></code> applies:</p><ol><li><p>If <code>location_doubtful == 1</code>, the area is classified as
+by matching their country code against WCVP distribution data (the internal
+<code>Distributions</code> dataset) via WGSRPD Level 3 areas. The country code is mapped
+to candidate Level 3 areas by the <code>Level3maping</code> table; no geometry is used.
+The same flag priority as <code><a href="detect_native_coord.html">detect_native_coord()</a></code> applies:</p><ol><li><p>If <code>location_doubtful == 1</code>, the area is classified as
 <code>"location_doubtful"</code> regardless of other flags.</p></li>
 <li><p>Otherwise, if <code>introduced == 1</code>, the area is <code>"introduced"</code>.</p></li>
 <li><p>Otherwise, if <code>extinct == 1</code>, the area is <code>"extinct"</code>.</p></li>
 <li><p>If all three flags are <code>0</code>, the area is <code>"native"</code>.</p></li>
 <li><p>Any remaining case defaults to <code>"unknown"</code>.</p></li>
-</ol><p>All records from <code>CoordinateProblematic</code> are classified, including both
-records that lack coordinates (missing longitude or latitude) and records
-with complete coordinates that failed validation tests. Records from
-<code>CoordinateCleaned</code> (those that passed validation) should be classified
-using <code><a href="detect_native_coord.html">detect_native_coord()</a></code> instead.</p>
+</ol><p>This stage needs no geometry, so it classifies every record handed to it,
+including records that lack coordinates entirely. Records with validated
+coordinates are better classified with <code><a href="detect_native_coord.html">detect_native_coord()</a></code>, whose spatial
+match is more precise.</p>
     </div>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">detect_native_country</span><span class="op">(</span>cleaned_coordinates <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">detect_native_country</span><span class="op">(</span></span>
+<span>  input <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  species <span class="op">=</span> <span class="st">"Accepted_name"</span>,</span>
+<span>  country <span class="op">=</span> <span class="st">"countryCode"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
 
 
-<dl><dt id="arg-cleaned-coordinates">cleaned_coordinates<a class="anchor" aria-label="anchor" href="#arg-cleaned-coordinates"></a></dt>
-<dd><p>A <code>CoordinateRefined</code> object returned by
-<code><a href="clean_coordinates.html">clean_coordinates()</a></code>. All records from <code>CoordinateProblematic</code> are
-classified, including both coordinateless records and records that failed
-coordinate validation tests.</p></dd>
+<dl><dt id="arg-input">input<a class="anchor" aria-label="anchor" href="#arg-input"></a></dt>
+<dd><p>A table holding one occurrence record per row, with the species
+and country-code columns named by <code>species</code> and <code>country</code>. Anything
+<code><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html" class="external-link">data.table::as.data.table()</a></code> can convert is accepted. Typically the
+<code>CoordinateProblematic</code> table of a <code>CoordinateRefined</code> object returned by
+<code><a href="par_clean_coordinates.html">par_clean_coordinates()</a></code>. Missing coordinates are allowed: no geometry is
+used.</p></dd>
+
+
+<dt id="arg-species-country">species, country<a class="anchor" aria-label="anchor" href="#arg-species-country"></a></dt>
+<dd><p>Names of the columns in <code>input</code> holding the species
+name and the country code. Default to the GBIF field names
+<code>"Accepted_name"</code> and <code>"countryCode"</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A <code>nativeDetected</code> object - a <code>data.table</code> subclass with one row</p>
-<p>A <code>nativeDetected</code> object - a <code>data.table</code> subclass with one row
-per record from <code>CoordinateProblematic</code>
-(<code>cleaned_coordinates$CoordinateProblematic</code>), keyed by <code>gbifID</code>. Every
-column of the input:</p><ul><li><p><code>LEVEL3_COD</code>: the assigned WGSRPD Level 3 area code, or <code>NA</code> if the
+    <p>A <code>nativeDetected</code> object - a <code>data.table</code> subclass with one row
+per input record (every row of <code>input</code>), keyed by <code>gbifID</code>. Every column of
+the input records is retained unchanged, with three classification columns
+appended:</p><ul><li><p><code>LEVEL3_COD</code>: the assigned WGSRPD Level 3 area code, or <code>NA</code> if the
 record could not be matched</p></li>
 <li><p><code>native_status</code>: one of <code>"native"</code>, <code>"introduced"</code>, <code>"extinct"</code>,
 <code>"location_doubtful"</code>, or <code>"unknown"</code></p></li>
-<li><p><code>native_status_source</code>: <code>"country_code"</code> for a mapped hit;
-<code>"country_code_no_entry"</code> when the country mapped to areas but the taxon
-had no distribution entry there; <code>"unmatched"</code> when the record had no
-usable country code.</p></li>
-<li><p><code>buffered</code>: always <code>FALSE</code>; no geometry is used.</p></li>
+<li><p><code>native_status_source</code>: <code>"country"</code> for a mapped hit; <code>"no_entry"</code> when the
+country mapped to areas but the taxon had no distribution entry there;
+<code>"unmatched"</code> when the record had no usable country code.</p></li>
 </ul><p>The intermediate matching columns used internally (taxon keys, candidate
 areas, match ranks) are not returned.</p>
     </div>
@@ -146,10 +149,21 @@ areas, match ranks) are not returned.</p>
 complete or one-to-one concordance. A single ISO code usually maps to
 several Level 3 units (for example <code>CN</code> maps to eight), so a country code
 identifies a <em>set</em> of candidate areas; a record is assigned the most
-preferred status among the areas its taxon occurs in (<code>"native"</code> first).
-Records whose country code is missing or empty, or maps to no Level 3
-area, stay <code>"unmatched"</code>; records whose country maps to areas but whose
-taxon has no distribution entry there are <code>"country_code_no_entry"</code>.</p>
+preferred status among the areas its taxon occurs in (<code>"native"</code> first).</p>
+<p>Every input record is returned. A record whose country code is missing or
+empty, or maps to no Level 3 area, is kept with
+<code>native_status_source = "unmatched"</code>; a record whose country maps to areas
+but whose taxon has no distribution entry there is <code>"no_entry"</code>.</p>
+<p><strong>Input.</strong> Any table-like object that <code><a href="https://rdrr.io/pkg/data.table/man/as.data.table.html" class="external-link">data.table::as.data.table()</a></code> can
+convert is accepted - a <code>data.frame</code>, a <code>data.table</code>, a tibble, or a list of
+equal-length columns - provided it carries the species and
+country-code columns named by <code>species</code> and <code>country</code>. No coordinate column
+is required. Pass the problematic-coordinate table (for example
+<code>refined_coordinates$CoordinateProblematic</code>). If <code>input</code> has no <code>gbifID</code>, one
+is created as a character sequence number. The column-name arguments are
+independent of the data: a column that happens to share a name with one of
+them (for example a <code>species</code> column) does not interfere, and
+<code>species = "species"</code> is a valid way to select it.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -159,11 +173,13 @@ taxon has no distribution entry there are <code>"country_code_no_entry"</code>.<
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># interactive() &amp;&amp; exists("cleaned_coordinates")</span></span></span>
-<span class="r-in"><span><span class="co"># Classify the coordinate-less records. `cleaned_coordinates` comes from</span></span></span>
-<span class="r-in"><span><span class="co"># `clean_coordinates()`, whose example creates it when run first.</span></span></span>
-<span class="r-in"><span><span class="va">native_country</span> <span class="op">&lt;-</span> <span class="fu">detect_native_country</span><span class="op">(</span>cleaned_coordinates <span class="op">=</span> <span class="va">cleaned_coordinates</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">native_country</span> <span class="op">&lt;-</span> <span class="fu">detect_native_country</span><span class="op">(</span>customized_filtered <span class="op">=</span> <span class="va">filtered</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># interactive() &amp;&amp; exists("refined_coordinates")</span></span></span>
+<span class="r-in"><span><span class="co"># Classify the records that failed coordinate validation. `refined_coordinates`</span></span></span>
+<span class="r-in"><span><span class="co"># comes from `par_clean_coordinates()`, whose example creates it when run</span></span></span>
+<span class="r-in"><span><span class="co"># first.</span></span></span>
+<span class="r-in"><span><span class="va">native_country</span> <span class="op">&lt;-</span> <span class="fu">detect_native_country</span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="va">refined_coordinates</span><span class="op">$</span><span class="va">CoordinateProblematic</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">native_country</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 </code></pre></div>

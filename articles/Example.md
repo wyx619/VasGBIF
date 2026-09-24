@@ -48,25 +48,6 @@ The returned `"import"` object is a `data.table` with the GBIF fields
 used by the workflow (`gbifID` coerced to character, plus the raw
 `issue` column).
 
-## Extract GBIF Issues
-
-[`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md)
-expands the raw pipe-separated `issue` column into one logical indicator
-column per GBIF issue code, and returns a companion summary ranking
-issues by how many records they flag.
-
-``` r
-
-gbif_issue <- extract_gbif_issues(occ_import)
-print(gbif_issue)
-```
-
-The `issue` object contains:
-
-- `occ_issue`: one logical column per issue code, plus `gbifID` and
-  `issue_count`
-- `summary`: `issue_keys` and `N`, ranked by decreasing flag count
-
 ## Check Taxon Name
 
 [`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md)
@@ -106,8 +87,7 @@ Every step is recorded in the per-rule `summary` table.
 
 filtered <- customized_filter(
   occ_import = occ_import,
-  taxa_checked = taxa_checked,
-  gbif_issue = gbif_issue
+  taxa_checked = taxa_checked
 )
 VasGBIF_summary$after_customized_filter <- nrow(filtered$occ_filtered)
 print(filtered)
@@ -116,11 +96,12 @@ print(filtered)
 The `customFiltered` object contains:
 
 - `occ_filtered`: the filtered occurrence table
+- `occ_marked`: the records failed customized quality rules
 - `summary`: per-rule `rule`, `dropped`, and `remaining` counts
 
 ## Clean Coordinates
 
-[`clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/clean_coordinates.md)
+[`par_clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/par_clean_coordinates.md)
 validates coordinates with CoordinateCleaner (Zizka et al. 2019) to flag
 spatial errors such as centroids, capitals, marine coordinates, and zero
 coordinates, splitting records into cleaned and problematic tables.
@@ -128,9 +109,12 @@ Validation is parallelized across user-specified threads.
 
 ``` r
 
-cleaned_coordinates <- clean_coordinates(
-  customized_filtered = filtered,
-  threads = 4,tests = c("capitals", "centroids", "equal", "gbif", "institutions", "outliers", "seas", "zeros"))
+cleaned_coordinates <- par_clean_coordinates(
+  input = filtered$occ_filtered,
+  species = 'Accepted_name_id',
+  latitude = 'decimalLatitude',
+  longitude = 'decimalLongitude',
+  threads = 8,tests = c("capitals", "centroids", "equal", "gbif", "institutions", "outliers", "seas", "zeros"))
 VasGBIF_summary$cleaned <- nrow(cleaned_coordinates$CoordinateCleaned)
 VasGBIF_summary$problematic <- nrow(cleaned_coordinates$CoordinateProblematic)
 print(cleaned_coordinates)
@@ -162,12 +146,17 @@ Every classification records how it was obtained in
 ``` r
 
 native_detected_coord <- detect_native_coord(
-  cleaned_coordinates = cleaned_coordinates, buffer_km = 10, buffer_chunk_size = 2000)
+  input = cleaned_coordinates$CoordinateCleaned,
+  species = 'Accepted_name',
+  latitude = 'decimalLatitude',
+  longitude = 'decimalLongitude', buffer_km = 10, buffer_chunk_size = 2000)
 native_detected_country <- detect_native_country(
-  cleaned_coordinates = cleaned_coordinates)
+  input = cleaned_coordinates$CoordinateProblematic,
+  country = 'countryCode',
+  species = 'Accepted_name')
 native_detected <- rbind(
   native_detected_coord,
-  native_detected_country,
+  native_detected_country[is.na(decimalLatitude) | is.na(decimalLongitude),],
   use.names = TRUE,
   fill = TRUE
 )
@@ -219,6 +208,7 @@ writes the classified records to disk as two gzip-compressed CSV files:
 
 export_records(
   native_detected_coord = native_detected_coord,
+  native_detected_country = native_detected_country,
   export_path = getwd()
 )
 ```
@@ -233,23 +223,6 @@ through the pipeline:
 VasGBIF_summary |>
   as.data.frame() |>
   t()
-```
-
-``` r
-
-##                        [,1]
-## initial_records      12362
-## initial_taxa            15
-## after_taxon_resolved 12281
-## final_taxa               4
-## after_customized_filter  11443
-## cleaned              10030
-## problematic           1413
-## native                 470
-## introduced            9535
-## extinct                  0
-## location_doubtful        0
-## unknown                 25
 ```
 
 | Statistic | Description |
@@ -273,10 +246,8 @@ resolution, quality rules, and coordinate validation. The drop from
 and records failing the quality rules; the drop from
 `after_customized_filter` to `cleaned` reflects records that failed the
 coordinate tests being set aside (records without coordinates are not
-carried by
-[`clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/clean_coordinates.md));
-and the transition from `initial_taxa` to `final_taxa` reflects
-taxonomic resolution.
+carried by `clean_coordinates()`); and the transition from
+`initial_taxa` to `final_taxa` reflects taxonomic resolution.
 
 ## Performance
 
@@ -285,7 +256,7 @@ VasGBIF achieves its speed through:
 - **C/C++ backends**: core operations delegated to `data.table`,
   `stringi`, and `terra`
 - **Vectorisation**: issue-flag detection in
-  [`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md)
+  [`extract_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_issues.md)
   and native-status lookups in
   [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)
   and
@@ -295,7 +266,7 @@ VasGBIF achieves its speed through:
   [`set()`](https://rdrr.io/pkg/data.table/man/assign.html)) avoids
   unnecessary copies
 - **Selective parallelisation**:
-  [`clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/clean_coordinates.md)
+  [`par_clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/par_clean_coordinates.md)
   distributes CoordinateCleaner validation across threads
 
 On a standard laptop, VasGBIF compiles one million occurrence records

@@ -5,11 +5,11 @@
       fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
     }
   };
-</script><script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Apply custom quality filters to occurrence records — customized_filter"><meta name="description" content="Joins the outputs of the VasGBIF import, taxonomic-resolution, and
-GBIF-issue steps into a single occurrence table, then progressively removes
-records according to a user-selected set of quality rules."><meta property="og:description" content="Joins the outputs of the VasGBIF import, taxonomic-resolution, and
-GBIF-issue steps into a single occurrence table, then progressively removes
-records according to a user-selected set of quality rules."><meta property="og:image" content="https://wyx619.github.io/VasGBIF/logo.png"></head><body>
+</script><script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Apply custom quality filters to occurrence records — customized_filter"><meta name="description" content="Joins the outputs of the VasGBIF import and taxonomic-resolution steps into
+a single occurrence table, then progressively removes records according to
+a user-selected set of quality rules."><meta property="og:description" content="Joins the outputs of the VasGBIF import and taxonomic-resolution steps into
+a single occurrence table, then progressively removes records according to
+a user-selected set of quality rules."><meta property="og:image" content="https://wyx619.github.io/VasGBIF/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -17,7 +17,7 @@ records according to a user-selected set of quality rules."><meta property="og:i
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.7.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -56,9 +56,9 @@ records according to a user-selected set of quality rules."><meta property="og:i
     </div>
 
     <div class="ref-description section level2">
-    <p>Joins the outputs of the VasGBIF import, taxonomic-resolution, and
-GBIF-issue steps into a single occurrence table, then progressively removes
-records according to a user-selected set of quality rules.</p>
+    <p>Joins the outputs of the VasGBIF import and taxonomic-resolution steps into
+a single occurrence table, then progressively removes records according to
+a user-selected set of quality rules.</p>
     </div>
 
     <div class="section level2">
@@ -66,7 +66,6 @@ records according to a user-selected set of quality rules.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">customized_filter</span><span class="op">(</span></span>
 <span>  occ_import <span class="op">=</span> <span class="cn">NA</span>,</span>
 <span>  taxa_checked <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>  gbif_issue <span class="op">=</span> <span class="cn">NA</span>,</span>
 <span>  filter_countryCode <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  filter_coordinateUncertainty <span class="op">=</span> <span class="fl">10000</span>,</span>
 <span>  filter_date <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -81,25 +80,25 @@ records according to a user-selected set of quality rules.</p>
 
 
 <dl><dt id="arg-occ-import">occ_import<a class="anchor" aria-label="anchor" href="#arg-occ-import"></a></dt>
-<dd><p>An <code>"import"</code> <code>data.table</code> returned by <code><a href="import_records.html">import_records()</a></code>,
-containing at least the columns <code>issue</code>, <code>decimalLatitude</code>,
-<code>countryCode</code>, <code>coordinateUncertaintyInMeters</code>, <code>eventDate</code>, <code>month</code>,
-<code>year</code>, <code>day</code>, <code>identifiedBy</code>, and <code>recordedBy</code>.</p></dd>
+<dd><p>An <code>"import"</code> <code>data.table</code> returned by <code><a href="import_records.html">import_records()</a></code>.
+<code>gbifID</code> and <code>issue</code> are always required; every other column is required
+only by the rule that reads it, so a column backing a disabled rule may be
+absent. The columns are <code>decimalLatitude</code> and <code>countryCode</code> for
+<code>filter_countryCode</code>, <code>coordinateUncertaintyInMeters</code> for
+<code>filter_coordinateUncertainty</code>, <code>eventDate</code>, <code>month</code>, <code>year</code>, and <code>day</code>
+for <code>filter_date</code>, <code>identifiedBy</code>, and <code>recordedBy</code>.</p></dd>
 
 
 <dt id="arg-taxa-checked">taxa_checked<a class="anchor" aria-label="anchor" href="#arg-taxa-checked"></a></dt>
 <dd><p>An <code>"occ_taxa"</code> object returned by <code><a href="check_taxon.html">check_taxon()</a></code>.</p></dd>
 
 
-<dt id="arg-gbif-issue">gbif_issue<a class="anchor" aria-label="anchor" href="#arg-gbif-issue"></a></dt>
-<dd><p>An <code>"issue"</code> object returned by <code><a href="extract_gbif_issues.html">extract_gbif_issues()</a></code>.</p></dd>
-
-
 <dt id="arg-filter-countrycode">filter_countryCode<a class="anchor" aria-label="anchor" href="#arg-filter-countrycode"></a></dt>
 <dd><p>Logical scalar. If <code>TRUE</code> (default), removes
 records with no usable geographic information: <code>decimalLatitude</code> is <code>NA</code>
 <strong>and</strong> <code>countryCode</code> is <code>NA</code> or empty. Records with either a coordinate
-or a country code are kept.</p></dd>
+or a country code are kept. When enabled, a <code>filter_countryCode</code> logical
+column is added to <code>occ_marked</code>; see <em>Per-rule verdict columns</em>.</p></dd>
 
 
 <dt id="arg-filter-coordinateuncertainty">filter_coordinateUncertainty<a class="anchor" aria-label="anchor" href="#arg-filter-coordinateuncertainty"></a></dt>
@@ -108,7 +107,9 @@ records whose <code>coordinateUncertaintyInMeters</code> is strictly greater tha
 threshold. Defaults to <code>10000</code>. Records with <code>NA</code> or empty
 <code>coordinateUncertaintyInMeters</code> are always kept - they do not
 participate in this rule. Pass <code>NULL</code>, <code>NA</code>, or <code>''</code> to disable the
-rule.</p></dd>
+rule. The value is validated when the function is called, before any
+work is done. When the rule is enabled, a <code>filter_coordinateUncertainty</code>
+logical column is added to <code>occ_marked</code>.</p></dd>
 
 
 <dt id="arg-filter-date">filter_date<a class="anchor" aria-label="anchor" href="#arg-filter-date"></a></dt>
@@ -133,19 +134,31 @@ junk detection</em>). Defaults to <code>FALSE</code>.</p></dd>
 <dd><p>Non-negative numeric scalar. Removes records
 flagged with more GBIF issues than the threshold
 (<code>gbif_issues &gt; filter_gbif_issues_max</code>). Defaults to <code>5</code>. Pass <code>NULL</code>,
-<code>NA</code>, or <code>''</code> to disable the rule.</p></dd>
+<code>NA</code>, or <code>''</code> to disable the rule. The value is validated when the
+function is called, before any work is done.</p>
+<p>Each of <code>filter_date</code>, <code>filter_identifiedBy</code>, <code>filter_recordedBy</code>, and
+<code>filter_gbif_issues_max</code> adds a logical column named after the argument to
+<code>occ_marked</code> when it is enabled; see <em>Per-rule verdict columns</em>.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>An object of class <code>"customFiltered"</code>, implemented as a named list
-with two elements:</p><ul><li><p><code>occ_filtered</code>: the filtered <code>data.table</code> with all occurrence and joined
+with three elements:</p><ul><li><p><code>occ_filtered</code>: the records that passed every applied test, as a
+<code>data.table</code> with the occurrence and joined columns only - no verdict
 columns.</p></li>
-<li><p><code>summary</code>: a <code>data.table</code> with columns <code>rule</code>, <code>dropped</code>, and <code>remaining</code>
-giving, for each applied step (the <code>taxon_resolved</code> join plus each
-enabled rule), how many records were removed and how many remained.</p></li>
-</ul><p>A <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> method for class <code>"customFiltered"</code> displays the record counts
-and the per-rule summary.</p>
+<li><p><code>summary</code>: a <code>data.table</code> with columns <code>rule</code>, <code>dropped</code>, <code>remaining</code>,
+<code>failed</code>, and <code>only_failed_here</code>, giving for each applied step (the
+<code>taxon_resolved</code> join plus each enabled rule) how many records it removed,
+how many remained, and how many it rejects under the independent and
+exclusive readings described in <em>Per-rule verdict columns</em>.</p></li>
+<li><p><code>occ_marked</code>: the records excluded by at least one applied test, reduced to
+<code>gbifID</code> and one verdict column per applied test (see <em>Per-rule verdict
+columns</em>). Every such record fails at least one of them, so its verdict
+columns contain at least one <code>FALSE</code>. Together with <code>occ_filtered</code>, this
+table accounts for every record in <code>occ_import</code>.</p></li>
+</ul><p>A <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> method for class <code>"customFiltered"</code> displays how many records
+were kept and excluded, and the per-rule summary.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -154,8 +167,8 @@ and the per-rule summary.</p>
 <h3 id="joining-the-inputs">Joining the inputs<a class="anchor" aria-label="anchor" href="#joining-the-inputs"></a></h3>
 
 
-<p>The three inputs are joined by <code>gbifID</code>. For memory efficiency the joins
-are performed <strong>in place</strong> on a single defensive copy of <code>occ_import</code>:
+<p>The two inputs are joined by <code>gbifID</code>. For memory efficiency the joins are
+performed <strong>in place</strong> on a single defensive copy of <code>occ_import</code>:
 <code><a href="https://rdrr.io/pkg/data.table/man/copy.html" class="external-link">copy()</a></code> is made once and each join adds columns via <code>:=</code>, instead of
 materialising a fresh full-width table per join. The caller's <code>occ_import</code>
 is never modified. Rows are not deleted during the join or the rules; every
@@ -169,20 +182,29 @@ contains only fully resolved records. Rows absent from <code>occ_taxa_checked</c
 are dropped via the keep mask instead of carrying <code>NA</code> taxonomy through the
 rest of the pipeline. The number removed is recorded in <code>summary</code> under the
 rule name <code>taxon_resolved</code>.</p>
-<p><code><a href="extract_gbif_issues.html">extract_gbif_issues()</a></code> returns exactly one row per imported record, so the
-issue join is one-to-one and cannot change the row count. The function
-verifies this and stops if any record lacks an issue count. The raw <code>issue</code>
-column is removed from <code>occ_import</code> and replaced by <code>gbif_issues</code>, the
-per-record issue count computed by <code><a href="extract_gbif_issues.html">extract_gbif_issues()</a></code>.</p>
+<p><code><a href="extract_issues.html">extract_issues()</a></code> is called internally on <code>occ_import</code> and returns exactly
+one row per imported record, so the issue join is one-to-one and cannot
+change the row count. The function verifies this and stops if any record
+lacks an issue count. The raw <code>issue</code> column is removed from <code>occ_import</code>
+and replaced by <code>gbif_issues</code>, the per-record issue count.</p>
 </div>
 
 <div class="section">
 <h3 id="filter-rules">Filter rules<a class="anchor" aria-label="anchor" href="#filter-rules"></a></h3>
 
 
-<p>Enabled rules are applied in sequence. By default <code>countryCode</code>,
-<code>coordinateUncertainty</code>, and <code>gbif_issues_max</code> are enabled; <code>date</code>,
-<code>identifiedBy</code>, and <code>recordedBy</code> are disabled.</p><ul><li><p><code>countryCode</code>: drop records with <code>NA</code> latitude <strong>and</strong> <code>NA</code>/empty
+<p>Every applied test inspects the full table on its own terms rather than only
+the records left by the preceding tests, and its verdict is stored as a
+logical column named after the test. <code>TRUE</code> means the record passed that
+test. By default <code>countryCode</code>, <code>coordinateUncertainty</code>, and
+<code>gbif_issues_max</code> are enabled; <code>date</code>, <code>identifiedBy</code>, and <code>recordedBy</code> are
+disabled. Numeric thresholds are validated before any work is done, so an
+invalid value fails immediately.</p>
+<p>The always-on <code>taxon_resolved</code> test is the first one applied. It is not a
+selectable rule: <code><a href="check_taxon.html">check_taxon()</a></code> only retains records whose name resolved, so
+records absent from <code>taxa_checked$occ_taxa_checked</code> receive <code>NA</code> <code>Accepted_name</code>
+at the join and fail this test. It always contributes a
+<code>filter_taxon_resolved</code> column.</p><ul><li><p><code>countryCode</code>: drop records with <code>NA</code> latitude <strong>and</strong> <code>NA</code>/empty
 <code>countryCode</code>.</p></li>
 <li><p><code>coordinateUncertainty</code>: drop records with
 <code>coordinateUncertaintyInMeters &gt; threshold</code>; records with <code>NA</code> or empty
@@ -195,6 +217,37 @@ below).</p></li>
 one-to-one issue join guarantees every record carries an issue count, so
 no record is exempt from this rule.</p></li>
 </ul></div>
+
+<div class="section">
+<h3 id="per-rule-verdict-columns">Per-rule verdict columns<a class="anchor" aria-label="anchor" href="#per-rule-verdict-columns"></a></h3>
+
+
+<p>Each applied test contributes a logical column named after it:
+<code>filter_taxon_resolved</code> (always) plus <code>filter_countryCode</code>,
+<code>filter_coordinateUncertainty</code>, <code>filter_date</code>, <code>filter_identifiedBy</code>,
+<code>filter_recordedBy</code>, and <code>filter_gbif_issues_max</code> for the selected rules.
+<code>TRUE</code> marks a record that passed that test. A disabled rule contributes no
+column, so the output width depends on which rules were selected. The columns
+are carried by <code>occ_marked</code>, where they identify which tests rejected each
+excluded record; <code>occ_filtered</code> holds only occurrence and joined columns.</p>
+<p>Because each rule is evaluated independently, one record can fail several
+tests at once and is then counted by each of them. The <code>summary</code> table makes
+this explicit:</p><ul><li><p><code>failed</code> is the number of records that test rejects on its own terms;
+these counts overlap and sum to more than the number of records removed.</p></li>
+<li><p><code>only_failed_here</code> is the number of records that test rejects and no other
+test does; these counts are disjoint but incomplete, since a record failing
+several tests is credited to none of them.</p></li>
+<li><p><code>dropped</code> and <code>remaining</code> remain the sequential attribution: each removed
+record is credited to the first enabled test that rejected it, so <code>dropped</code>
+sums exactly to the number of records removed.</p></li>
+</ul><p>The split of the output reflects the same distinction. <code>occ_filtered</code> holds
+the records that passed every applied test, with their occurrence and joined
+columns and no verdict columns; <code>occ_marked</code> holds the rest, reduced to
+<code>gbifID</code> and the verdict columns. Because every applied test has a column,
+each marked record carries at least one <code>FALSE</code> and shows exactly which tests
+rejected it - a record excluded only because its taxon name did not resolve
+has <code>FALSE</code> in <code>filter_taxon_resolved</code> alone.</p>
+</div>
 
 <div class="section">
 <h3 id="collector-junk-detection">Collector junk detection<a class="anchor" aria-label="anchor" href="#collector-junk-detection"></a></h3>
@@ -228,8 +281,8 @@ keyword could be wrongly dropped.</p>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index">
-<ul><li><p><code><a href="import_records.html">import_records()</a></code>, <code><a href="check_taxon.html">check_taxon()</a></code>, <code><a href="extract_gbif_issues.html">extract_gbif_issues()</a></code> for the three
-inputs.</p></li>
+<ul><li><p><code><a href="import_records.html">import_records()</a></code> and <code><a href="check_taxon.html">check_taxon()</a></code> for the two inputs.</p></li>
+<li><p><code><a href="extract_issues.html">extract_issues()</a></code> for the issue count behind the <code>gbif_issues_max</code> rule.</p></li>
 </ul></div>
     </div>
 
@@ -242,27 +295,34 @@ inputs.</p></li>
 <span class="r-in"><span>  package <span class="op">=</span> <span class="st">"VasGBIF"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">occ</span> <span class="op">&lt;-</span> <span class="fu"><a href="import_records.html">import_records</a></span><span class="op">(</span>path <span class="op">=</span> <span class="va">gbif_file</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">gbif_issue</span> <span class="op">&lt;-</span> <span class="fu"><a href="extract_gbif_issues.html">extract_gbif_issues</a></span><span class="op">(</span><span class="va">occ</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">taxa_checked</span> <span class="op">&lt;-</span> <span class="fu"><a href="check_taxon.html">check_taxon</a></span><span class="op">(</span>occ_import <span class="op">=</span> <span class="va">occ</span>, accuracy <span class="op">=</span> <span class="fl">0.85</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">filtered</span> <span class="op">&lt;-</span> <span class="fu">customized_filter</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  occ_import <span class="op">=</span> <span class="va">occ</span>,</span></span>
 <span class="r-in"><span>  taxa_checked <span class="op">=</span> <span class="va">taxa_checked</span>,</span></span>
-<span class="r-in"><span>  gbif_issue <span class="op">=</span> <span class="va">gbif_issue</span>,</span></span>
 <span class="r-in"><span>  filter_date <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
 <span class="r-in"><span>  filter_identifiedBy <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
 <span class="r-in"><span>  filter_recordedBy <span class="op">=</span> <span class="cn">TRUE</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">filtered</span></span></span>
+<span class="r-in"><span><span class="va">filtered</span><span class="op">$</span><span class="va">summary</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Disable the coordinate-uncertainty rule (NULL / NA / '' all work):</span></span></span>
+<span class="r-in"><span><span class="co"># The kept records carry the occurrence and joined columns only:</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">filtered</span><span class="op">$</span><span class="va">occ_filtered</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># The excluded records carry `gbifID` and one verdict column per applied</span></span></span>
+<span class="r-in"><span><span class="co"># test, so each shows exactly which tests rejected it:</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">filtered</span><span class="op">$</span><span class="va">occ_marked</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">filtered</span><span class="op">$</span><span class="va">occ_marked</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Disable the coordinate-uncertainty rule (NULL / NA / '' all work). The</span></span></span>
+<span class="r-in"><span><span class="co"># rule contributes no verdict column:</span></span></span>
 <span class="r-in"><span><span class="va">filtered_loose</span> <span class="op">&lt;-</span> <span class="fu">customized_filter</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  occ_import <span class="op">=</span> <span class="va">occ</span>,</span></span>
 <span class="r-in"><span>  taxa_checked <span class="op">=</span> <span class="va">taxa_checked</span>,</span></span>
-<span class="r-in"><span>  gbif_issue <span class="op">=</span> <span class="va">gbif_issue</span>,</span></span>
 <span class="r-in"><span>  filter_coordinateUncertainty <span class="op">=</span> <span class="cn">NULL</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">filtered_loose</span></span></span>
+<span class="r-in"><span><span class="st">"filter_coordinateUncertainty"</span> <span class="op"><a href="https://bit64.r-lib.org/reference/bit64S3.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">filtered_loose</span><span class="op">$</span><span class="va">occ_marked</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 </code></pre></div>
     </div>

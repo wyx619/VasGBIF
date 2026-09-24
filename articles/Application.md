@@ -18,33 +18,29 @@ is known. The VasGBIF pipeline delivers that in eight sequential steps:
     **[`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md)**
     reads the GBIF occurrence download ZIP (`SIMPLE_CSV` or Darwin Core
     Archive), keeping the raw `issue` field intact
-2.  **Extract GBIF Issues** —
-    **[`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md)**
-    expands `issue` into one logical column per GBIF issue code, plus a
-    per-record issue count
-3.  **Check Taxon Name** —
+2.  **Check Taxon Name** —
     **[`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md)**
     resolves scientific names against WCVP through TNRS, keeping matches
     that clear the `accuracy` threshold and resolve below genus level
-4.  **Customized Filter** —
+3.  **Customized Filter** —
     **[`customized_filter()`](https://wyx619.github.io/VasGBIF/reference/customized_filter.md)**
     joins the three outputs by `gbifID` and drops records rule by rule,
     logging every step
-5.  **Clean Coordinates** —
-    **[`clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/clean_coordinates.md)**
+4.  **Clean Coordinates** —
+    **[`par_clean_coordinates()`](https://wyx619.github.io/VasGBIF/reference/par_clean_coordinates.md)**
     runs CoordinateCleaner tests in parallel, splitting records into
     coordinate-clean and coordinate-problematic tables
-6.  **Detect Native Status** —
+5.  **Detect Native Status** —
     **[`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)**
     classify each record as `native`, `introduced`, `extinct`,
     `location_doubtful`, or `unknown`
-7.  **Map Records** —
+6.  **Map Records** —
     **[`map_records()`](https://wyx619.github.io/VasGBIF/reference/map_records.md)**
     renders the records on an interactive map with geohash-based
     decluttering
-8.  **Export Records** —
+7.  **Export Records** —
     **[`export_records()`](https://wyx619.github.io/VasGBIF/reference/export_records.md)**
-    writes the classified records to two gzip-compressed CSV files
+    exports records to gzip-compressed CSV files
 
 Here we use the *Saxifraga* records (see
 <https://doi.org/10.15468/dl.4ty3ap>) as example. Substitute your own
@@ -68,28 +64,31 @@ library(data.table)
 # Step 1: Import the download
 occ_import <- import_records(path = gbif_file)
 
-# Step 2: Parse GBIF issue flags
-gbif_issue <- extract_gbif_issues(occ_import)
 
-# Step 3: Resolve taxon names against WCVP
+# Step 2: Resolve taxon names 
 taxa_checked <- check_taxon(occ_import = occ_import, accuracy = 0.85)
 
-# Step 4: Filter records by quality rules
+# Step 3: Filter records by quality rules
 filtered <- customized_filter(
   occ_import = occ_import,
-  taxa_checked = taxa_checked,
-  gbif_issue = gbif_issue
+  taxa_checked = taxa_checked
 )
 
-# Step 5: Validate coordinates
-cleaned_coordinates <- clean_coordinates(
-  customized_filtered = filtered,
-  threads = 4
+# Step 4: Validate coordinates
+refined_coordinates <- par_clean_coordinates(
+  input = filtered$occ_filtered,
+  species = 'Accepted_name_id',
+  latitude = 'decimalLatitude',
+  longitude = 'decimalLongitude',
+  threads = 8
 )
 
-# Step 6: Annotate native status
+# Step 5: Annotate native status
 native_detected_coord <- detect_native_coord(
-  cleaned_coordinates = cleaned_coordinates
+  input = refined_coordinates$CoordinateCleaned,
+  species = 'Accepted_name',
+  latitude = 'decimalLatitude',
+  longitude = 'decimalLongitude'
 )
 ```
 

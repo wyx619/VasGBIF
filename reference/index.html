@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.7.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -82,23 +82,7 @@
         </dt>
         <dd>Import GBIF occurrence records</dd>
       </dl></div><div class="section level2">
-      <h2 id="step-extract-gbif-issues">Step 2 — Extract GBIF Issues<a class="anchor" aria-label="anchor" href="#step-extract-gbif-issues"></a></h2>
-
-
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="extract_gbif_issues.html">extract_gbif_issues()</a></code>
-
-        </dt>
-        <dd>Extract GBIF issue flags into logical columns</dd>
-      </dl></div><div class="section level2">
-      <h2 id="step-check-taxon-name">Step 3 — Check Taxon Name<a class="anchor" aria-label="anchor" href="#step-check-taxon-name"></a></h2>
+      <h2 id="step-check-taxon-name">Step 2 — Check Taxon Name<a class="anchor" aria-label="anchor" href="#step-check-taxon-name"></a></h2>
 
 
 
@@ -114,7 +98,7 @@
         </dt>
         <dd>Resolve taxon names via the Taxonomic Name Resolution Service</dd>
       </dl></div><div class="section level2">
-      <h2 id="step-custom-filter">Step 4 — Custom Filter<a class="anchor" aria-label="anchor" href="#step-custom-filter"></a></h2>
+      <h2 id="step-customized-filter">Step 3 — Customized Filter<a class="anchor" aria-label="anchor" href="#step-customized-filter"></a></h2>
 
 
 
@@ -130,7 +114,7 @@
         </dt>
         <dd>Apply custom quality filters to occurrence records</dd>
       </dl></div><div class="section level2">
-      <h2 id="step-refine-coordinates">Step 5 — Refine Coordinates<a class="anchor" aria-label="anchor" href="#step-refine-coordinates"></a></h2>
+      <h2 id="step-clean-coordinates">Step 4 — Clean Coordinates<a class="anchor" aria-label="anchor" href="#step-clean-coordinates"></a></h2>
 
 
 
@@ -141,12 +125,12 @@
 
       <dl><dt>
 
-          <code><a href="clean_coordinates.html">clean_coordinates()</a></code>
+          <code><a href="par_clean_coordinates.html">par_clean_coordinates()</a></code>
 
         </dt>
         <dd>Validate coordinates of filtered occurrence records</dd>
       </dl></div><div class="section level2">
-      <h2 id="step-detect-native-status">Step 6 — Detect Native Status<a class="anchor" aria-label="anchor" href="#step-detect-native-status"></a></h2>
+      <h2 id="step-detect-native-status">Step 5 — Detect Native Status<a class="anchor" aria-label="anchor" href="#step-detect-native-status"></a></h2>
 
 
 
@@ -169,7 +153,7 @@
         </dt>
         <dd>Detect native status from country codes</dd>
       </dl></div><div class="section level2">
-      <h2 id="step-map-records">Step 7 — Map Records<a class="anchor" aria-label="anchor" href="#step-map-records"></a></h2>
+      <h2 id="step-map-records">Step 6 — Map Records<a class="anchor" aria-label="anchor" href="#step-map-records"></a></h2>
 
 
 
@@ -185,7 +169,7 @@
         </dt>
         <dd>Visualize refined records on interactive maps</dd>
       </dl></div><div class="section level2">
-      <h2 id="step-export-records">Step 8 — Export Records<a class="anchor" aria-label="anchor" href="#step-export-records"></a></h2>
+      <h2 id="step-export-records">Step 7 — Export Records<a class="anchor" aria-label="anchor" href="#step-export-records"></a></h2>
 
 
 
@@ -216,13 +200,6 @@
 
         </dt>
         <dd>Print an <code>import</code> object</dd>
-
-        <dt>
-
-          <code><a href="print.issue.html">print(<i>&lt;issue&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Print an <code>issue</code> object</dd>
 
         <dt>
 

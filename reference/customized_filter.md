@@ -1,8 +1,8 @@
 # Apply custom quality filters to occurrence records
 
-Joins the outputs of the VasGBIF import, taxonomic-resolution, and
-GBIF-issue steps into a single occurrence table, then progressively
-removes records according to a user-selected set of quality rules.
+Joins the outputs of the VasGBIF import and taxonomic-resolution steps
+into a single occurrence table, then progressively removes records
+according to a user-selected set of quality rules.
 
 ## Usage
 
@@ -10,7 +10,6 @@ removes records according to a user-selected set of quality rules.
 customized_filter(
   occ_import = NA,
   taxa_checked = NA,
-  gbif_issue = NA,
   filter_countryCode = TRUE,
   filter_coordinateUncertainty = 10000,
   filter_date = FALSE,
@@ -25,27 +24,27 @@ customized_filter(
 - occ_import:
 
   An `"import"` `data.table` returned by
-  [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md),
-  containing at least the columns `issue`, `decimalLatitude`,
-  `countryCode`, `coordinateUncertaintyInMeters`, `eventDate`, `month`,
-  `year`, `day`, `identifiedBy`, and `recordedBy`.
+  [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md).
+  `gbifID` and `issue` are always required; every other column is
+  required only by the rule that reads it, so a column backing a
+  disabled rule may be absent. The columns are `decimalLatitude` and
+  `countryCode` for `filter_countryCode`,
+  `coordinateUncertaintyInMeters` for `filter_coordinateUncertainty`,
+  `eventDate`, `month`, `year`, and `day` for `filter_date`,
+  `identifiedBy`, and `recordedBy`.
 
 - taxa_checked:
 
   An `"occ_taxa"` object returned by
   [`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md).
 
-- gbif_issue:
-
-  An `"issue"` object returned by
-  [`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md).
-
 - filter_countryCode:
 
   Logical scalar. If `TRUE` (default), removes records with no usable
   geographic information: `decimalLatitude` is `NA` **and**
   `countryCode` is `NA` or empty. Records with either a coordinate or a
-  country code are kept.
+  country code are kept. When enabled, a `filter_countryCode` logical
+  column is added to `occ_marked`; see *Per-rule verdict columns*.
 
 - filter_coordinateUncertainty:
 
@@ -54,7 +53,10 @@ customized_filter(
   threshold. Defaults to `10000`. Records with `NA` or empty
   `coordinateUncertaintyInMeters` are always kept - they do not
   participate in this rule. Pass `NULL`, `NA`, or `''` to disable the
-  rule.
+  rule. The value is validated when the function is called, before any
+  work is done. When the rule is enabled, a
+  `filter_coordinateUncertainty` logical column is added to
+  `occ_marked`.
 
 - filter_date:
 
@@ -77,29 +79,47 @@ customized_filter(
 
   Non-negative numeric scalar. Removes records flagged with more GBIF
   issues than the threshold (`gbif_issues > filter_gbif_issues_max`).
-  Defaults to `5`. Pass `NULL`, `NA`, or `''` to disable the rule.
+  Defaults to `5`. Pass `NULL`, `NA`, or `''` to disable the rule. The
+  value is validated when the function is called, before any work is
+  done.
+
+  Each of `filter_date`, `filter_identifiedBy`, `filter_recordedBy`, and
+  `filter_gbif_issues_max` adds a logical column named after the
+  argument to `occ_marked` when it is enabled; see *Per-rule verdict
+  columns*.
 
 ## Value
 
 An object of class `"customFiltered"`, implemented as a named list with
-two elements:
+three elements:
 
-- `occ_filtered`: the filtered `data.table` with all occurrence and
-  joined columns.
+- `occ_filtered`: the records that passed every applied test, as a
+  `data.table` with the occurrence and joined columns only - no verdict
+  columns.
 
-- `summary`: a `data.table` with columns `rule`, `dropped`, and
-  `remaining` giving, for each applied step (the `taxon_resolved` join
-  plus each enabled rule), how many records were removed and how many
-  remained.
+- `summary`: a `data.table` with columns `rule`, `dropped`, `remaining`,
+  `failed`, and `only_failed_here`, giving for each applied step (the
+  `taxon_resolved` join plus each enabled rule) how many records it
+  removed, how many remained, and how many it rejects under the
+  independent and exclusive readings described in *Per-rule verdict
+  columns*.
+
+- `occ_marked`: the records excluded by at least one applied test,
+  reduced to `gbifID` and one verdict column per applied test (see
+  *Per-rule verdict columns*). Every such record fails at least one of
+  them, so its verdict columns contain at least one `FALSE`. Together
+  with `occ_filtered`, this table accounts for every record in
+  `occ_import`.
 
 A [`print()`](https://rdrr.io/r/base/print.html) method for class
-`"customFiltered"` displays the record counts and the per-rule summary.
+`"customFiltered"` displays how many records were kept and excluded, and
+the per-rule summary.
 
 ## Details
 
 ### Joining the inputs
 
-The three inputs are joined by `gbifID`. For memory efficiency the joins
+The two inputs are joined by `gbifID`. For memory efficiency the joins
 are performed **in place** on a single defensive copy of `occ_import`:
 [`copy()`](https://rdrr.io/pkg/data.table/man/copy.html) is made once
 and each join adds columns via `:=`, instead of materialising a fresh
@@ -118,19 +138,30 @@ from `occ_taxa_checked` are dropped via the keep mask instead of
 carrying `NA` taxonomy through the rest of the pipeline. The number
 removed is recorded in `summary` under the rule name `taxon_resolved`.
 
-[`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md)
-returns exactly one row per imported record, so the issue join is
-one-to-one and cannot change the row count. The function verifies this
-and stops if any record lacks an issue count. The raw `issue` column is
-removed from `occ_import` and replaced by `gbif_issues`, the per-record
-issue count computed by
-[`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md).
+[`extract_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_issues.md)
+is called internally on `occ_import` and returns exactly one row per
+imported record, so the issue join is one-to-one and cannot change the
+row count. The function verifies this and stops if any record lacks an
+issue count. The raw `issue` column is removed from `occ_import` and
+replaced by `gbif_issues`, the per-record issue count.
 
 ### Filter rules
 
-Enabled rules are applied in sequence. By default `countryCode`,
-`coordinateUncertainty`, and `gbif_issues_max` are enabled; `date`,
-`identifiedBy`, and `recordedBy` are disabled.
+Every applied test inspects the full table on its own terms rather than
+only the records left by the preceding tests, and its verdict is stored
+as a logical column named after the test. `TRUE` means the record passed
+that test. By default `countryCode`, `coordinateUncertainty`, and
+`gbif_issues_max` are enabled; `date`, `identifiedBy`, and `recordedBy`
+are disabled. Numeric thresholds are validated before any work is done,
+so an invalid value fails immediately.
+
+The always-on `taxon_resolved` test is the first one applied. It is not
+a selectable rule:
+[`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md)
+only retains records whose name resolved, so records absent from
+`taxa_checked$occ_taxa_checked` receive `NA` `Accepted_name` at the join
+and fail this test. It always contributes a `filter_taxon_resolved`
+column.
 
 - `countryCode`: drop records with `NA` latitude **and** `NA`/empty
   `countryCode`.
@@ -148,6 +179,42 @@ Enabled rules are applied in sequence. By default `countryCode`,
 - `gbif_issues_max`: drop records with `gbif_issues > threshold`. The
   one-to-one issue join guarantees every record carries an issue count,
   so no record is exempt from this rule.
+
+### Per-rule verdict columns
+
+Each applied test contributes a logical column named after it:
+`filter_taxon_resolved` (always) plus `filter_countryCode`,
+`filter_coordinateUncertainty`, `filter_date`, `filter_identifiedBy`,
+`filter_recordedBy`, and `filter_gbif_issues_max` for the selected
+rules. `TRUE` marks a record that passed that test. A disabled rule
+contributes no column, so the output width depends on which rules were
+selected. The columns are carried by `occ_marked`, where they identify
+which tests rejected each excluded record; `occ_filtered` holds only
+occurrence and joined columns.
+
+Because each rule is evaluated independently, one record can fail
+several tests at once and is then counted by each of them. The `summary`
+table makes this explicit:
+
+- `failed` is the number of records that test rejects on its own terms;
+  these counts overlap and sum to more than the number of records
+  removed.
+
+- `only_failed_here` is the number of records that test rejects and no
+  other test does; these counts are disjoint but incomplete, since a
+  record failing several tests is credited to none of them.
+
+- `dropped` and `remaining` remain the sequential attribution: each
+  removed record is credited to the first enabled test that rejected it,
+  so `dropped` sums exactly to the number of records removed.
+
+The split of the output reflects the same distinction. `occ_filtered`
+holds the records that passed every applied test, with their occurrence
+and joined columns and no verdict columns; `occ_marked` holds the rest,
+reduced to `gbifID` and the verdict columns. Because every applied test
+has a column, each marked record carries at least one `FALSE` and shows
+exactly which tests rejected it - a record excluded only because its
+taxon name did not resolve has `FALSE` in `filter_taxon_resolved` alone.
 
 ### Collector junk detection
 
@@ -178,10 +245,13 @@ to contain a keyword could be wrongly dropped.
 
 ## See also
 
-- [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md),
-  [`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md),
-  [`extract_gbif_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_gbif_issues.md)
-  for the three inputs.
+- [`import_records()`](https://wyx619.github.io/VasGBIF/reference/import_records.md)
+  and
+  [`check_taxon()`](https://wyx619.github.io/VasGBIF/reference/check_taxon.md)
+  for the two inputs.
+
+- [`extract_issues()`](https://wyx619.github.io/VasGBIF/reference/extract_issues.md)
+  for the issue count behind the `gbif_issues_max` rule.
 
 ## Examples
 
@@ -193,26 +263,33 @@ gbif_file <- system.file(
   package = "VasGBIF"
 )
 occ <- import_records(path = gbif_file)
-gbif_issue <- extract_gbif_issues(occ)
 taxa_checked <- check_taxon(occ_import = occ, accuracy = 0.85)
 
 filtered <- customized_filter(
   occ_import = occ,
   taxa_checked = taxa_checked,
-  gbif_issue = gbif_issue,
   filter_date = TRUE,
   filter_identifiedBy = TRUE,
   filter_recordedBy = TRUE
 )
 filtered
+filtered$summary
 
-# Disable the coordinate-uncertainty rule (NULL / NA / '' all work):
+# The kept records carry the occurrence and joined columns only:
+names(filtered$occ_filtered)
+
+# The excluded records carry `gbifID` and one verdict column per applied
+# test, so each shows exactly which tests rejected it:
+names(filtered$occ_marked)
+head(filtered$occ_marked)
+
+# Disable the coordinate-uncertainty rule (NULL / NA / '' all work). The
+# rule contributes no verdict column:
 filtered_loose <- customized_filter(
   occ_import = occ,
   taxa_checked = taxa_checked,
-  gbif_issue = gbif_issue,
   filter_coordinateUncertainty = NULL
 )
-filtered_loose
+"filter_coordinateUncertainty" %in% names(filtered_loose$occ_marked)
 }
 ```

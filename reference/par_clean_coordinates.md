@@ -1,8 +1,10 @@
 # Validate coordinates of filtered occurrence records
 
-Validates the coordinates of filtered occurrence records with
-CoordinateCleaner and splits them into coordinate-clean and problematic
-tables.
+Validates the coordinates of occurrence records with CoordinateCleaner
+and splits them into coordinate-clean and problematic tables. Any table
+with a taxon column and complete coordinate columns is accepted, so the
+function does not depend on the output of
+[`customized_filter()`](https://wyx619.github.io/VasGBIF/reference/customized_filter.md).
 
 [CoordinateCleaner::clean_coordinates](https://ropensci.github.io/CoordinateCleaner/reference/clean_coordinates.html)
 checks run in parallel to flag common spatial issues such as centroids,
@@ -11,7 +13,9 @@ capitals, and marine records.
 Records that pass all requested tests are returned in
 `CoordinateCleaned`; records that fail one or more tests, along with
 records lacking coordinates, are returned in `CoordinateProblematic`.
-Native-status classification is a separate step:
+The latter carries one logical column per test applied, so a flagged
+record can be traced to the specific test(s) it failed. Native-status
+classification is a separate step:
 [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md)
 classifies the records with validated coordinates, and
 [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md)
@@ -20,8 +24,11 @@ the coordinate-less records (extracted from `CoordinateProblematic`).
 ## Usage
 
 ``` r
-clean_coordinates(
-  customized_filtered = NA,
+par_clean_coordinates(
+  input = NA,
+  species = "Accepted_name_id",
+  longitude = "decimalLongitude",
+  latitude = "decimalLatitude",
   threads = 4,
   tests = c("capitals", "centroids", "equal", "gbif", "institutions", "outliers", "seas",
     "zeros")
@@ -30,9 +37,27 @@ clean_coordinates(
 
 ## Arguments
 
-- customized_filtered:
+- input:
 
-  A `customFiltered` object returned by
+  A table of occurrence records, with coordinates that are complete,
+  i.e. neither longitude nor latitude may be `NA`; records missing
+  either are returned in `CoordinateProblematic` without being
+  validated. Typically `filtered$occ_filtered`, the table returned by
+  [`customized_filter()`](https://wyx619.github.io/VasGBIF/reference/customized_filter.md).
+  If the table has no `gbifID` column, one is created as a character
+  sequence number over the input rows.
+
+- species:
+
+  Name of the column giving the taxon each record belongs to, used to
+  group records for the `outliers` test. Defaults to
+  `"Accepted_name_id"`, the column produced by
+  [`customized_filter()`](https://wyx619.github.io/VasGBIF/reference/customized_filter.md).
+
+- longitude, latitude:
+
+  Names of the longitude and latitude columns. Default to
+  `"decimalLongitude"` and `"decimalLatitude"`, the names produced by
   [`customized_filter()`](https://wyx619.github.io/VasGBIF/reference/customized_filter.md).
 
 - threads:
@@ -47,7 +72,8 @@ clean_coordinates(
   Character vector of CoordinateCleaner validation tests to apply.
   Choose one or more of `"capitals"`, `"centroids"`, `"equal"`,
   `"gbif"`, `"institutions"`, `"outliers"`, `"seas"`, and `"zeros"`. The
-  default uses all tests.
+  default uses all tests. Each test adds its own verdict column to
+  `CoordinateProblematic`; see *Verdict columns*.
 
 ## Value
 
@@ -58,7 +84,11 @@ A `CoordinateRefined` object (list) with three elements:
 
 - `CoordinateProblematic`: a `data.table` containing (1) records that
   failed one or more coordinate tests, and (2) records lacking complete
-  coordinates (missing latitude or longitude)
+  coordinates (missing latitude or longitude). The two kinds of record
+  are told apart by the verdict columns described in *Verdict columns*:
+  they are all `NA` for the coordinate-less records and for the other
+  records at least one is `FALSE`, the columns for the remaining tests
+  being `TRUE`
 
 - `runtime`: the elapsed execution time
 
@@ -91,18 +121,46 @@ tests are:
 
 - `zeros`: records at coordinates `(0, 0)`
 
+The `seas` test is evaluated against the bundled `WorldLandMap` land
+polygons buffered by 5 km. The buffer absorbs records that a coarse
+coastline places just offshore, which would otherwise be reported as sea
+records; it is applied because the map is a low-resolution outline, not
+because those records are expected to be at sea.
+
 ### Parallel processing
 
 Records with complete coordinates are chunked across the requested
 number of workers and validated with `foreach` and `doParallel`. The
-worker count is capped to the number of records to avoid idle cluster
-nodes.
+worker count is capped to the number of species and of records, so no
+worker is left idle.
+
+Chunks are built from species, not from consecutive rows: every record
+of a species is kept in one chunk, and whole species are assigned to the
+chunk that currently holds the fewest records, which keeps chunk sizes
+close to equal. Records of a species must not be split across workers
+because the `outliers` test judges each record against the distribution
+of its own species, so splitting them would change which records are
+flagged.
+
+### Verdict columns
+
+`CoordinateProblematic` gains one logical column per test listed in
+`tests`, named after the corresponding CoordinateCleaner flag (`.cap`
+for `capitals`, `.cen` for `centroids`, `.equ` for `equal`, `.gbf` for
+`gbif`, `.inst` for `institutions`, `.otl` for `outliers`, `.sea` for
+`seas`, and `.zer` for `zeros`). `TRUE` means the record passed that
+test, `FALSE` means it failed it, and records that never reached
+validation keep `NA` throughout, which is how coordinate-less records
+can be told apart from flagged ones. These columns are appended after
+the occurrence columns. `CoordinateCleaned` holds records that passed
+every test and keeps the occurrence columns only.
 
 ### Empty input
 
 If no records have complete coordinates, validation is skipped. An empty
 `CoordinateCleaned` table is returned, while records lacking coordinates
-are placed in `CoordinateProblematic`.
+are placed in `CoordinateProblematic`, with every verdict column set to
+`NA`.
 
 ## References
 
@@ -116,7 +174,7 @@ are placed in `CoordinateProblematic`.
 
 ## See also
 
-[`clean_coordinates()`](https://ropensci.github.io/CoordinateCleaner/reference/clean_coordinates.html),
+[`CoordinateCleaner::clean_coordinates()`](https://ropensci.github.io/CoordinateCleaner/reference/clean_coordinates.html),
 [`customized_filter()`](https://wyx619.github.io/VasGBIF/reference/customized_filter.md),
 [`detect_native_coord()`](https://wyx619.github.io/VasGBIF/reference/detect_native_coord.md),
 [`detect_native_country()`](https://wyx619.github.io/VasGBIF/reference/detect_native_country.md),
@@ -128,6 +186,18 @@ are placed in `CoordinateProblematic`.
 
 ``` r
 if (FALSE) { # interactive() && exists("filtered")
-cleaned_coordinates <- clean_coordinates(customized_filtered = filtered, threads = 4)
+cleaned_coordinates <- par_clean_coordinates(filtered$occ_filtered, threads = 4)
+
+cleaned_coordinates
+# the test each flagged record failed
+cleaned_coordinates$CoordinateProblematic[.otl == FALSE]
+
+# the column names can be mapped explicitly instead
+par_clean_coordinates(
+  filtered$occ_filtered,
+  species = "Accepted_name_id",
+  longitude = "decimalLongitude",
+  latitude = "decimalLatitude"
+)
 }
 ```

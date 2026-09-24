@@ -17,7 +17,7 @@ and color-coded by their native status."><meta property="og:image" content="http
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.7.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -63,7 +63,12 @@ and color-coded by their native status.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">map_records</span><span class="op">(</span>native_detected_coord <span class="op">=</span> <span class="cn">NA</span>, precision <span class="op">=</span> <span class="fl">3</span>, cex <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">map_records</span><span class="op">(</span></span>
+<span>  native_detected_coord <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  species <span class="op">=</span> <span class="st">"all"</span>,</span>
+<span>  precision <span class="op">=</span> <span class="fl">3</span>,</span>
+<span>  cex <span class="op">=</span> <span class="fl">3</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -73,6 +78,14 @@ and color-coded by their native status.</p>
 <dl><dt id="arg-native-detected-coord">native_detected_coord<a class="anchor" aria-label="anchor" href="#arg-native-detected-coord"></a></dt>
 <dd><p>A <code>nativeDetected</code> object returned by
 <code><a href="detect_native_coord.html">detect_native_coord()</a></code>, containing records with validated coordinates.</p></dd>
+
+
+<dt id="arg-species">species<a class="anchor" aria-label="anchor" href="#arg-species"></a></dt>
+<dd><p>Either <code>"all"</code> (the default) to map every species, or a single
+species name to restrict the map to that species. The name is matched
+exactly against the <code>Accepted_name</code> column, so <code>"Saxifraga hirculus"</code> maps
+the records of that species. Records whose <code>native_status</code> is <code>"unknown"</code>
+are excluded either way.</p></dd>
 
 
 <dt id="arg-precision">precision<a class="anchor" aria-label="anchor" href="#arg-precision"></a></dt>
@@ -97,7 +110,7 @@ three switchable basemap layers, and clickable popups with record metadata.</p>
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>The function works in four steps:</p><ul><li><p><strong>Record selection:</strong> Reads the classified records from
 <code><a href="detect_native_coord.html">detect_native_coord()</a></code>, keeping those whose <code>native_status</code> is not
-<code>"unknown"</code>.</p></li>
+<code>"unknown"</code>, optionally restricted to a single species named by <code>species</code>.</p></li>
 <li><p><strong>Geohash deduplication:</strong> Encodes coordinates at the requested precision
 and retains one representative record per species, geohash cell, and native
 status.</p></li>
@@ -111,11 +124,15 @@ Stadia Stamen Watercolor basemaps.</p></li>
 
 <p>Both the classification and the coordinates are read from
 <code>native_detected_coord</code>, which carries every column of the input records.
-Records with <code>native_status = "unknown"</code> are excluded. Records with missing
-longitude or latitude are excluded as a guard; <code><a href="detect_native_coord.html">detect_native_coord()</a></code> only
-classifies records with validated coordinates, so none are expected, and
-inputs that carry missing coordinates (such as the output of
-<code><a href="detect_native_country.html">detect_native_country()</a></code>) are rejected outright.</p>
+Records with <code>native_status = "unknown"</code> are excluded. When <code>species</code> names a
+species rather than <code>"all"</code>, the selection is narrowed further to the records
+whose <code>Accepted_name</code> equals that name; the comparison is exact, so the
+spelling must match the column value. A name that selects nothing is an
+error, because an empty map is read as "this species has no native records".
+Records with missing longitude or latitude are excluded as a guard;
+<code><a href="detect_native_coord.html">detect_native_coord()</a></code> only classifies records with validated coordinates,
+so none are expected, and inputs that carry missing coordinates (such as the
+output of <code><a href="detect_native_country.html">detect_native_country()</a></code>) are rejected outright.</p>
 </div>
 
 <div class="section">
@@ -152,10 +169,17 @@ perception.</p></li>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># interactive() &amp;&amp; exists("native_detected_coord")</span></span></span>
+<span class="r-in"><span><span class="co"># Every species in the classification</span></span></span>
 <span class="r-in"><span><span class="fu">map_records</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  native_detected_coord <span class="op">=</span> <span class="va">native_detected_coord</span>,</span></span>
 <span class="r-in"><span>  precision <span class="op">=</span> <span class="fl">3</span>,</span></span>
 <span class="r-in"><span>  cex <span class="op">=</span> <span class="fl">3</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># A single species</span></span></span>
+<span class="r-in"><span><span class="fu">map_records</span><span class="op">(</span></span></span>
+<span class="r-in"><span>  native_detected_coord <span class="op">=</span> <span class="va">native_detected_coord</span>,</span></span>
+<span class="r-in"><span>  species <span class="op">=</span> <span class="st">"Saxifraga hirculus"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 </code></pre></div>

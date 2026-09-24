@@ -5,10 +5,12 @@
       fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
     }
   };
-</script><script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Export classified records to compressed CSV files — export_records"><meta name="description" content="Writes the results of detect_native_coord() to disk as
-gzip-compressed CSV files. Two files are exported: all classified records
-and the native subset."><meta property="og:description" content="Writes the results of detect_native_coord() to disk as
-gzip-compressed CSV files. Two files are exported: all classified records
+</script><script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Export classified records to compressed CSV files — export_records"><meta name="description" content="Writes the results of detect_native_coord() and/or
+detect_native_country() to disk as gzip-compressed CSV files. Each
+classification supplied produces two files: all of its classified records
+and the native subset."><meta property="og:description" content="Writes the results of detect_native_coord() and/or
+detect_native_country() to disk as gzip-compressed CSV files. Each
+classification supplied produces two files: all of its classified records
 and the native subset."><meta property="og:image" content="https://wyx619.github.io/VasGBIF/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
@@ -17,7 +19,7 @@ and the native subset."><meta property="og:image" content="https://wyx619.github
 
     <a class="navbar-brand me-2" href="../index.html">VasGBIF</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">3.7.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -56,14 +58,19 @@ and the native subset."><meta property="og:image" content="https://wyx619.github
     </div>
 
     <div class="ref-description section level2">
-    <p>Writes the results of <code><a href="detect_native_coord.html">detect_native_coord()</a></code> to disk as
-gzip-compressed CSV files. Two files are exported: all classified records
+    <p>Writes the results of <code><a href="detect_native_coord.html">detect_native_coord()</a></code> and/or
+<code><a href="detect_native_country.html">detect_native_country()</a></code> to disk as gzip-compressed CSV files. Each
+classification supplied produces two files: all of its classified records
 and the native subset.</p>
     </div>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">export_records</span><span class="op">(</span>native_detected_coord <span class="op">=</span> <span class="cn">NA</span>, export_path <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">export_records</span><span class="op">(</span></span>
+<span>  native_detected_coord <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  native_detected_country <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  export_path <span class="op">=</span> <span class="cn">NA</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -72,7 +79,19 @@ and the native subset.</p>
 
 <dl><dt id="arg-native-detected-coord">native_detected_coord<a class="anchor" aria-label="anchor" href="#arg-native-detected-coord"></a></dt>
 <dd><p>A <code>nativeDetected</code> object returned by
-<code><a href="detect_native_coord.html">detect_native_coord()</a></code>, containing records with validated coordinates.</p></dd>
+<code><a href="detect_native_coord.html">detect_native_coord()</a></code>, containing records with validated coordinates. It
+must carry <code>gbifID</code>, <code>native_status</code>, <code>decimalLongitude</code> and
+<code>decimalLatitude</code>, and none of its coordinates may be missing. Optional,
+but at least one of <code>native_detected_coord</code> and <code>native_detected_country</code>
+must be supplied.</p></dd>
+
+
+<dt id="arg-native-detected-country">native_detected_country<a class="anchor" aria-label="anchor" href="#arg-native-detected-country"></a></dt>
+<dd><p>A <code>nativeDetected</code> object returned by
+<code><a href="detect_native_country.html">detect_native_country()</a></code>, containing the records classified through their
+<code>countryCode</code>. It must carry <code>gbifID</code> and <code>native_status</code>; missing
+coordinates are allowed. Optional, but at least one of the two
+classification arguments must be supplied.</p></dd>
 
 
 <dt id="arg-export-path">export_path<a class="anchor" aria-label="anchor" href="#arg-export-path"></a></dt>
@@ -86,19 +105,35 @@ and the native subset.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>The following files are written:</p><ul><li><p><code>all_records.csv.gz</code>: every classified record with validated coordinates,
-with all its columns and its native status</p></li>
-<li><p><code>native_records.csv.gz</code>: the subset classified as <code>"native"</code></p></li>
-</ul><p><code>native_detected_coord</code> already carries every column of the input records, so
-no join is performed here: <code>all_records.csv.gz</code> is written straight from it.</p>
+    <p>Each classification supplied is written as its own pair of files, so the two
+sets never overwrite each other:</p><ul><li><p><code>all_records_coord.csv.gz</code>: every record classified by
+<code><a href="detect_native_coord.html">detect_native_coord()</a></code>, with all its columns and its native status</p></li>
+<li><p><code>native_records_coord.csv.gz</code>: the subset of those records classified as
+<code>"native"</code></p></li>
+<li><p><code>all_records_country.csv.gz</code>: every record classified by
+<code><a href="detect_native_country.html">detect_native_country()</a></code>, with all its columns and its native status</p></li>
+<li><p><code>native_records_country.csv.gz</code>: the subset of those records classified as
+<code>"native"</code></p></li>
+</ul><p>Only the pair belonging to a supplied argument is written, so supplying one
+argument leaves the files of the other untouched. The two sets are exported
+separately rather than bound together: this function never writes a combined
+table.</p>
+<p>The two <code>all_records_*</code> files are likewise not a partition of a single input
+and cannot be row-bound with each other. They carry different columns - the
+coordinate result comes from <code>CoordinateCleaned</code>, whereas the country-code
+result comes from <code>CoordinateProblematic</code>, which keeps its per-test verdict
+columns - and <code><a href="detect_native_country.html">detect_native_country()</a></code> classifies only the records it
+receives with a usable <code>countryCode</code>.</p>
+<p>Both arguments already carry every column of the input records, so no join is
+performed here: each table is written straight from the object.</p>
 <p><code>native_detected_coord</code> must carry coordinates for every record: it is the
-spatial output of <code><a href="detect_native_coord.html">detect_native_coord()</a></code>, which only classifies records
-with validated coordinates. The function stops if <code>decimalLongitude</code> or
-<code>decimalLatitude</code> is missing for any record - the output of
-<code><a href="detect_native_country.html">detect_native_country()</a></code> would be rejected this way. Records without
-coordinates are classified separately by <code><a href="detect_native_country.html">detect_native_country()</a></code>; to
-export both sets together, bind the two results before calling this
-function.</p>
+spatial output of <code><a href="detect_native_coord.html">detect_native_coord()</a></code>, which only classifies records with
+validated coordinates. The function stops if <code>decimalLongitude</code> or
+<code>decimalLatitude</code> is missing for any of its records, which catches the two
+arguments being swapped. <code>native_detected_country</code> carries no such
+requirement, because <code><a href="detect_native_country.html">detect_native_country()</a></code> classifies the records that
+failed coordinate validation - including records whose coordinates are
+entirely absent.</p>
 <p>Files are written with <code>fwrite(encoding = "UTF-8")</code>. <code>export_path</code> is
 validated before writing: if it is not a single character path or exists as
 a file (not a directory), the function stops with an error; if it does not
@@ -107,7 +142,7 @@ exist, a warning is emitted and the directory is created automatically.</p>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="detect_native_coord.html">detect_native_coord()</a></code>, <code><a href="detect_native_country.html">detect_native_country()</a></code>,
-<code><a href="clean_coordinates.html">clean_coordinates()</a></code></p></div>
+<code><a href="par_clean_coordinates.html">par_clean_coordinates()</a></code></p></div>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
