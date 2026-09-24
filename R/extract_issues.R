@@ -33,6 +33,7 @@
 #'
 #' @import data.table
 #' @import stringi
+#' @keywords internal
 #'
 #' @examplesIf interactive()
 #' gbif_file <- system.file(

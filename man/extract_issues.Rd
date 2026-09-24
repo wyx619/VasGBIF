@@ -52,3 +52,4 @@ head(extract_issues(occ))
 \item \code{\link{EnumOccurrenceIssue}} for the full list of recognised GBIF issue codes.
 }
 }
+\keyword{internal}
