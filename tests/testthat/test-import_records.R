@@ -110,42 +110,44 @@ test_that("import_records reads a Darwin Core Archive", {
   expect_setequal(res$scientificName, c("Rosa canina", "Rosa rubiginosa"))
 })
 
-test_that("the import table feeds extract_gbif_issues", {
+test_that("the import table feeds extract_issues", {
   fixture <- make_gbif_zip()
   occ <- suppressMessages(import_records(fixture$zip))
-  res <- suppressMessages(extract_gbif_issues(occ))
+  res <- suppressMessages(extract_issues(occ))
 
-  expect_s3_class(res, "issue")
-  expect_true(res$occ_issue$COORDINATE_ROUNDED[1])
-  expect_true(res$occ_issue$COUNTRY_COORDINATE_MISMATCH[1])
-  expect_equal(res$occ_issue$issue_count[1], 2)
-  expect_equal(res$occ_issue$issue_count[2], 0)
+  # the raw pipe-separated field is reduced to a per-record count
+  expect_s3_class(res, "data.table")
+  expect_named(res, c("gbifID", "issue_count"))
+  expect_identical(res$gbifID, occ$gbifID)
+  expect_equal(res$issue_count[1], 2)
+  expect_equal(res$issue_count[2], 0)
 })
 
 # --- tempdir handling -------------------------------------------------------
 
-test_that("a user-supplied tempdir keeps the extracted file by default", {
+test_that("a user-supplied tempdir is never deleted, only its extracted file", {
   fixture <- make_gbif_zip()
   outdir <- tempfile("gbif-out-")
   on.exit(unlink(outdir, recursive = TRUE, force = TRUE), add = TRUE)
 
   suppressMessages(import_records(fixture$zip, tempdir = outdir))
 
-  expect_true(file.exists(file.path(outdir, "gbif-download.csv")))
+  # the directory the caller named is left in place; only the extracted member
+  # is unlinked, so unrelated files in a shared directory are never at risk
+  expect_true(dir.exists(outdir))
+  expect_false(file.exists(file.path(outdir, "gbif-download.csv")))
 })
 
-test_that("remove_tempfile = TRUE deletes the extraction directory", {
+test_that("remove_tempfile = TRUE deletes a directory this call created itself", {
   fixture <- make_gbif_zip()
-  outdir <- tempfile("gbif-out-")
-  on.exit(unlink(outdir, recursive = TRUE, force = TRUE), add = TRUE)
+  before <- list.files(tempdir(), "^VasGBIF-", full.names = TRUE)
 
-  suppressMessages(import_records(
-    fixture$zip,
-    tempdir = outdir,
-    remove_tempfile = TRUE
-  ))
+  suppressMessages(import_records(fixture$zip))
 
-  expect_false(dir.exists(outdir))
+  expect_setequal(
+    list.files(tempdir(), "^VasGBIF-", full.names = TRUE),
+    before
+  )
 })
 
 test_that("a non-empty tempdir warns about potential overwrites", {
@@ -167,7 +169,7 @@ test_that("keeping the extraction directory is announced", {
   on.exit(unlink(outdir, recursive = TRUE, force = TRUE), add = TRUE)
 
   expect_message(
-    import_records(fixture$zip, tempdir = outdir),
+    import_records(fixture$zip, tempdir = outdir, remove_tempfile = FALSE),
     "Extracted files will be preserved in"
   )
 })
@@ -197,7 +199,17 @@ test_that("import_records does not modify the installed extdata directory", {
 test_that("import_records rejects invalid paths", {
   expect_error(import_records(path = 1), "single character string")
   expect_error(import_records(path = ""), "SIMPLE_CSV or DWCA")
-  expect_error(import_records(path = "records.csv"), "\\.zip file from a GBIF")
+
+  # a file that exists but is not a GBIF occurrence table is rejected on its
+  # header, not on its extension
+  not_gbif <- tempfile(fileext = ".csv")
+  writeLines("not,a,gbif,file", not_gbif)
+  on.exit(unlink(not_gbif), add = TRUE)
+
+  expect_error(
+    import_records(path = not_gbif),
+    "does not look like a GBIF occurrence table"
+  )
 })
 
 # --- Print method -----------------------------------------------------------

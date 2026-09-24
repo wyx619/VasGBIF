@@ -12,5 +12,5 @@
       set_threads(0)
     Condition
       Error in `set_threads()`:
-      ! illegal !!!
+      ! `x` must be a single positive number.
 

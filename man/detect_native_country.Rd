@@ -4,31 +4,37 @@
 \alias{detect_native_country}
 \title{Detect native status from country codes}
 \usage{
-detect_native_country(cleaned_coordinates = NA)
+detect_native_country(
+  input = NA,
+  species = "Accepted_name",
+  country = "countryCode"
+)
 }
 \arguments{
-\item{cleaned_coordinates}{A \code{CoordinateRefined} object returned by
-\code{\link[=clean_coordinates]{clean_coordinates()}}. All records from \code{CoordinateProblematic} are
-classified, including both coordinateless records and records that failed
-coordinate validation tests.}
+\item{input}{A table holding one occurrence record per row, with the species
+and country-code columns named by \code{species} and \code{country}. Anything
+\code{\link[data.table:as.data.table]{data.table::as.data.table()}} can convert is accepted. Typically the
+\code{CoordinateProblematic} table of a \code{CoordinateRefined} object returned by
+\code{\link[=par_clean_coordinates]{par_clean_coordinates()}}. Missing coordinates are allowed: no geometry is
+used.}
+
+\item{species, country}{Names of the columns in \code{input} holding the species
+name and the country code. Default to the GBIF field names
+\code{"Accepted_name"} and \code{"countryCode"}.}
 }
 \value{
 A \code{nativeDetected} object - a \code{data.table} subclass with one row
-
-A \code{nativeDetected} object - a \code{data.table} subclass with one row
-per record from \code{CoordinateProblematic}
-(\code{cleaned_coordinates$CoordinateProblematic}), keyed by \code{gbifID}. Every
-column of the input:
+per input record (every row of \code{input}), keyed by \code{gbifID}. Every column of
+the input records is retained unchanged, with three classification columns
+appended:
 \itemize{
 \item \code{LEVEL3_COD}: the assigned WGSRPD Level 3 area code, or \code{NA} if the
 record could not be matched
 \item \code{native_status}: one of \code{"native"}, \code{"introduced"}, \code{"extinct"},
 \code{"location_doubtful"}, or \code{"unknown"}
-\item \code{native_status_source}: \code{"country_code"} for a mapped hit;
-\code{"country_code_no_entry"} when the country mapped to areas but the taxon
-had no distribution entry there; \code{"unmatched"} when the record had no
-usable country code.
-\item \code{buffered}: always \code{FALSE}; no geometry is used.
+\item \code{native_status_source}: \code{"country"} for a mapped hit; \code{"no_entry"} when the
+country mapped to areas but the taxon had no distribution entry there;
+\code{"unmatched"} when the record had no usable country code.
 }
 
 The intermediate matching columns used internally (taxon keys, candidate
@@ -36,11 +42,10 @@ areas, match ranks) are not returned.
 }
 \description{
 Assigns a native status classification to occurrence records
-that lack usable coordinates by matching their \code{countryCode} against WCVP
-distribution data (the internal \code{Distributions} dataset) via WGSRPD Level 3
-areas. \code{countryCode} is mapped to candidate Level 3 areas by the
-\code{Level3maping} table; no geometry is used. The same flag priority as
-\code{\link[=detect_native_coord]{detect_native_coord()}} applies:
+by matching their country code against WCVP distribution data (the internal
+\code{Distributions} dataset) via WGSRPD Level 3 areas. The country code is mapped
+to candidate Level 3 areas by the \code{Level3maping} table; no geometry is used.
+The same flag priority as \code{\link[=detect_native_coord]{detect_native_coord()}} applies:
 \enumerate{
 \item If \code{location_doubtful == 1}, the area is classified as
 \code{"location_doubtful"} regardless of other flags.
@@ -50,11 +55,10 @@ areas. \code{countryCode} is mapped to candidate Level 3 areas by the
 \item Any remaining case defaults to \code{"unknown"}.
 }
 
-All records from \code{CoordinateProblematic} are classified, including both
-records that lack coordinates (missing longitude or latitude) and records
-with complete coordinates that failed validation tests. Records from
-\code{CoordinateCleaned} (those that passed validation) should be classified
-using \code{\link[=detect_native_coord]{detect_native_coord()}} instead.
+This stage needs no geometry, so it classifies every record handed to it,
+including records that lack coordinates entirely. Records with validated
+coordinates are better classified with \code{\link[=detect_native_coord]{detect_native_coord()}}, whose spatial
+match is more precise.
 }
 \details{
 \verb{L3 ISOcode} in \code{Level3maping} is reproduced as published and is \strong{not} a
@@ -62,16 +66,31 @@ complete or one-to-one concordance. A single ISO code usually maps to
 several Level 3 units (for example \code{CN} maps to eight), so a country code
 identifies a \emph{set} of candidate areas; a record is assigned the most
 preferred status among the areas its taxon occurs in (\code{"native"} first).
-Records whose country code is missing or empty, or maps to no Level 3
-area, stay \code{"unmatched"}; records whose country maps to areas but whose
-taxon has no distribution entry there are \code{"country_code_no_entry"}.
+
+Every input record is returned. A record whose country code is missing or
+empty, or maps to no Level 3 area, is kept with
+\code{native_status_source = "unmatched"}; a record whose country maps to areas
+but whose taxon has no distribution entry there is \code{"no_entry"}.
+
+\strong{Input.} Any table-like object that \code{\link[data.table:as.data.table]{data.table::as.data.table()}} can
+convert is accepted - a \code{data.frame}, a \code{data.table}, a tibble, or a list of
+equal-length columns - provided it carries the species and
+country-code columns named by \code{species} and \code{country}. No coordinate column
+is required. Pass the problematic-coordinate table (for example
+\code{refined_coordinates$CoordinateProblematic}). If \code{input} has no \code{gbifID}, one
+is created as a character sequence number. The column-name arguments are
+independent of the data: a column that happens to share a name with one of
+them (for example a \code{species} column) does not interfere, and
+\code{species = "species"} is a valid way to select it.
 }
 \examples{
-\dontshow{if (interactive() && exists("cleaned_coordinates")) withAutoprint(\{ # examplesIf}
-# Classify the coordinate-less records. `cleaned_coordinates` comes from
-# `clean_coordinates()`, whose example creates it when run first.
-native_country <- detect_native_country(cleaned_coordinates = cleaned_coordinates)
-native_country <- detect_native_country(customized_filtered = filtered)
+\dontshow{if (interactive() && exists("refined_coordinates")) withAutoprint(\{ # examplesIf}
+# Classify the records that failed coordinate validation. `refined_coordinates`
+# comes from `par_clean_coordinates()`, whose example creates it when run
+# first.
+native_country <- detect_native_country(
+  refined_coordinates$CoordinateProblematic
+)
 native_country
 \dontshow{\}) # examplesIf}
 }

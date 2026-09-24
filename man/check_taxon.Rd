@@ -146,7 +146,6 @@ continuously updated resource for exploring global plant diversity.
 \itemize{
 \item \code{\link[=import_records]{import_records()}} for the first step that produces the \code{occ_import}
 input.
-\item \code{\link[=extract_gbif_issues]{extract_gbif_issues()}} for the parallel step that processes issue flags.
 \item \code{\link[TNRS:TNRS]{TNRS::TNRS()}} for the underlying name resolution function.
 \item \code{\link[=print.occ_taxa]{print.occ_taxa()}} for a compact summary of the result.
 }

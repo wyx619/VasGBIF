@@ -60,20 +60,6 @@ print(occ_import)
 
 The returned `"import"` object is a `data.table` with the GBIF fields used by the workflow (`gbifID` coerced to character, plus the raw `issue` column).
 
-## Extract GBIF Issues
-
-`extract_gbif_issues()` expands the raw pipe-separated `issue` column into one logical indicator column per GBIF issue code, and returns a companion summary ranking issues by how many records they flag.
-
-```{r extract_gbif_issues}
-gbif_issue <- extract_gbif_issues(occ_import)
-print(gbif_issue)
-```
-
-The `issue` object contains:
-
-- `occ_issue`: one logical column per issue code, plus `gbifID` and `issue_count`
-- `summary`: `issue_keys` and `N`, ranked by decreasing flag count
-
 ## Check Taxon Name
 
 `check_taxon()` submits species- and infraspecific-rank names to the Taxonomic Name Resolution Service (TNRS; Boyle et al. 2013) for resolution against the World Checklist of Vascular Plants (WCVP) or World Flora Online (WFO). Synonyms are resolved to accepted names; records that fail the match-score threshold or lack an accepted/synonym status are excluded from the downstream table and reported in the `summary` for manual review.
@@ -98,8 +84,7 @@ The `occ_taxa` object contains:
 ```{r customized_filter}
 filtered <- customized_filter(
   occ_import = occ_import,
-  taxa_checked = taxa_checked,
-  gbif_issue = gbif_issue
+  taxa_checked = taxa_checked
 )
 VasGBIF_summary$after_customized_filter <- nrow(filtered$occ_filtered)
 print(filtered)
@@ -108,16 +93,20 @@ print(filtered)
 The `customFiltered` object contains:
 
 - `occ_filtered`: the filtered occurrence table
+- `occ_marked`: the records failed customized quality rules
 - `summary`: per-rule `rule`, `dropped`, and `remaining` counts
 
 ## Clean Coordinates
 
-`clean_coordinates()` validates coordinates with CoordinateCleaner (Zizka et al. 2019) to flag spatial errors such as centroids, capitals, marine coordinates, and zero coordinates, splitting records into cleaned and problematic tables. Validation is parallelized across user-specified threads.
+`par_clean_coordinates()` validates coordinates with CoordinateCleaner (Zizka et al. 2019) to flag spatial errors such as centroids, capitals, marine coordinates, and zero coordinates, splitting records into cleaned and problematic tables. Validation is parallelized across user-specified threads.
 
 ```{r clean_coordinates}
-cleaned_coordinates <- clean_coordinates(
-  customized_filtered = filtered,
-  threads = 4,tests = c("capitals", "centroids", "equal", "gbif", "institutions", "outliers", "seas", "zeros"))
+cleaned_coordinates <- par_clean_coordinates(
+  input = filtered$occ_filtered,
+  species = 'Accepted_name_id',
+  latitude = 'decimalLatitude',
+  longitude = 'decimalLongitude',
+  threads = 8,tests = c("capitals", "centroids", "equal", "gbif", "institutions", "outliers", "seas", "zeros"))
 VasGBIF_summary$cleaned <- nrow(cleaned_coordinates$CoordinateCleaned)
 VasGBIF_summary$problematic <- nrow(cleaned_coordinates$CoordinateProblematic)
 print(cleaned_coordinates)
@@ -135,12 +124,17 @@ The `CoordinateRefined` object contains:
 
 ```{r detect_native}
 native_detected_coord <- detect_native_coord(
-  cleaned_coordinates = cleaned_coordinates, buffer_km = 10, buffer_chunk_size = 2000)
+  input = cleaned_coordinates$CoordinateCleaned,
+  species = 'Accepted_name',
+  latitude = 'decimalLatitude',
+  longitude = 'decimalLongitude', buffer_km = 10, buffer_chunk_size = 2000)
 native_detected_country <- detect_native_country(
-  cleaned_coordinates = cleaned_coordinates)
+  input = cleaned_coordinates$CoordinateProblematic,
+  country = 'countryCode',
+  species = 'Accepted_name')
 native_detected <- rbind(
   native_detected_coord,
-  native_detected_country,
+  native_detected_country[is.na(decimalLatitude) | is.na(decimalLongitude),],
   use.names = TRUE,
   fill = TRUE
 )
@@ -178,6 +172,7 @@ map_records(
 ```{r export_records, eval=FALSE, include=T}
 export_records(
   native_detected_coord = native_detected_coord,
+  native_detected_country = native_detected_country,
   export_path = getwd()
 )
 ```
@@ -192,24 +187,8 @@ VasGBIF_summary |>
   t()
 ```
 
-```{r}
-##                        [,1]
-## initial_records      12362
-## initial_taxa            15
-## after_taxon_resolved 12281
-## final_taxa               4
-## after_customized_filter  11443
-## cleaned              10030
-## problematic           1413
-## native                 470
-## introduced            9535
-## extinct                  0
-## location_doubtful        0
-## unknown                 25
-```
-
 | Statistic | Description |
-|------------------------------------|------------------------------------|
+|----|----|
 | `initial_records` | Total GBIF occurrence records imported |
 | `initial_taxa` | Unique scientific names before resolution |
 | `after_taxon_resolved` | Records retained after TNRS resolution (score and status thresholds) |
@@ -230,9 +209,9 @@ The workflow progressively filters the dataset through taxonomic resolution, qua
 VasGBIF achieves its speed through:
 
 - **C/C++ backends**: core operations delegated to `data.table`, `stringi`, and `terra`
-- **Vectorisation**: issue-flag detection in `extract_gbif_issues()` and native-status lookups in `detect_native_coord()` and `detect_native_country()` process entire columns in compiled calls
+- **Vectorisation**: issue-flag detection in `extract_issues()` and native-status lookups in `detect_native_coord()` and `detect_native_country()` process entire columns in compiled calls
 - **Memory-efficient design**: in-place modification (`:=`, `set()`) avoids unnecessary copies
-- **Selective parallelisation**: `clean_coordinates()` distributes CoordinateCleaner validation across threads
+- **Selective parallelisation**: `par_clean_coordinates()` distributes CoordinateCleaner validation across threads
 
 On a standard laptop, VasGBIF compiles one million occurrence records within 15 minutes.
 

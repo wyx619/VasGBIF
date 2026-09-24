@@ -21,7 +21,7 @@ laptop in under 15 minutes without specialised hardware.
 \details{
 \subsection{Pipeline overview}{
 
-VasGBIF provides a reproducible workflow organised into eight sequential
+VasGBIF provides a reproducible workflow organised into seven sequential
 steps. Each step progressively filters records through taxonomic, quality,
 and coordinate checks, transforming GBIF occurrence records into
 analysis-ready datasets.
@@ -31,10 +31,6 @@ download ZIP ('SIMPLE_CSV' or Darwin Core Archive), extracts the
 occurrence table, and returns an \code{"import"} data.table of the fields
 required by the workflow. No records are filtered at this step - all
 diagnostic flags are preserved for later quality scoring.
-\item \strong{Extract GBIF Issues} - \code{\link[=extract_gbif_issues]{extract_gbif_issues()}}: expands the raw
-pipe-separated \code{issue} column into one logical indicator column per GBIF
-issue code, plus a companion summary ranking issues by how many records
-they flag.
 \item \strong{Check Taxon Name} - \code{\link[=check_taxon]{check_taxon()}}: submits species- and
 infraspecific-rank names to the Taxonomic Name Resolution Service (TNRS;
 Boyle et al. 2013) for resolution against the World Checklist of
@@ -43,13 +39,13 @@ resolved to accepted names; records that fail the match-score threshold
 or lack an accepted/synonym status are excluded from the downstream
 table and reported in the \code{summary} for manual review.
 \item \strong{Custom Filter} - \code{\link[=customized_filter]{customized_filter()}}: joins the imported records with
-the resolved taxonomy and the parsed issue flags, then applies the
+the resolved taxonomy and the parsed issue counts, then applies the
 enabled filter rules (country code, coordinate uncertainty, GBIF issue
 count, event date, collector and identifier fields) to retain only
 high-quality records. Every rule is independently toggleable, and each
 step is recorded in a per-rule audit table (see \emph{Flexible and fluent
 custom filter system}).
-\item \strong{Refine Coordinates} - \code{\link[=clean_coordinates]{clean_coordinates()}}: validates coordinates
+\item \strong{Clean Coordinates} - \code{\link[=par_clean_coordinates]{par_clean_coordinates()}}: validates coordinates
 with \code{\link[CoordinateCleaner:clean_coordinates]{CoordinateCleaner::clean_coordinates()}} (Zizka et al. 2019) to
 flag spatial errors such as centroids, capitals, marine coordinates, and
 zero coordinates, splitting records into cleaned and problematic tables.
@@ -60,20 +56,22 @@ Validation is parallelized across user-specified threads.
 \code{\link[=detect_native_country]{detect_native_country()}}: match each record against WCVP distribution
 data (the internal \code{Distributions} dataset) via WGSRPD Level 3 areas to
 classify it as native, introduced, extinct, location_doubtful, or
-unknown. \code{\link[=detect_native_coord]{detect_native_coord()}} processes records from
-\code{CoordinateCleaned} (those with validated coordinates);
-\code{\link[=detect_native_country]{detect_native_country()}} processes all records from
-\code{CoordinateProblematic} (both coordinateless records and those that
-failed validation) using country codes (see \emph{Precise native-status
-detection system}).
+unknown. \code{\link[=detect_native_coord]{detect_native_coord()}} classifies the records with validated
+coordinates by overlaying them on the WGSRPD map;
+\code{\link[=detect_native_country]{detect_native_country()}} classifies the remaining records - including
+coordinateless ones - through their country codes (see \emph{Precise
+native-status detection system}).
 \item \strong{Map Records} - \code{\link[=map_records]{map_records()}}: renders refined records on
 interactive maps via \code{\link[mapview:mapView]{mapView()}}, with geohash-based
 decluttering to reduce visual overlap. Records are colour-coded by
-native status, and multiple basemap layers are supported (OpenStreetMap,
+native status, the map can cover every species or a single one named by
+\code{species}, and multiple basemap layers are supported (OpenStreetMap,
 Esri World Imagery, and others).
 \item \strong{Export Records} - \code{\link[=export_records]{export_records()}}: writes the classified records
-to disk as two gzip-compressed CSV files: all usable records and the
-native subset.
+to disk as gzip-compressed CSV files, one pair of files per
+classification supplied: the records classified from validated
+coordinates and those classified through country codes. Each pair holds
+all classified records and the native subset.
 }
 }
 
@@ -85,12 +83,15 @@ location_doubtful, or unknown classification to every occurrence by
 matching the record's identification and position against authoritative
 WCVP distribution data (the internal \code{Distributions} dataset) organised by
 WGSRPD Level 3 areas. Classification is split across two functions so that
-the most precise available evidence always wins: records from
-\code{CoordinateCleaned} (those with validated coordinates) are matched
-spatially by \code{\link[=detect_native_coord]{detect_native_coord()}}, and records from
-\code{CoordinateProblematic} (coordinateless records and those that failed
-validation) are matched through their country code by
-\code{\link[=detect_native_country]{detect_native_country()}}.
+the most precise available evidence always wins: records with validated
+coordinates are matched spatially by \code{\link[=detect_native_coord]{detect_native_coord()}}, and the
+remaining records (coordinateless ones and those that failed validation) are
+matched through their country code by \code{\link[=detect_native_country]{detect_native_country()}}.
+
+Both functions accept any table that carries the columns they need, under
+the names given by their \code{species}, \code{longitude}, \code{latitude}, and \code{country}
+arguments; neither depends on a particular upstream object, and both return
+every input row.
 
 \strong{Spatial classification.} \code{\link[=detect_native_coord]{detect_native_coord()}} overlays records with
 validated coordinates on the WGSRPD Level 3 polygon map with
@@ -113,39 +114,40 @@ just outside a polygon are still matched through a geodesic buffer
 identical at every latitude); buffered hits always rank below exact ones,
 so a genuine in-polygon match is never displaced by a buffered candidate.
 The buffer pass is chunked (\code{buffer_chunk_size}) to keep the relate matrix
-small.
+small. Every record must carry a usable coordinate, so the records that
+failed validation are left to the country-code pass instead.
 
-\strong{Country-code classification.} \code{\link[=detect_native_country]{detect_native_country()}} matches records
-from \code{CoordinateProblematic} through \code{countryCode} mapped to WGSRPD Level 3
-areas by the \code{Level3maping} table. This includes both coordinateless
-records and records that failed coordinate validation tests. No geometry is
-used, so this pass is nearly free.
+\strong{Country-code classification.} \code{\link[=detect_native_country]{detect_native_country()}} matches the
+remaining records through \code{countryCode} mapped to WGSRPD Level 3 areas by
+the \code{Level3maping} table. This includes both coordinateless records and
+records that failed coordinate validation tests. No geometry is used, so
+this pass is nearly free.
 
 Every classification records how it was obtained in
-\code{native_status_source} - \code{spatial} / \code{spatial_buffered} for spatial
-matches (exact and buffered), \code{country_code} for country-code matches,
-\code{country_code_no_entry} when the country mapped but the taxon has no
-distribution entry there, and \code{unmatched} when no usable key exists - so
-the entire decision chain is auditable.
+\code{native_status_source} - \code{exact} for a direct spatial match and \code{buffered}
+for one obtained through the geodesic buffer, \code{country} for a country-code
+match, \code{no_entry} when the country mapped but the taxon has no distribution
+entry there, and \code{unmatched} when no usable key exists - so the entire
+decision chain is auditable.
 
 \strong{Precision without a speed penalty.} Hybrid markers are normalised so
 \verb{Alnus x pubescens} matches the multiplication-sign variant recorded in the
 distributions; and neither the spatial overlay nor the distribution
 lookup ever iterates record-by-record in R. Both functions return a
 \code{nativeDetected} table keyed by \code{gbifID} that retains every column of the
-input records and appends \code{LEVEL3_COD}, \code{native_status},
-\code{native_status_source}, and \code{buffered}; the spatial result feeds directly
-into \code{\link[=export_records]{export_records()}} and \code{\link[=map_records]{map_records()}} without any join back to
-\code{cleaned_coordinates}.
+input records and appends \code{LEVEL3_COD}, \code{native_status}, and
+\code{native_status_source}; the results feed directly into
+\code{\link[=export_records]{export_records()}} and \code{\link[=map_records]{map_records()}} without any join back to the
+coordinate table.
 }
 
 \subsection{Flexible and fluent custom filter system}{
 
 \code{\link[=customized_filter]{customized_filter()}} turns the raw download into an analysis-ready
-occurrence table. It joins the three preceding outputs (\code{occ_import},
-\code{taxa_checked}, \code{gbif_issue}) into one table, then walks a user-selected
-set of quality rules - one vectorised \link[data.table:data.table]{data.table} pass per rule - with
-every step audited.
+occurrence table. It joins the imported records with the resolved taxonomy
+and, through \code{\link[=extract_issues]{extract_issues()}}, the per-record issue count, then walks a
+user-selected set of quality rules - one vectorised \link[data.table:data.table]{data.table} pass per
+rule - with every step audited.
 
 \strong{Fluent rule control.} Each rule is an independently toggleable
 argument. Three rules are on by default (\code{countryCode},
@@ -158,11 +160,14 @@ the call.
 
 \strong{Auditable pipeline.} Every step - the \code{taxon_resolved} join as well as
 each enabled rule - is logged in the returned \code{summary} table (\code{rule},
-\code{dropped}, \code{remaining}), making the effect of each decision visible and
-reproducible. The joins are deliberately strict: the taxonomic join drops
-unresolved names instead of carrying \code{NA} taxonomy forward, and the
-one-to-one issue join is verified at runtime, stopping if any record
-lacks an issue count.
+\code{dropped}, \code{remaining}, \code{failed}, \code{only_failed_here}), making the effect of
+each decision visible and reproducible. Because every rule is evaluated on
+its own terms rather than only on the records left by the preceding rules,
+\code{failed} counts overlap while \code{dropped} credits each removed record to the
+first rule that rejected it. The joins are deliberately strict: the
+taxonomic join drops unresolved names instead of carrying \code{NA} taxonomy
+forward, and the one-to-one issue join is verified at runtime, stopping if
+any record lacks an issue count.
 
 \strong{Careful collector and identifier detection.} The \code{identifiedBy} and
 \code{recordedBy} rules remove only values that contain no named person:
@@ -176,8 +181,9 @@ keywords from splitting genuine names - deliberately conservative so
 that real records are never dropped.
 
 The output \code{customFiltered} object carries every downstream column in
-\code{occ_filtered} and a per-rule \code{summary} that exposes the whole filtering
-decision chain at a glance.
+\code{occ_filtered}, the excluded records with one verdict column per applied
+test in \code{occ_marked}, and a per-rule \code{summary} that exposes the whole
+filtering decision chain at a glance.
 }
 
 \subsection{Quick start}{
@@ -196,41 +202,45 @@ gbif_file <- system.file(
 occ_import <- import_records(path = gbif_file)
 
 
-gbif_issue <- extract_gbif_issues(occ_import)
-
-
 taxa_checked <- check_taxon(occ_import = occ_import, accuracy = 0.85)
 
 
 filtered <- customized_filter(
   occ_import = occ_import,
-  taxa_checked = taxa_checked,
-  gbif_issue = gbif_issue
+  taxa_checked = taxa_checked
 )
 
 
-cleaned_coordinates <- clean_coordinates(
-  customized_filtered = filtered,
+refined_coordinates <- par_clean_coordinates(
+  filtered$occ_filtered,
   threads = 4
 )
 
 native_detected_coord <- detect_native_coord(
-  cleaned_coordinates = cleaned_coordinates
+  refined_coordinates$CoordinateCleaned
 )
 
 
 native_detected_country <- detect_native_country(
-  cleaned_coordinates = cleaned_coordinates
+  refined_coordinates$CoordinateProblematic
 )
 
+# every species
 map_records(
   native_detected_coord = native_detected_coord,
   precision = 3,
   cex = 3
 )
 
+# a single species
+map_records(
+  native_detected_coord = native_detected_coord,
+  species = "Saxifraga hirculus"
+)
+
 export_records(
   native_detected_coord = native_detected_coord,
+  native_detected_country = native_detected_country,
   export_path = getwd()
 )
 
@@ -245,7 +255,7 @@ VasGBIF achieves its speed through several architectural choices:
 \link[stringi:stringi]{stringi}, and \link[terra:terra]{terra} - packages written in C/C++ that bypass R's
 per-iteration interpretive overhead.
 \item \strong{Vectorisation over explicit loops}: operations such as issue-flag
-detection in \code{\link[=extract_gbif_issues]{extract_gbif_issues()}} and native-status lookups in
+detection in \code{\link[=extract_issues]{extract_issues()}} and native-status lookups in
 \code{\link[=detect_native_coord]{detect_native_coord()}} and \code{\link[=detect_native_country]{detect_native_country()}} process entire
 columns in compiled calls rather than iterating in R.
 \item \strong{SIMD exploitation}: vectorised routines in \link[stringi:stringi]{stringi} and
@@ -255,10 +265,13 @@ cycle.
 \item \strong{Memory-efficient design}: \link[data.table:data.table]{data.table}'s in-place modification \verb{:=}
 avoids unnecessary copies, and contiguous memory access patterns improve
 CPU cache utilisation.
-\item \strong{Selective parallelisation}: \code{\link[=clean_coordinates]{clean_coordinates()}} partitions the
-dataset into chunks and distributes \link[CoordinateCleaner:CoordinateCleaner]{CoordinateCleaner} validation
-across workers via \link[foreach:foreach]{foreach} and \link[doParallel:doParallel]{doParallel}, combining vectorised
-processing within each chunk with parallel execution across chunks.
+\item \strong{Selective parallelisation}: \code{\link[=par_clean_coordinates]{par_clean_coordinates()}} splits the
+dataset across workers via \link[foreach:foreach]{foreach} and \link[doParallel:doParallel]{doParallel}, combining
+vectorised processing within each chunk with parallel execution across
+chunks. Chunks are built from whole species rather than from consecutive
+rows, because the \code{outliers} test judges each record against the
+distribution of its own species; keeping every record of a species in one
+chunk is what makes the parallel result match the serial one.
 }
 
 On a standard laptop, VasGBIF compiles one million occurrence records

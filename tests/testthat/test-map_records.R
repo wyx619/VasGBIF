@@ -23,7 +23,7 @@ mk_native_detected_coord <- function(
   name = "Sp alpha",
   lon = 10,
   lat = 60,
-  source = "spatial"
+  source = "exact"
 ) {
   n <- length(gbifID)
   out <- data.table(
@@ -54,9 +54,10 @@ pts_of <- function(map) {
   coords
 }
 
-build_map <- function(nd, precision = 3) {
+build_map <- function(nd, precision = 3, species = "all") {
   suppressMessages(map_records(
     native_detected_coord = nd,
+    species = species,
     precision = precision,
     cex = 3
   ))
@@ -138,6 +139,17 @@ test_that("cex must be a single positive number", {
   }
 })
 
+test_that("species must be a single name, or 'all'", {
+  nd <- mk_native_detected_coord("1", "native")
+  for (bad in list(NA_character_, 1, c("a", "b"))) {
+    expect_error(
+      map_records(native_detected_coord = nd, species = bad),
+      '`species` must be a single species name, or "all"',
+      info = paste(deparse(bad), collapse = "")
+    )
+  }
+})
+
 # --- Deduplication and record selection ------------------------------------
 
 test_that("returns a mapview object", {
@@ -191,6 +203,73 @@ test_that("unknown status records are excluded", {
   pts <- pts_of(build_map(nd))
   expect_equal(nrow(pts), 1L)
   expect_equal(pts, data.frame(X = 10, Y = 60), tolerance = 1e-9)
+})
+
+test_that("species = 'all' keeps every species", {
+  nd <- mk_native_detected_coord(
+    c("1", "2"),
+    rep("native", 2),
+    name = c("Sp alpha", "Sp beta"),
+    lon = c(10, 30),
+    lat = c(60, 30)
+  )
+  expect_equal(nrow(pts_of(build_map(nd, species = "all"))), 2L)
+})
+
+test_that("species narrows the map to one name", {
+  nd <- mk_native_detected_coord(
+    c("1", "2", "3", "4"),
+    rep("native", 4),
+    name = c("Sp alpha", "Sp alpha", "Sp beta", "Sp beta"),
+    lon = c(10, 10, 30, 30),
+    lat = c(60, 60, 30, 30)
+  )
+  pts <- pts_of(build_map(nd, species = "Sp alpha"))
+  expect_equal(nrow(pts), 1L)
+  expect_equal(pts, data.frame(X = 10, Y = 60), tolerance = 1e-9)
+})
+
+test_that("species matching is exact, not a prefix or pattern", {
+  nd <- mk_native_detected_coord(
+    c("1", "2"),
+    rep("native", 2),
+    name = c("Sp alpha", "Sp alpha var. beta"),
+    lon = c(10, 30),
+    lat = c(60, 30)
+  )
+  expect_error(
+    map_records(native_detected_coord = nd, species = "Sp alp"),
+    "No record of `species`"
+  )
+})
+
+test_that("a species name that selects nothing is an error, not an empty map", {
+  # Silently rendering nothing would be read as "this species has no native
+  # records", so the name must be refused instead.
+  nd <- mk_native_detected_coord(
+    c("1", "2"),
+    rep("native", 2),
+    name = c("Sp alpha", "Sp beta")
+  )
+  expect_error(
+    map_records(native_detected_coord = nd, species = "No such species"),
+    "No record of `species`"
+  )
+})
+
+test_that("a name left empty by the unknown exclusion is an error too", {
+  # The name is present in the classification, but every one of its records is
+  # `unknown`, so nothing survives the exclusion. The guard therefore tests the
+  # selection after excluding unknowns, not whether the name exists.
+  nd <- mk_native_detected_coord(
+    c("1", "2"),
+    c("unknown", "native"),
+    name = c("Sp only unknown", "Sp alpha")
+  )
+  expect_error(
+    map_records(native_detected_coord = nd, species = "Sp only unknown"),
+    "No record of `species`"
+  )
 })
 
 test_that("higher precision retains more points (finer cells)", {

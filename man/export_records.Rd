@@ -4,11 +4,25 @@
 \alias{export_records}
 \title{Export classified records to compressed CSV files}
 \usage{
-export_records(native_detected_coord = NA, export_path = NA)
+export_records(
+  native_detected_coord = NA,
+  native_detected_country = NA,
+  export_path = NA
+)
 }
 \arguments{
 \item{native_detected_coord}{A \code{nativeDetected} object returned by
-\code{\link[=detect_native_coord]{detect_native_coord()}}, containing records with validated coordinates.}
+\code{\link[=detect_native_coord]{detect_native_coord()}}, containing records with validated coordinates. It
+must carry \code{gbifID}, \code{native_status}, \code{decimalLongitude} and
+\code{decimalLatitude}, and none of its coordinates may be missing. Optional,
+but at least one of \code{native_detected_coord} and \code{native_detected_country}
+must be supplied.}
+
+\item{native_detected_country}{A \code{nativeDetected} object returned by
+\code{\link[=detect_native_country]{detect_native_country()}}, containing the records classified through their
+\code{countryCode}. It must carry \code{gbifID} and \code{native_status}; missing
+coordinates are allowed. Optional, but at least one of the two
+classification arguments must be supplied.}
 
 \item{export_path}{Directory where the compressed CSV files should be written.}
 }
@@ -17,29 +31,48 @@ Called for its side effect of writing files to \code{export_path}. Returns
 \code{NULL} invisibly.
 }
 \description{
-Writes the results of \code{\link[=detect_native_coord]{detect_native_coord()}} to disk as
-gzip-compressed CSV files. Two files are exported: all classified records
+Writes the results of \code{\link[=detect_native_coord]{detect_native_coord()}} and/or
+\code{\link[=detect_native_country]{detect_native_country()}} to disk as gzip-compressed CSV files. Each
+classification supplied produces two files: all of its classified records
 and the native subset.
 }
 \details{
-The following files are written:
+Each classification supplied is written as its own pair of files, so the two
+sets never overwrite each other:
 \itemize{
-\item \code{all_records.csv.gz}: every classified record with validated coordinates,
-with all its columns and its native status
-\item \code{native_records.csv.gz}: the subset classified as \code{"native"}
+\item \code{all_records_coord.csv.gz}: every record classified by
+\code{\link[=detect_native_coord]{detect_native_coord()}}, with all its columns and its native status
+\item \code{native_records_coord.csv.gz}: the subset of those records classified as
+\code{"native"}
+\item \code{all_records_country.csv.gz}: every record classified by
+\code{\link[=detect_native_country]{detect_native_country()}}, with all its columns and its native status
+\item \code{native_records_country.csv.gz}: the subset of those records classified as
+\code{"native"}
 }
 
-\code{native_detected_coord} already carries every column of the input records, so
-no join is performed here: \code{all_records.csv.gz} is written straight from it.
+Only the pair belonging to a supplied argument is written, so supplying one
+argument leaves the files of the other untouched. The two sets are exported
+separately rather than bound together: this function never writes a combined
+table.
+
+The two \verb{all_records_*} files are likewise not a partition of a single input
+and cannot be row-bound with each other. They carry different columns - the
+coordinate result comes from \code{CoordinateCleaned}, whereas the country-code
+result comes from \code{CoordinateProblematic}, which keeps its per-test verdict
+columns - and \code{\link[=detect_native_country]{detect_native_country()}} classifies only the records it
+receives with a usable \code{countryCode}.
+
+Both arguments already carry every column of the input records, so no join is
+performed here: each table is written straight from the object.
 
 \code{native_detected_coord} must carry coordinates for every record: it is the
-spatial output of \code{\link[=detect_native_coord]{detect_native_coord()}}, which only classifies records
-with validated coordinates. The function stops if \code{decimalLongitude} or
-\code{decimalLatitude} is missing for any record - the output of
-\code{\link[=detect_native_country]{detect_native_country()}} would be rejected this way. Records without
-coordinates are classified separately by \code{\link[=detect_native_country]{detect_native_country()}}; to
-export both sets together, bind the two results before calling this
-function.
+spatial output of \code{\link[=detect_native_coord]{detect_native_coord()}}, which only classifies records with
+validated coordinates. The function stops if \code{decimalLongitude} or
+\code{decimalLatitude} is missing for any of its records, which catches the two
+arguments being swapped. \code{native_detected_country} carries no such
+requirement, because \code{\link[=detect_native_country]{detect_native_country()}} classifies the records that
+failed coordinate validation - including records whose coordinates are
+entirely absent.
 
 Files are written with \code{fwrite(encoding = "UTF-8")}. \code{export_path} is
 validated before writing: if it is not a single character path or exists as
@@ -48,5 +81,5 @@ exist, a warning is emitted and the directory is created automatically.
 }
 \seealso{
 \code{\link[=detect_native_coord]{detect_native_coord()}}, \code{\link[=detect_native_country]{detect_native_country()}},
-\code{\link[=clean_coordinates]{clean_coordinates()}}
+\code{\link[=par_clean_coordinates]{par_clean_coordinates()}}
 }

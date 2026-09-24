@@ -5,17 +5,26 @@
 \title{Detect native status from WGSRPD distributions}
 \usage{
 detect_native_coord(
-  cleaned_coordinates = NA,
+  input = NA,
+  species = "Accepted_name",
+  longitude = "decimalLongitude",
+  latitude = "decimalLatitude",
   buffer_km = 10,
   buffer_chunk_size = 2000
 )
 }
 \arguments{
-\item{cleaned_coordinates}{A \code{CoordinateRefined} object returned by
-\code{\link[=clean_coordinates]{clean_coordinates()}}, or a list with the same structure. Only the
-\code{CoordinateCleaned} table - records with validated coordinates - is
-classified; \code{CoordinateProblematic} and \code{Coordinateless} records are not
-part of the result.}
+\item{input}{A table holding one occurrence record per row, with the species
+and coordinate columns named by \code{species}, \code{longitude} and \code{latitude}.
+Anything \code{\link[data.table:as.data.table]{data.table::as.data.table()}} can convert is accepted, so a
+\code{data.frame}, \code{data.table}, tibble or list of equal-length columns all
+work. Typically the \code{CoordinateCleaned} table of a \code{CoordinateRefined}
+object returned by \code{\link[=par_clean_coordinates]{par_clean_coordinates()}}. Every record must carry a
+non-missing coordinate.}
+
+\item{species, longitude, latitude}{Names of the columns in \code{input} holding the
+species name and the coordinates. Default to the GBIF field names
+\code{"Accepted_name"}, \code{"decimalLongitude"} and \code{"decimalLatitude"}.}
 
 \item{buffer_km}{Numeric scalar. Width of the spatial buffer in km applied
 to records the exact spatial match left unresolved. \code{0} disables the
@@ -26,32 +35,30 @@ in one chunk, keeping the relate matrix small. Defaults to \code{2000}.}
 }
 \value{
 A \code{nativeDetected} object - a \code{data.table} subclass with one row
-per input record (every row of \code{CoordinateCleaned}), keyed by \code{gbifID}.
-Every column of the input records is retained unchanged, with four
-classification columns appended:
+per input record (every row of \code{input}), keyed by \code{gbifID}. Every column of
+the input records is retained unchanged, with three classification columns
+appended:
 \itemize{
 \item \code{LEVEL3_COD}: the assigned WGSRPD Level 3 area code, or \code{NA} if the
 record could not be matched
 \item \code{native_status}: one of \code{"native"}, \code{"introduced"}, \code{"extinct"},
 \code{"location_doubtful"}, or \code{"unknown"}
-\item \code{native_status_source}: how the status was inferred. \code{"spatial"} /
-\code{"spatial_buffered"} are spatial matches, the latter via the geodesic
-buffer; \code{"unmatched"} means the record matched no area.
-\item \code{buffered}: \code{TRUE} when the status came from a buffered spatial hit
+\item \code{native_status_source}: how the status was inferred. \code{"exact"} is a direct
+spatial match, \code{"buffered"} a match obtained through the geodesic buffer,
+and \code{"unmatched"} a record that matched no area at all.
 }
 
 The intermediate matching columns used internally (taxon keys, candidate
 areas, match ranks) are not returned. Because the record columns are
 carried through, the result holds a second copy of the input data: for large
-inputs, \code{cleaned_coordinates} can be dropped once the classification is in
+inputs, the input table can be dropped once the classification is in
 hand.
 }
 \description{
 Assigns a native status classification to each occurrence
 record by matching it against WCVP distribution data (the internal
 \code{Distributions} dataset) via WGSRPD Level 3 areas. Classification uses only
-the spatial stage: records with validated coordinates, taken from
-\code{cleaned_coordinates$CoordinateCleaned}, are overlaid on the WGSRPD Level 3
+the spatial stage: the records in \code{input} are overlaid on the WGSRPD Level 3
 polygon map (via \code{\link[terra:extract]{terra::extract()}}) to assign an area code to each record.
 That area code is looked up in a distribution table classified from the
 WCVP flags (\code{introduced}, \code{extinct}, \code{location_doubtful}) with the
@@ -70,9 +77,9 @@ status (\code{"native"} first). Unresolved records may be buffered (\code{buffer
 so coastal points just outside a polygon can still be matched; buffered
 hits are ranked below exact ones.
 
-Records without usable coordinates are \strong{not} classified here; classify
-them with \code{\link[=detect_native_country]{detect_native_country()}}, which matches records through their
-\code{countryCode} without using geometry.
+Every record must carry a usable coordinate. Records without one are \strong{not}
+classified here; classify them with \code{\link[=detect_native_country]{detect_native_country()}}, which matches
+them through their \code{countryCode} without using geometry.
 }
 \details{
 \strong{Coordinate reference system.} Both the occurrence points and the
@@ -80,12 +87,26 @@ internal \code{WGSRPD3} polygons are assumed to be in longitude/latitude
 (EPSG:4326); the function asserts this on the polygon side. \code{buffer_km} is
 applied as metres via \code{\link[terra:buffer]{terra::buffer()}}'s geodesic buffer, so it keeps the
 same meaning at every latitude.
+
+\strong{Input.} Any table-like object that \code{\link[data.table:as.data.table]{data.table::as.data.table()}} can
+convert is accepted - a \code{data.frame}, a \code{data.table}, a tibble, or a list of
+equal-length columns - provided it carries the species and
+coordinate columns named by \code{species}, \code{longitude} and \code{latitude}. It does
+not have to come from \code{\link[=par_clean_coordinates]{par_clean_coordinates()}}. Pass the
+validated-coordinate table (for example \code{refined_coordinates$CoordinateCleaned})
+so the records that failed coordinate validation are left to
+\code{\link[=detect_native_country]{detect_native_country()}} instead of being classified by geometry. If
+\code{input} has no \code{gbifID}, one is created as a character sequence number. The
+column-name arguments are independent of the data: a column that happens to
+share a name with one of them (for example a \code{species} column) does not
+interfere, and \code{species = "species"} is a valid way to select it.
 }
 \examples{
-\dontshow{if (interactive() && exists("cleaned_coordinates")) withAutoprint(\{ # examplesIf}
-# Classify records with validated coordinates. `cleaned_coordinates` comes
-# from `clean_coordinates()`, whose example creates it when run first.
-native_coord <- detect_native_coord(cleaned_coordinates = cleaned_coordinates)
+\dontshow{if (interactive() && exists("refined_coordinates")) withAutoprint(\{ # examplesIf}
+# Classify the records with validated coordinates. `refined_coordinates`
+# comes from `par_clean_coordinates()`, whose example creates it when run
+# first.
+native_coord <- detect_native_coord(refined_coordinates$CoordinateCleaned)
 native_coord
 \dontshow{\}) # examplesIf}
 }

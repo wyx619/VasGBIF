@@ -3,8 +3,7 @@
 #' @description Assigns a native status classification to each occurrence
 #' record by matching it against WCVP distribution data (the internal
 #' `Distributions` dataset) via WGSRPD Level 3 areas. Classification uses only
-#' the spatial stage: records with validated coordinates, taken from
-#' `cleaned_coordinates$CoordinateCleaned`, are overlaid on the WGSRPD Level 3
+#' the spatial stage: the records in `input` are overlaid on the WGSRPD Level 3
 #' polygon map (via [terra::extract()]) to assign an area code to each record.
 #' That area code is looked up in a distribution table classified from the
 #' WCVP flags (`introduced`, `extinct`, `location_doubtful`) with the
@@ -22,9 +21,9 @@
 #' so coastal points just outside a polygon can still be matched; buffered
 #' hits are ranked below exact ones.
 #'
-#' Records without usable coordinates are **not** classified here; classify
-#' them with [detect_native_country()], which matches records through their
-#' `countryCode` without using geometry.
+#' Every record must carry a usable coordinate. Records without one are **not**
+#' classified here; classify them with [detect_native_country()], which matches
+#' them through their `countryCode` without using geometry.
 #'
 #' @details
 #' **Coordinate reference system.** Both the occurrence points and the
@@ -33,11 +32,29 @@
 #' applied as metres via [terra::buffer()]'s geodesic buffer, so it keeps the
 #' same meaning at every latitude.
 #'
-#' @param cleaned_coordinates A `CoordinateRefined` object returned by
-#'   [clean_coordinates()], or a list with the same structure. Only the
-#'   `CoordinateCleaned` table - records with validated coordinates - is
-#'   classified; `CoordinateProblematic` and `Coordinateless` records are not
-#'   part of the result.
+#' **Input.** Any table-like object that [data.table::as.data.table()] can
+#' convert is accepted - a `data.frame`, a `data.table`, a tibble, or a list of
+#' equal-length columns - provided it carries the species and
+#' coordinate columns named by `species`, `longitude` and `latitude`. It does
+#' not have to come from [par_clean_coordinates()]. Pass the
+#' validated-coordinate table (for example `refined_coordinates$CoordinateCleaned`)
+#' so the records that failed coordinate validation are left to
+#' [detect_native_country()] instead of being classified by geometry. If
+#' `input` has no `gbifID`, one is created as a character sequence number. The
+#' column-name arguments are independent of the data: a column that happens to
+#' share a name with one of them (for example a `species` column) does not
+#' interfere, and `species = "species"` is a valid way to select it.
+#'
+#' @param input A table holding one occurrence record per row, with the species
+#'   and coordinate columns named by `species`, `longitude` and `latitude`.
+#'   Anything [data.table::as.data.table()] can convert is accepted, so a
+#'   `data.frame`, `data.table`, tibble or list of equal-length columns all
+#'   work. Typically the `CoordinateCleaned` table of a `CoordinateRefined`
+#'   object returned by [par_clean_coordinates()]. Every record must carry a
+#'   non-missing coordinate.
+#' @param species,longitude,latitude Names of the columns in `input` holding the
+#'   species name and the coordinates. Default to the GBIF field names
+#'   `"Accepted_name"`, `"decimalLongitude"` and `"decimalLatitude"`.
 #' @param buffer_km Numeric scalar. Width of the spatial buffer in km applied
 #'   to records the exact spatial match left unresolved. `0` disables the
 #'   buffer. Defaults to `10`.
@@ -45,39 +62,42 @@
 #'   in one chunk, keeping the relate matrix small. Defaults to `2000`.
 #'
 #' @returns A `nativeDetected` object - a `data.table` subclass with one row
-#'   per input record (every row of `CoordinateCleaned`), keyed by `gbifID`.
-#'   Every column of the input records is retained unchanged, with four
-#'   classification columns appended:
+#'   per input record (every row of `input`), keyed by `gbifID`. Every column of
+#'   the input records is retained unchanged, with three classification columns
+#'   appended:
 #'
 #' - `LEVEL3_COD`: the assigned WGSRPD Level 3 area code, or `NA` if the
 #'   record could not be matched
 #' - `native_status`: one of `"native"`, `"introduced"`, `"extinct"`,
 #'   `"location_doubtful"`, or `"unknown"`
-#' - `native_status_source`: how the status was inferred. `"spatial"` /
-#'   `"spatial_buffered"` are spatial matches, the latter via the geodesic
-#'   buffer; `"unmatched"` means the record matched no area.
-#' - `buffered`: `TRUE` when the status came from a buffered spatial hit
+#' - `native_status_source`: how the status was inferred. `"exact"` is a direct
+#'   spatial match, `"buffered"` a match obtained through the geodesic buffer,
+#'   and `"unmatched"` a record that matched no area at all.
 #'
 #' The intermediate matching columns used internally (taxon keys, candidate
 #' areas, match ranks) are not returned. Because the record columns are
 #' carried through, the result holds a second copy of the input data: for large
-#' inputs, `cleaned_coordinates` can be dropped once the classification is in
+#' inputs, the input table can be dropped once the classification is in
 #' hand.
 #'
 #' @seealso [detect_native_country()] for records without coordinates,
 #'   [print.nativeDetected()] for a compact summary of the result.
 #'
-#' @examplesIf interactive() && exists("cleaned_coordinates")
-#' # Classify records with validated coordinates. `cleaned_coordinates` comes
-#' # from `clean_coordinates()`, whose example creates it when run first.
-#' native_coord <- detect_native_coord(cleaned_coordinates = cleaned_coordinates)
+#' @examplesIf interactive() && exists("refined_coordinates")
+#' # Classify the records with validated coordinates. `refined_coordinates`
+#' # comes from `par_clean_coordinates()`, whose example creates it when run
+#' # first.
+#' native_coord <- detect_native_coord(refined_coordinates$CoordinateCleaned)
 #' native_coord
 #'
 #' @import data.table
 #' @importFrom dplyr %>%
 #' @export
 detect_native_coord <- function(
-  cleaned_coordinates = NA,
+  input = NA,
+  species = "Accepted_name",
+  longitude = "decimalLongitude",
+  latitude = "decimalLatitude",
   buffer_km = 10,
   buffer_chunk_size = 2000
 ) {
@@ -101,28 +121,40 @@ detect_native_coord <- function(
     stop("`buffer_chunk_size` must be a single positive number.", call. = FALSE)
   }
 
-  if (
-    !is.list(cleaned_coordinates) ||
-      is.null(cleaned_coordinates$CoordinateCleaned)
-  ) {
+  # ---- validate the input and resolve the column names ----
+  for (arg in c("species", "longitude", "latitude")) {
+    value <- get(arg)
+    if (!is.character(value) || length(value) != 1L || is.na(value)) {
+      stop("`", arg, "` must be a single column name.", call. = FALSE)
+    }
+  }
+  if (anyDuplicated(c(species, longitude, latitude)) > 0L) {
     stop(
-      "`cleaned_coordinates` must be a `CoordinateRefined` object (or a list ",
-      "with the same structure) containing a `CoordinateCleaned` table.",
+      "`species`, `longitude` and `latitude` must name three distinct columns.",
       call. = FALSE
     )
   }
-  CoordinateCleaned <- cleaned_coordinates$CoordinateCleaned
 
-  required_cols <- c(
-    "gbifID",
-    "Accepted_name",
-    "decimalLongitude",
-    "decimalLatitude"
+  # `as.data.table()` returns a `data.table` unchanged, so `copy()` is what
+  # actually keeps the column edit below from reaching the caller's table. Any
+  # input it can convert is accepted: gating on `is.data.frame()` would turn
+  # away a matrix or a list of equal-length columns that carries the needed
+  # columns just as well.
+  records <- tryCatch(
+    data.table::copy(data.table::as.data.table(input)),
+    error = function(e) {
+      stop(
+        "`input` could not be converted to a data.table: ",
+        conditionMessage(e),
+        call. = FALSE
+      )
+    }
   )
-  missing_cols <- setdiff(required_cols, names(CoordinateCleaned))
+
+  missing_cols <- setdiff(c(species, longitude, latitude), names(records))
   if (length(missing_cols) > 0L) {
     stop(
-      "`cleaned_coordinates$CoordinateCleaned` is missing required column(s): ",
+      "`input` is missing required column(s): ",
       paste(missing_cols, collapse = ", "),
       call. = FALSE
     )
@@ -134,27 +166,62 @@ detect_native_coord <- function(
   status_cols <- c(
     "LEVEL3_COD",
     "native_status",
-    "native_status_source",
-    "buffered"
+    "native_status_source"
   )
-  clashing_cols <- intersect(status_cols, names(CoordinateCleaned))
+  clashing_cols <- intersect(status_cols, names(records))
   if (length(clashing_cols) > 0L) {
     stop(
-      "`cleaned_coordinates` already contains the classification column(s): ",
+      "`input` already contains the classification column(s): ",
       paste(clashing_cols, collapse = ", "),
-      ". Pass the output of `clean_coordinates()`, not an already-classified ",
+      ". Pass the output of `par_clean_coordinates()`, not an already-classified ",
       "table.",
       call. = FALSE
     )
   }
 
-  occurrences <- CoordinateCleaned[, .(
-    occurrence_id = .I,
-    gbifID,
-    name_key = canonical_taxon_name(Accepted_name),
-    decimalLongitude,
-    decimalLatitude
-  )]
+  # The overlay below assumes a coordinate for every record: a missing value
+  # would become a point at an undefined location rather than a record that is
+  # left unclassified. Records without usable coordinates belong to
+  # `detect_native_country()`.
+  n_missing_coord <- sum(
+    is.na(records[[longitude]]) | is.na(records[[latitude]])
+  )
+  if (n_missing_coord > 0L) {
+    stop(
+      "`input` contains ",
+      n_missing_coord,
+      " record(s) with a missing coordinate; classify records without usable ",
+      "coordinates with `detect_native_country()` instead.",
+      call. = FALSE
+    )
+  }
+
+  # `gbifID` is the join key of the classification below and the key of the
+  # result, but it is a GBIF field rather than a requirement of the method, so
+  # an input without one gets a sequence number.
+  if (!"gbifID" %in% names(records)) {
+    records[, gbifID := as.character(seq_len(.N))]
+    data.table::setcolorder(records, "gbifID")
+  }
+
+  # The species and coordinate vectors are pulled out before the working table
+  # is built: inside `[.data.table`, `j` is evaluated against the columns, so a
+  # column named `species` would shadow the `species` argument and the lookup
+  # would silently address the wrong values.
+  species_values <- records[[species]]
+  longitude_values <- records[[longitude]]
+  latitude_values <- records[[latitude]]
+
+  # Fixed internal names for the working table, so the rest of the function -
+  # and in particular the `terra` calls - never has to know what the input
+  # called its columns.
+  occurrences <- data.table(
+    occurrence_id = seq_len(nrow(records)),
+    gbifID = records[["gbifID"]],
+    name_key = canonical_taxon_name(species_values),
+    lon = longitude_values,
+    lat = latitude_values
+  )
 
   lookup_keys <- unique(occurrences$name_key)
   lookup_keys <- lookup_keys[!is.na(lookup_keys)]
@@ -176,11 +243,11 @@ detect_native_coord <- function(
 
   occurrence_points <- occurrences[, .(
     occurrence_id,
-    decimalLongitude,
-    decimalLatitude
+    lon,
+    lat
   )] %>%
     terra::vect(
-      geom = c("decimalLongitude", "decimalLatitude"),
+      geom = c("lon", "lat"),
       crs = "EPSG:4326"
     )
 
@@ -235,7 +302,7 @@ detect_native_coord <- function(
   link_status(candidates, "name_key", native_distributions)
   candidates[
     !is.na(native_status),
-    source := "spatial"
+    source := "exact"
   ]
 
   resolved <- adjudicate(candidates)
@@ -248,7 +315,7 @@ detect_native_coord <- function(
   if (buffer_km > 0) {
     unresolved <- occurrences[
       !occurrence_id %in% resolved$occurrence_id,
-      .(occurrence_id, name_key, decimalLongitude, decimalLatitude)
+      .(occurrence_id, name_key, lon, lat)
     ]
 
     # A record whose taxon has no row at all in `native_distributions` cannot be
@@ -269,8 +336,8 @@ detect_native_coord <- function(
         ),
         function(idx) {
           pts <- terra::vect(
-            unresolved[idx, .(decimalLongitude, decimalLatitude)],
-            geom = c("decimalLongitude", "decimalLatitude"),
+            unresolved[idx, .(lon, lat)],
+            geom = c("lon", "lat"),
             crs = "EPSG:4326"
           )
           # `terra::buffer()` interprets `width` in metres even for lon/lat
@@ -310,7 +377,7 @@ detect_native_coord <- function(
         link_status(buffered, "name_key", native_distributions)
         buffered[
           !is.na(native_status),
-          source := "spatial_buffered"
+          source := "buffered"
         ]
         resolved <- rbind(resolved, adjudicate(buffered))
       }
@@ -323,8 +390,7 @@ detect_native_coord <- function(
   occurrences[, `:=`(
     LEVEL3_COD = NA_character_,
     native_status = NA_character_,
-    native_status_source = NA_character_,
-    buffered = FALSE
+    native_status_source = NA_character_
   )]
 
   occurrences[
@@ -332,22 +398,20 @@ detect_native_coord <- function(
     `:=`(
       LEVEL3_COD = i.candidate_area,
       native_status = i.native_status,
-      native_status_source = i.source,
-      buffered = i.buffered
+      native_status_source = i.source
     ),
     on = "occurrence_id"
   ]
 
-  # `buffered` means "this status came from a buffered hit", so an unmatched
-  # record is FALSE whether the buffer pass ran and missed or was skipped as
-  # hopeless. That keeps the pre-buffer filter unobservable: dropping records
-  # whose taxon has no row at all cannot change any column of the output.
+  # An unmatched record is labelled the same way whether the buffer pass ran
+  # and missed or was skipped as hopeless. That keeps the pre-buffer filter
+  # unobservable: dropping records whose taxon has no row at all cannot change
+  # any column of the output.
   occurrences[
     is.na(native_status),
     `:=`(
       native_status = "unknown",
-      native_status_source = "unmatched",
-      buffered = FALSE
+      native_status_source = "unmatched"
     )
   ]
 
@@ -355,14 +419,13 @@ detect_native_coord <- function(
     gbifID,
     LEVEL3_COD,
     native_status,
-    native_status_source,
-    buffered
+    native_status_source
   )]
 
   # Reattach the record columns. A status is only interpretable next to the
   # record it describes, and every consumer otherwise has to join back to
-  # `cleaned_coordinates` to recover them.
-  result <- merge(CoordinateCleaned, status, by = "gbifID")
+  # `input` to recover them.
+  result <- merge(records, status, by = "gbifID")
 
   if (nrow(result) != nrow(status)) {
     stop(
@@ -370,14 +433,13 @@ detect_native_coord <- function(
       nrow(status),
       " -> ",
       nrow(result),
-      "); `gbifID` is not unique across `CoordinateCleaned`.",
+      "); `gbifID` is not unique across `input`.",
       call. = FALSE
     )
   }
 
-  # The output was keyed by `gbifID` (inherited from the keyed
-  # `CoordinateCleaned` input); restore that contract so the returned table
-  # stays sorted by `gbifID` with `sorted = "gbifID"`.
+  # The output is keyed by `gbifID` so it stays sorted by `gbifID` with
+  # `sorted = "gbifID"`, matching `detect_native_country()`.
   setkey(result, gbifID)
   class(result) <- c("nativeDetected", class(result))
   used <- Sys.time() - t1
@@ -513,7 +575,7 @@ link_status <- function(cand, key, native_distributions) {
 #' @param cand A candidate `data.table` (see `link_status()`).
 #'
 #' @returns A `data.table` with one row per resolved `occurrence_id`:
-#'   `occurrence_id`, `candidate_area`, `native_status`, `source`, `buffered`.
+#'   `occurrence_id`, `candidate_area`, `native_status`, `source`.
 #'
 #' @noRd
 adjudicate <- function(cand) {
@@ -525,8 +587,7 @@ adjudicate <- function(cand) {
     occurrence_id,
     candidate_area,
     native_status,
-    source,
-    buffered = match_type == "buffered"
+    source
   )]
 }
 

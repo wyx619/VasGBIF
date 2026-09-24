@@ -17,10 +17,10 @@
 #' [parallel::detectCores()] are silently capped to that limit with a message.
 #' Values less than or equal to zero and non-numeric inputs produce an error.
 #'
-#' This function is also used by [clean_coordinates()] to normalize its `threads`
+#' This function is also used by [par_clean_coordinates()] to normalize its `threads`
 #' argument.
 #'
-#' @seealso [parallel::detectCores()], [clean_coordinates()]
+#' @seealso [parallel::detectCores()], [par_clean_coordinates()]
 #' @export
 #'
 #' @examples
@@ -43,7 +43,7 @@ set_threads <- function(x) {
   }
 
   if (x <= 0) {
-    stop("illegal !!!")
+    stop("`x` must be a single positive number.")
   }
 
   if (0 < x && x < 1) {

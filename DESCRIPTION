@@ -1,7 +1,7 @@
 Package: VasGBIF
 Title: Fast and Easy Compilation of Vascular Plants Occurrence Records from 'GBIF'
-Version: 3.7.0
-Date: 2026-09-03
+Version: 3.7.1
+Date: 2026-09-21
 Type: Package
 Maintainer: Yuxuan Wang <wyx1743@gmail.com>
 Authors@R: 
@@ -17,7 +17,7 @@ Roxygen: list(markdown = TRUE)
 LazyData: true
 LazyDataCompression: xz
 Depends: R (>= 4.1),data.table,bit64
-Imports: dplyr,stringi,terra,CoordinateCleaner,TNRS,geohashTools,mapview,foreach,doParallel,rnaturalearthdata
+Imports: dplyr,stringi,terra,CoordinateCleaner,TNRS,geohashTools,mapview,foreach,doParallel
 Suggests: 
     knitr,
     leaflet,

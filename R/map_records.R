@@ -8,7 +8,7 @@
 #'
 #' * **Record selection:** Reads the classified records from
 #'   [detect_native_coord()], keeping those whose `native_status` is not
-#'   `"unknown"`.
+#'   `"unknown"`, optionally restricted to a single species named by `species`.
 #' * **Geohash deduplication:** Encodes coordinates at the requested precision
 #'   and retains one representative record per species, geohash cell, and native
 #'   status.
@@ -19,6 +19,11 @@
 #'
 #' @param native_detected_coord A `nativeDetected` object returned by
 #'   [detect_native_coord()], containing records with validated coordinates.
+#' @param species Either `"all"` (the default) to map every species, or a single
+#'   species name to restrict the map to that species. The name is matched
+#'   exactly against the `Accepted_name` column, so `"Saxifraga hirculus"` maps
+#'   the records of that species. Records whose `native_status` is `"unknown"`
+#'   are excluded either way.
 #' @param precision Positive integer controlling the spatial resolution of
 #'   geohash-based deduplication. Higher values produce finer-grained cells. For
 #'   reference, precision values of 4, 3, and 2 represent approximately 20 km,
@@ -31,11 +36,15 @@
 #'
 #' Both the classification and the coordinates are read from
 #' `native_detected_coord`, which carries every column of the input records.
-#' Records with `native_status = "unknown"` are excluded. Records with missing
-#' longitude or latitude are excluded as a guard; [detect_native_coord()] only
-#' classifies records with validated coordinates, so none are expected, and
-#' inputs that carry missing coordinates (such as the output of
-#' [detect_native_country()]) are rejected outright.
+#' Records with `native_status = "unknown"` are excluded. When `species` names a
+#' species rather than `"all"`, the selection is narrowed further to the records
+#' whose `Accepted_name` equals that name; the comparison is exact, so the
+#' spelling must match the column value. A name that selects nothing is an
+#' error, because an empty map is read as "this species has no native records".
+#' Records with missing longitude or latitude are excluded as a guard;
+#' [detect_native_coord()] only classifies records with validated coordinates,
+#' so none are expected, and inputs that carry missing coordinates (such as the
+#' output of [detect_native_country()]) are rejected outright.
 #'
 #' ## Geohash deduplication
 #'
@@ -72,15 +81,23 @@
 #' @importFrom dplyr %>% filter mutate select slice ungroup group_by
 #'
 #' @examplesIf interactive() && exists("native_detected_coord")
+#' # Every species in the classification
 #' map_records(
 #'   native_detected_coord = native_detected_coord,
 #'   precision = 3,
 #'   cex = 3
 #' )
 #'
+#' # A single species
+#' map_records(
+#'   native_detected_coord = native_detected_coord,
+#'   species = "Saxifraga hirculus"
+#' )
+#'
 #' @export
 map_records <- function(
   native_detected_coord = NA,
+  species = "all",
   precision = 3,
   cex = 3
 ) {
@@ -113,6 +130,10 @@ map_records <- function(
     )
   }
 
+  if (!is.character(species) || length(species) != 1L || is.na(species)) {
+    stop('`species` must be a single species name, or "all".', call. = FALSE)
+  }
+
   # The spatial stage classifies records with validated coordinates only, so a
   # `native_detected_coord` carrying missing coordinates is a misuse (e.g. the
   # output of `detect_native_country()`), not a legitimate input.
@@ -143,11 +164,38 @@ map_records <- function(
     stop("`cex` must be a single positive number.")
   }
 
+  # The row selection is built as an explicit logical vector rather than as a
+  # condition inside `[.data.table`: `input` carries its own `species` column,
+  # so a bare `species` in `i` would resolve to that column and the comparison
+  # would silently use the wrong values.
+  keep <- native_detected_coord[["native_status"]] != "unknown"
+  if (species != "all") {
+    keep <- keep & native_detected_coord[["Accepted_name"]] == species
+  }
+  # `native_status` may hold `NA`, which makes `keep` hold `NA`; those rows are
+  # dropped by the subset below, so they are not counted here either.
+  n_selected <- sum(keep, na.rm = TRUE)
+
+  # Silently drawing nothing for a name that matches no record would be read as
+  # "this species has no native records", so refuse it and point at the likely
+  # cause instead.
+  if (species != "all" && n_selected == 0L) {
+    stop(
+      "No record of `species` = \"",
+      species,
+      "\" is left after excluding `native_status == \"unknown\"`. The name ",
+      "must match `Accepted_name` exactly; the classification holds ",
+      uniqueN(native_detected_coord[["Accepted_name"]]),
+      " distinct name(s).",
+      call. = FALSE
+    )
+  }
+
   # `native_detected_coord` carries every column of the input records, but a
   # popup listing all of them is unreadable, so only the informative ones are
   # kept.
   all_records <- native_detected_coord[
-    native_status != 'unknown',
+    keep,
     .(
       gbifID,
       native_status,
@@ -214,3 +262,4 @@ map_records <- function(
   message("Done")
   return(map)
 }
+

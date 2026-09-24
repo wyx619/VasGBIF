@@ -99,7 +99,6 @@
 #' @seealso
 #' * [import_records()] for the first step that produces the `occ_import`
 #'   input.
-#' * [extract_gbif_issues()] for the parallel step that processes issue flags.
 #' * [TNRS::TNRS()] for the underlying name resolution function.
 #' * [print.occ_taxa()] for a compact summary of the result.
 #'

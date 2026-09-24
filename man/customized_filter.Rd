@@ -7,7 +7,6 @@
 customized_filter(
   occ_import = NA,
   taxa_checked = NA,
-  gbif_issue = NA,
   filter_countryCode = TRUE,
   filter_coordinateUncertainty = 10000,
   filter_date = FALSE,
@@ -17,26 +16,30 @@ customized_filter(
 )
 }
 \arguments{
-\item{occ_import}{An \code{"import"} \code{data.table} returned by \code{\link[=import_records]{import_records()}},
-containing at least the columns \code{issue}, \code{decimalLatitude},
-\code{countryCode}, \code{coordinateUncertaintyInMeters}, \code{eventDate}, \code{month},
-\code{year}, \code{day}, \code{identifiedBy}, and \code{recordedBy}.}
+\item{occ_import}{An \code{"import"} \code{data.table} returned by \code{\link[=import_records]{import_records()}}.
+\code{gbifID} and \code{issue} are always required; every other column is required
+only by the rule that reads it, so a column backing a disabled rule may be
+absent. The columns are \code{decimalLatitude} and \code{countryCode} for
+\code{filter_countryCode}, \code{coordinateUncertaintyInMeters} for
+\code{filter_coordinateUncertainty}, \code{eventDate}, \code{month}, \code{year}, and \code{day}
+for \code{filter_date}, \code{identifiedBy}, and \code{recordedBy}.}
 
 \item{taxa_checked}{An \code{"occ_taxa"} object returned by \code{\link[=check_taxon]{check_taxon()}}.}
-
-\item{gbif_issue}{An \code{"issue"} object returned by \code{\link[=extract_gbif_issues]{extract_gbif_issues()}}.}
 
 \item{filter_countryCode}{Logical scalar. If \code{TRUE} (default), removes
 records with no usable geographic information: \code{decimalLatitude} is \code{NA}
 \strong{and} \code{countryCode} is \code{NA} or empty. Records with either a coordinate
-or a country code are kept.}
+or a country code are kept. When enabled, a \code{filter_countryCode} logical
+column is added to \code{occ_marked}; see \emph{Per-rule verdict columns}.}
 
 \item{filter_coordinateUncertainty}{Non-negative numeric scalar. Removes
 records whose \code{coordinateUncertaintyInMeters} is strictly greater than the
 threshold. Defaults to \code{10000}. Records with \code{NA} or empty
 \code{coordinateUncertaintyInMeters} are always kept - they do not
 participate in this rule. Pass \code{NULL}, \code{NA}, or \code{''} to disable the
-rule.}
+rule. The value is validated when the function is called, before any
+work is done. When the rule is enabled, a \code{filter_coordinateUncertainty}
+logical column is added to \code{occ_marked}.}
 
 \item{filter_date}{Logical scalar. If \code{TRUE}, removes records for which all
 four date components (\code{eventDate}, \code{month}, \code{year}, \code{day}) are missing or
@@ -53,32 +56,45 @@ junk detection}). Defaults to \code{FALSE}.}
 \item{filter_gbif_issues_max}{Non-negative numeric scalar. Removes records
 flagged with more GBIF issues than the threshold
 (\code{gbif_issues > filter_gbif_issues_max}). Defaults to \code{5}. Pass \code{NULL},
-\code{NA}, or \code{''} to disable the rule.}
+\code{NA}, or \code{''} to disable the rule. The value is validated when the
+function is called, before any work is done.
+
+Each of \code{filter_date}, \code{filter_identifiedBy}, \code{filter_recordedBy}, and
+\code{filter_gbif_issues_max} adds a logical column named after the argument to
+\code{occ_marked} when it is enabled; see \emph{Per-rule verdict columns}.}
 }
 \value{
 An object of class \code{"customFiltered"}, implemented as a named list
-with two elements:
+with three elements:
 \itemize{
-\item \code{occ_filtered}: the filtered \code{data.table} with all occurrence and joined
+\item \code{occ_filtered}: the records that passed every applied test, as a
+\code{data.table} with the occurrence and joined columns only - no verdict
 columns.
-\item \code{summary}: a \code{data.table} with columns \code{rule}, \code{dropped}, and \code{remaining}
-giving, for each applied step (the \code{taxon_resolved} join plus each
-enabled rule), how many records were removed and how many remained.
+\item \code{summary}: a \code{data.table} with columns \code{rule}, \code{dropped}, \code{remaining},
+\code{failed}, and \code{only_failed_here}, giving for each applied step (the
+\code{taxon_resolved} join plus each enabled rule) how many records it removed,
+how many remained, and how many it rejects under the independent and
+exclusive readings described in \emph{Per-rule verdict columns}.
+\item \code{occ_marked}: the records excluded by at least one applied test, reduced to
+\code{gbifID} and one verdict column per applied test (see \emph{Per-rule verdict
+columns}). Every such record fails at least one of them, so its verdict
+columns contain at least one \code{FALSE}. Together with \code{occ_filtered}, this
+table accounts for every record in \code{occ_import}.
 }
 
-A \code{\link[=print]{print()}} method for class \code{"customFiltered"} displays the record counts
-and the per-rule summary.
+A \code{\link[=print]{print()}} method for class \code{"customFiltered"} displays how many records
+were kept and excluded, and the per-rule summary.
 }
 \description{
-Joins the outputs of the VasGBIF import, taxonomic-resolution, and
-GBIF-issue steps into a single occurrence table, then progressively removes
-records according to a user-selected set of quality rules.
+Joins the outputs of the VasGBIF import and taxonomic-resolution steps into
+a single occurrence table, then progressively removes records according to
+a user-selected set of quality rules.
 }
 \details{
 \subsection{Joining the inputs}{
 
-The three inputs are joined by \code{gbifID}. For memory efficiency the joins
-are performed \strong{in place} on a single defensive copy of \code{occ_import}:
+The two inputs are joined by \code{gbifID}. For memory efficiency the joins are
+performed \strong{in place} on a single defensive copy of \code{occ_import}:
 \code{copy()} is made once and each join adds columns via \verb{:=}, instead of
 materialising a fresh full-width table per join. The caller's \code{occ_import}
 is never modified. Rows are not deleted during the join or the rules; every
@@ -94,18 +110,28 @@ are dropped via the keep mask instead of carrying \code{NA} taxonomy through the
 rest of the pipeline. The number removed is recorded in \code{summary} under the
 rule name \code{taxon_resolved}.
 
-\code{\link[=extract_gbif_issues]{extract_gbif_issues()}} returns exactly one row per imported record, so the
-issue join is one-to-one and cannot change the row count. The function
-verifies this and stops if any record lacks an issue count. The raw \code{issue}
-column is removed from \code{occ_import} and replaced by \code{gbif_issues}, the
-per-record issue count computed by \code{\link[=extract_gbif_issues]{extract_gbif_issues()}}.
+\code{\link[=extract_issues]{extract_issues()}} is called internally on \code{occ_import} and returns exactly
+one row per imported record, so the issue join is one-to-one and cannot
+change the row count. The function verifies this and stops if any record
+lacks an issue count. The raw \code{issue} column is removed from \code{occ_import}
+and replaced by \code{gbif_issues}, the per-record issue count.
 }
 
 \subsection{Filter rules}{
 
-Enabled rules are applied in sequence. By default \code{countryCode},
-\code{coordinateUncertainty}, and \code{gbif_issues_max} are enabled; \code{date},
-\code{identifiedBy}, and \code{recordedBy} are disabled.
+Every applied test inspects the full table on its own terms rather than only
+the records left by the preceding tests, and its verdict is stored as a
+logical column named after the test. \code{TRUE} means the record passed that
+test. By default \code{countryCode}, \code{coordinateUncertainty}, and
+\code{gbif_issues_max} are enabled; \code{date}, \code{identifiedBy}, and \code{recordedBy} are
+disabled. Numeric thresholds are validated before any work is done, so an
+invalid value fails immediately.
+
+The always-on \code{taxon_resolved} test is the first one applied. It is not a
+selectable rule: \code{\link[=check_taxon]{check_taxon()}} only retains records whose name resolved, so
+records absent from \code{taxa_checked$occ_taxa_checked} receive \code{NA} \code{Accepted_name}
+at the join and fail this test. It always contributes a
+\code{filter_taxon_resolved} column.
 \itemize{
 \item \code{countryCode}: drop records with \code{NA} latitude \strong{and} \code{NA}/empty
 \code{countryCode}.
@@ -120,6 +146,40 @@ below).
 one-to-one issue join guarantees every record carries an issue count, so
 no record is exempt from this rule.
 }
+}
+
+\subsection{Per-rule verdict columns}{
+
+Each applied test contributes a logical column named after it:
+\code{filter_taxon_resolved} (always) plus \code{filter_countryCode},
+\code{filter_coordinateUncertainty}, \code{filter_date}, \code{filter_identifiedBy},
+\code{filter_recordedBy}, and \code{filter_gbif_issues_max} for the selected rules.
+\code{TRUE} marks a record that passed that test. A disabled rule contributes no
+column, so the output width depends on which rules were selected. The columns
+are carried by \code{occ_marked}, where they identify which tests rejected each
+excluded record; \code{occ_filtered} holds only occurrence and joined columns.
+
+Because each rule is evaluated independently, one record can fail several
+tests at once and is then counted by each of them. The \code{summary} table makes
+this explicit:
+\itemize{
+\item \code{failed} is the number of records that test rejects on its own terms;
+these counts overlap and sum to more than the number of records removed.
+\item \code{only_failed_here} is the number of records that test rejects and no other
+test does; these counts are disjoint but incomplete, since a record failing
+several tests is credited to none of them.
+\item \code{dropped} and \code{remaining} remain the sequential attribution: each removed
+record is credited to the first enabled test that rejected it, so \code{dropped}
+sums exactly to the number of records removed.
+}
+
+The split of the output reflects the same distinction. \code{occ_filtered} holds
+the records that passed every applied test, with their occurrence and joined
+columns and no verdict columns; \code{occ_marked} holds the rest, reduced to
+\code{gbifID} and the verdict columns. Because every applied test has a column,
+each marked record carries at least one \code{FALSE} and shows exactly which tests
+rejected it - a record excluded only because its taxon name did not resolve
+has \code{FALSE} in \code{filter_taxon_resolved} alone.
 }
 
 \subsection{Collector junk detection}{
@@ -159,32 +219,39 @@ gbif_file <- system.file(
   package = "VasGBIF"
 )
 occ <- import_records(path = gbif_file)
-gbif_issue <- extract_gbif_issues(occ)
 taxa_checked <- check_taxon(occ_import = occ, accuracy = 0.85)
 
 filtered <- customized_filter(
   occ_import = occ,
   taxa_checked = taxa_checked,
-  gbif_issue = gbif_issue,
   filter_date = TRUE,
   filter_identifiedBy = TRUE,
   filter_recordedBy = TRUE
 )
 filtered
+filtered$summary
 
-# Disable the coordinate-uncertainty rule (NULL / NA / '' all work):
+# The kept records carry the occurrence and joined columns only:
+names(filtered$occ_filtered)
+
+# The excluded records carry `gbifID` and one verdict column per applied
+# test, so each shows exactly which tests rejected it:
+names(filtered$occ_marked)
+head(filtered$occ_marked)
+
+# Disable the coordinate-uncertainty rule (NULL / NA / '' all work). The
+# rule contributes no verdict column:
 filtered_loose <- customized_filter(
   occ_import = occ,
   taxa_checked = taxa_checked,
-  gbif_issue = gbif_issue,
   filter_coordinateUncertainty = NULL
 )
-filtered_loose
+"filter_coordinateUncertainty" \%in\% names(filtered_loose$occ_marked)
 \dontshow{\}) # examplesIf}
 }
 \seealso{
 \itemize{
-\item \code{\link[=import_records]{import_records()}}, \code{\link[=check_taxon]{check_taxon()}}, \code{\link[=extract_gbif_issues]{extract_gbif_issues()}} for the three
-inputs.
+\item \code{\link[=import_records]{import_records()}} and \code{\link[=check_taxon]{check_taxon()}} for the two inputs.
+\item \code{\link[=extract_issues]{extract_issues()}} for the issue count behind the \code{gbif_issues_max} rule.
 }
 }

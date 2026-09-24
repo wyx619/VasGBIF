@@ -4,11 +4,22 @@
 \alias{map_records}
 \title{Visualize refined records on interactive maps}
 \usage{
-map_records(native_detected_coord = NA, precision = 3, cex = 3)
+map_records(
+  native_detected_coord = NA,
+  species = "all",
+  precision = 3,
+  cex = 3
+)
 }
 \arguments{
 \item{native_detected_coord}{A \code{nativeDetected} object returned by
 \code{\link[=detect_native_coord]{detect_native_coord()}}, containing records with validated coordinates.}
+
+\item{species}{Either \code{"all"} (the default) to map every species, or a single
+species name to restrict the map to that species. The name is matched
+exactly against the \code{Accepted_name} column, so \code{"Saxifraga hirculus"} maps
+the records of that species. Records whose \code{native_status} is \code{"unknown"}
+are excluded either way.}
 
 \item{precision}{Positive integer controlling the spatial resolution of
 geohash-based deduplication. Higher values produce finer-grained cells. For
@@ -33,7 +44,7 @@ The function works in four steps:
 \itemize{
 \item \strong{Record selection:} Reads the classified records from
 \code{\link[=detect_native_coord]{detect_native_coord()}}, keeping those whose \code{native_status} is not
-\code{"unknown"}.
+\code{"unknown"}, optionally restricted to a single species named by \code{species}.
 \item \strong{Geohash deduplication:} Encodes coordinates at the requested precision
 and retains one representative record per species, geohash cell, and native
 status.
@@ -46,11 +57,15 @@ Stadia Stamen Watercolor basemaps.
 
 Both the classification and the coordinates are read from
 \code{native_detected_coord}, which carries every column of the input records.
-Records with \code{native_status = "unknown"} are excluded. Records with missing
-longitude or latitude are excluded as a guard; \code{\link[=detect_native_coord]{detect_native_coord()}} only
-classifies records with validated coordinates, so none are expected, and
-inputs that carry missing coordinates (such as the output of
-\code{\link[=detect_native_country]{detect_native_country()}}) are rejected outright.
+Records with \code{native_status = "unknown"} are excluded. When \code{species} names a
+species rather than \code{"all"}, the selection is narrowed further to the records
+whose \code{Accepted_name} equals that name; the comparison is exact, so the
+spelling must match the column value. A name that selects nothing is an
+error, because an empty map is read as "this species has no native records".
+Records with missing longitude or latitude are excluded as a guard;
+\code{\link[=detect_native_coord]{detect_native_coord()}} only classifies records with validated coordinates,
+so none are expected, and inputs that carry missing coordinates (such as the
+output of \code{\link[=detect_native_country]{detect_native_country()}}) are rejected outright.
 }
 
 \subsection{Geohash deduplication}{
@@ -77,10 +92,17 @@ perception.
 }
 \examples{
 \dontshow{if (interactive() && exists("native_detected_coord")) withAutoprint(\{ # examplesIf}
+# Every species in the classification
 map_records(
   native_detected_coord = native_detected_coord,
   precision = 3,
   cex = 3
+)
+
+# A single species
+map_records(
+  native_detected_coord = native_detected_coord,
+  species = "Saxifraga hirculus"
 )
 \dontshow{\}) # examplesIf}
 }

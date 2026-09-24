@@ -16,5 +16,7 @@ Invisibly returns \code{x}.
 }
 \description{
 Displays a concise summary of the filtering result: the number of records
-before and after filtering, and the per-rule drop table.
+before and after filtering, how many were excluded, and the per-rule table
+(\code{dropped}, \code{remaining}, \code{failed}, and \code{only_failed_here}). The excluded
+records are available in \code{x$occ_marked}.
 }

@@ -43,32 +43,28 @@ reference:
   - title: "Step 1 — Import Records"
     contents:
       - import_records
-  - title: "Step 2 — Extract GBIF Issues"
-    contents:
-      - extract_gbif_issues
-  - title: "Step 3 — Check Taxon Name"
+  - title: "Step 2 — Check Taxon Name"
     contents:
       - check_taxon
-  - title: "Step 4 — Custom Filter"
+  - title: "Step 3 — Customized Filter"
     contents:
       - customized_filter
-  - title: "Step 5 — Refine Coordinates"
+  - title: "Step 4 — Clean Coordinates"
     contents:
       - clean_coordinates
-  - title: "Step 6 — Detect Native Status"
+  - title: "Step 5 — Detect Native Status"
     contents:
       - detect_native_coord
       - detect_native_country
-  - title: "Step 7 — Map Records"
+  - title: "Step 6 — Map Records"
     contents:
       - map_records
-  - title: "Step 8 — Export Records"
+  - title: "Step 7 — Export Records"
     contents:
       - export_records
   - title: "Print methods"
     contents:
       - print.import
-      - print.issue
       - print.occ_taxa
       - print.CoordinateRefined
       - print.customFiltered
