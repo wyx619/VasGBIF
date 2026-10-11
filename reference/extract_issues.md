@@ -55,17 +55,3 @@ dataset are ignored.
 
 - [`EnumOccurrenceIssue`](https://wyx619.github.io/VasGBIF/reference/EnumOccurrenceIssue.md)
   for the full list of recognised GBIF issue codes.
-
-## Examples
-
-``` r
-if (FALSE) { # interactive()
-gbif_file <- system.file(
-  "extdata",
-  "0003386-260721160103020.zip",
-  package = "VasGBIF"
-)
-occ <- import_records(path = gbif_file)
-head(extract_issues(occ))
-}
-```

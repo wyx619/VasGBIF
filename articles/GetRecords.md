@@ -73,7 +73,7 @@ gbif_key <- name_backbone(genus, rank = "genus")
 cat(paste(genus,":",gbif_key$usageKey))
 ```
 
-    ## Saxifraga : 2987833
+    ## Saxifraga : 7CVF
 
 ### Building predicates
 

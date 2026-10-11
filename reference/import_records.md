@@ -131,18 +131,5 @@ occ <- import_records(path = gbif_file)
 occ_import <- extract_gbif_issues(occ)
 head(occ_import$summary, 5)
 
-# An already extracted occurrence table is read directly. The extension is
-# irrelevant; the file must be tab-separated and start with a `gbifID`
-# column.
-# occ <- import_records(path = "~/downloads/occurrence.txt")
-
-# Extract into a directory of your own; the extracted file is removed on
-# exit, but the directory and its other contents are kept.
-# occ <- import_records(path = gbif_file, tempdir = "~/gbif_extracted")
-
-# Keep the extracted file as well.
-# occ <- import_records(
-#   path = gbif_file, tempdir = "~/gbif_extracted", remove_tempfile = FALSE
-# )
 }
 ```

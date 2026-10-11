@@ -161,19 +161,6 @@ for the difference between 'SIMPLE_CSV' and 'DWCA' downloads.</p></li>
 <span class="r-in"><span><span class="va">occ_import</span> <span class="op">&lt;-</span> <span class="fu">extract_gbif_issues</span><span class="op">(</span><span class="va">occ</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">occ_import</span><span class="op">$</span><span class="va">summary</span>, <span class="fl">5</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># An already extracted occurrence table is read directly. The extension is</span></span></span>
-<span class="r-in"><span><span class="co"># irrelevant; the file must be tab-separated and start with a `gbifID`</span></span></span>
-<span class="r-in"><span><span class="co"># column.</span></span></span>
-<span class="r-in"><span><span class="co"># occ &lt;- import_records(path = "~/downloads/occurrence.txt")</span></span></span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Extract into a directory of your own; the extracted file is removed on</span></span></span>
-<span class="r-in"><span><span class="co"># exit, but the directory and its other contents are kept.</span></span></span>
-<span class="r-in"><span><span class="co"># occ &lt;- import_records(path = gbif_file, tempdir = "~/gbif_extracted")</span></span></span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Keep the extracted file as well.</span></span></span>
-<span class="r-in"><span><span class="co"># occ &lt;- import_records(</span></span></span>
-<span class="r-in"><span><span class="co">#   path = gbif_file, tempdir = "~/gbif_extracted", remove_tempfile = FALSE</span></span></span>
-<span class="r-in"><span><span class="co"># )</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 </code></pre></div>
     </div>
