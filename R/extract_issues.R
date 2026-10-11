@@ -35,14 +35,6 @@
 #' @import stringi
 #' @keywords internal
 #'
-#' @examplesIf interactive()
-#' gbif_file <- system.file(
-#'   "extdata",
-#'   "0003386-260721160103020.zip",
-#'   package = "VasGBIF"
-#' )
-#' occ <- import_records(path = gbif_file)
-#' head(extract_issues(occ))
 #'
 extract_issues <- function(occ = NA) {
   if (!inherits(occ, "import")) {

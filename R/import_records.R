@@ -91,19 +91,6 @@
 #' occ_import <- extract_gbif_issues(occ)
 #' head(occ_import$summary, 5)
 #'
-#' # An already extracted occurrence table is read directly. The extension is
-#' # irrelevant; the file must be tab-separated and start with a `gbifID`
-#' # column.
-#' # occ <- import_records(path = "~/downloads/occurrence.txt")
-#'
-#' # Extract into a directory of your own; the extracted file is removed on
-#' # exit, but the directory and its other contents are kept.
-#' # occ <- import_records(path = gbif_file, tempdir = "~/gbif_extracted")
-#'
-#' # Keep the extracted file as well.
-#' # occ <- import_records(
-#' #   path = gbif_file, tempdir = "~/gbif_extracted", remove_tempfile = FALSE
-#' # )
 #'
 #' @references
 #' GBIF.org (23 July 2026) GBIF Occurrence Download
@@ -240,8 +227,11 @@ import_records <- function(path = '', tempdir = NULL, remove_tempfile = TRUE) {
   if (length(first_col) == 0L || is.na(first_col) || first_col != "gbifID") {
     stop(
       '`path` does not look like a GBIF occurrence table: the first column is ',
-      if (length(first_col) == 0L || is.na(first_col)) 'absent' else
-        paste0('"', first_col, '"'),
+      if (length(first_col) == 0L || is.na(first_col)) {
+        'absent'
+      } else {
+        paste0('"', first_col, '"')
+      },
       ', expected "gbifID". The file must be tab-separated.',
       call. = FALSE
     )

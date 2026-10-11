@@ -1,7 +1,7 @@
 Package: VasGBIF
 Title: Fast and Easy Compilation of Vascular Plants Occurrence Records from 'GBIF'
 Version: 3.7.1
-Date: 2026-09-21
+Date: 2026-10-11
 Type: Package
 Maintainer: Yuxuan Wang <wyx1743@gmail.com>
 Authors@R: 
@@ -11,13 +11,13 @@ Authors@R:
 URL: https://github.com/wyx619/VasGBIF (devel), https://wyx619.github.io/VasGBIF/ (documentation)
 BugReports: https://github.com/wyx619/VasGBIF/issues
 Description: 'GBIF' <https://www.gbif.org/> hosts over 500 million occurrence records of tracheophyte (vascular plants). However, dealing with them typically involves lots of workflows and time, posing significant challenges for researchers. To address these limitations, we present 'VasGBIF', a fast and easy 'R' package to parse and merge enormous tracheophyte records.
-License: GPL (>= 3) | file LICENSE
+License: GPL (>= 3.0)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 LazyData: true
 LazyDataCompression: xz
 Depends: R (>= 4.1),data.table,bit64
-Imports: dplyr,stringi,terra,CoordinateCleaner,TNRS,geohashTools,mapview,foreach,doParallel
+Imports: dplyr,stringi,terra (≥ 1.8-10),CoordinateCleaner,TNRS,geohashTools,mapview,foreach,doParallel
 Suggests: 
     knitr,
     leaflet,
