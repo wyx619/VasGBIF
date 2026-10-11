@@ -17,7 +17,7 @@ Roxygen: list(markdown = TRUE)
 LazyData: true
 LazyDataCompression: xz
 Depends: R (>= 4.1),data.table,bit64
-Imports: dplyr,stringi,terra (≥ 1.8-10),CoordinateCleaner,TNRS,geohashTools,mapview,foreach,doParallel
+Imports: dplyr,stringi,terra (>= 1.8-10),CoordinateCleaner,TNRS,geohashTools,mapview,foreach,doParallel
 Suggests: 
     knitr,
     leaflet,

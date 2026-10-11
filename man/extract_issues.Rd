@@ -34,17 +34,6 @@ The set of recognised issue codes is taken from the package dataset
 string, and \code{issue_count} is how many of them are found. Codes not present
 in the dataset are ignored.
 }
-\examples{
-\dontshow{if (interactive()) withAutoprint(\{ # examplesIf}
-gbif_file <- system.file(
-  "extdata",
-  "0003386-260721160103020.zip",
-  package = "VasGBIF"
-)
-occ <- import_records(path = gbif_file)
-head(extract_issues(occ))
-\dontshow{\}) # examplesIf}
-}
 \seealso{
 \itemize{
 \item \code{\link[=import_records]{import_records()}} for the preceding step that produces the \code{occ} input.
